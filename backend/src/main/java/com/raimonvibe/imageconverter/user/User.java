@@ -1,4 +1,8 @@
 package com.raimonvibe.imageconverter.user;
+import com.raimonvibe.imageconverter.user.UserRepository;
+import com.raimonvibe.imageconverter.user.UserService;
+import com.raimonvibe.imageconverter.user.AnonymousUserService;
+import com.raimonvibe.imageconverter.user.User;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;

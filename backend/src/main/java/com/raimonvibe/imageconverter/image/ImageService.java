@@ -1,34 +1,76 @@
 package com.raimonvibe.imageconverter.image;
 
+import org.springframework.stereotype.Service;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
+@Service
 public class ImageService {
 
-  public record ConversionOptions(String format, Integer quality) {}
+    public record ConversionOptions(String format, Integer quality) {}
 
-  public File convert(File input, ConversionOptions options) throws IOException, InterruptedException {
-    String outExt = options.format().toLowerCase();
-    File out = Files.createTempFile("conv-" + UUID.randomUUID(), "." + outExt).toFile();
-    ProcessBuilder pb;
-    if (options.quality() != null) {
-      pb = new ProcessBuilder("convert", input.getAbsolutePath(), "-quality", String.valueOf(options.quality()), out.getAbsolutePath());
-    } else {
-      pb = new ProcessBuilder("convert", input.getAbsolutePath(), out.getAbsolutePath());
-    }
-    pb.redirectErrorStream(true);
-    Process p = pb.start();
-    int code = p.waitFor();
-    if (code != 0 || !out.exists()) {
-      throw new IOException("Conversion failed with code " + code);
-    }
-    return out;
-  }
+    // Maximaal 4 conversies tegelijk
+    private final Semaphore semaphore = new Semaphore(4);
 
-  public static List<String> supportedFormats() {
-    return List.of("jpg","jpeg","png","webp","avif","heic","tiff","bmp","gif","svg");
-  }
+    /**
+     * Converteert input-bestand naar target-format via ImageMagick ("magick" CLI).
+     * - Concurrency gelimiteerd met Semaphore
+     * - Timeout van 15 seconden
+     * - Temp output in system temp
+     */
+    public File convert(File input, ConversionOptions options) throws IOException, InterruptedException {
+        if (!semaphore.tryAcquire(30, TimeUnit.SECONDS)) {
+            throw new IOException("Server busy: too many concurrent conversions");
+        }
+        try {
+            String outExt = options.format().toLowerCase();
+            File out = Files.createTempFile("conv-" + UUID.randomUUID(), "." + outExt).toFile();
+            IOException lastError = null;
+
+            for (String cmd : List.of("magick", "convert")) {
+                ProcessBuilder pb = (options.quality() != null)
+                        ? new ProcessBuilder(cmd, input.getAbsolutePath(),
+                                "-quality", String.valueOf(options.quality()), out.getAbsolutePath())
+                        : new ProcessBuilder(cmd, input.getAbsolutePath(), out.getAbsolutePath());
+
+                pb.redirectErrorStream(true);
+
+                try {
+                    Process p = pb.start();
+                    boolean finished = p.waitFor(15, TimeUnit.SECONDS);
+                    if (!finished) {
+                        p.destroyForcibly();
+                        lastError = new IOException("ImageMagick process timeout");
+                        continue;
+                    }
+
+                    int code = p.exitValue();
+                    if (code == 0 && out.exists() && out.length() > 0) {
+                        return out;
+                    }
+                    lastError = new IOException("Conversion failed with '" + cmd + "', exit code=" + code);
+                } catch (IOException ioe) {
+                    lastError = ioe;
+                }
+            }
+
+            throw (lastError != null ? lastError : new IOException("Unknown conversion error"));
+        } finally {
+            semaphore.release();
+        }
+    }
+
+    /**
+     * Ondersteunde outputformaten.
+     * Sync houden met validator in controller.
+     */
+    public static List<String> supportedFormats() {
+        return List.of("jpg", "jpeg", "png", "webp", "avif");
+    }
 }

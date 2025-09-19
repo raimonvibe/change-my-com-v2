@@ -1,3 +1,8 @@
+server:
+  port: ${PORT:8080}
+  tomcat:
+    max-swallow-size: 8MB
+
 spring:
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/imageconverter}
@@ -11,11 +16,11 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   servlet:
     multipart:
-      max-file-size: 25MB
-      max-request-size: 100MB
-
-server:
-  port: ${PORT:8080}
+      max-file-size: 8MB
+      max-request-size: 8MB
+  mvc:
+    async:
+      request-timeout: 30s
 
 app:
   stripe:
@@ -27,3 +32,7 @@ app:
   auth:
     googleClientId: ${GOOGLE_CLIENT_ID:}
     allowedOrigins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+
+logging:
+  level:
+    com.raimonvibe.imageconverter: INFO
