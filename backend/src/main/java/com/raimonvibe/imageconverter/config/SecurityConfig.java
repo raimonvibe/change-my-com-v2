@@ -12,12 +12,17 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
 public class SecurityConfig {
+
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
 
     // ====== Security Filter Chain ======
     @Bean
@@ -27,21 +32,32 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(Customizer.withDefaults())
             .headers(h -> h
-                // Strakke CSP voor een API (alleen connect/img/self; pas evt. aan voor OpenAPI-UI)
+                // Production-ready CSP
                 .contentSecurityPolicy(csp -> csp.policyDirectives(
                     "default-src 'none'; " +
                     "img-src 'self' blob: data:; " +
                     "connect-src 'self'; " +
                     "script-src 'self'; " +
                     "style-src 'self' 'unsafe-inline'; " +
-                    "frame-ancestors 'none'"))
-                .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                    "frame-ancestors 'none'; " +
+                    "base-uri 'self'; " +
+                    "form-action 'self'"))
+                .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                 .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
-                .xssProtection(x -> x.disable()) // vervangen door CSP
+                .xssProtection(x -> x.disable()) // CSP replaces XSS protection
                 .contentTypeOptions(Customizer.withDefaults())
                 .httpStrictTransportSecurity(hsts -> hsts
                     .includeSubDomains(true)
-                    .preload(true))
+                    .preload(true)
+                    .maxAgeInSeconds(31536000)) // 1 year
+                // Additional security headers
+                .addHeaderWriter((request, response) -> {
+                    response.setHeader("Permissions-Policy", 
+                        "camera=(), microphone=(), geolocation=(), payment=()");
+                    response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+                    response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+                    response.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+                })
             )
             .authorizeHttpRequests(auth -> auth
                 // Preflight altijd doorlaten
@@ -55,8 +71,12 @@ public class SecurityConfig {
                 // Convert endpoints open (credits/limits in controller)
                 .requestMatchers(HttpMethod.GET, "/api/convert/formats").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/convert").permitAll()
-                // Debug alleen tijdelijk in DEV — zet uit in PROD
-                .requestMatchers("/api/debug/**").denyAll()
+                // Debug endpoints: allow in dev, deny in prod
+                .requestMatchers("/api/debug/**").access((authentication, context) -> 
+                    new AuthorizationDecision("dev".equals(activeProfile) 
+                        ? authentication.get().isAuthenticated() 
+                        : false)
+                )
                 // Alles anders dicht tenzij je elders expliciet opent
                 .anyRequest().authenticated()
             )

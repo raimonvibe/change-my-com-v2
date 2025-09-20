@@ -2,6 +2,11 @@ server:
   port: ${PORT:8080}
   tomcat:
     max-swallow-size: 8MB
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
 
 spring:
   datasource:
@@ -36,3 +41,25 @@ app:
 logging:
   level:
     com.raimonvibe.imageconverter: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/application.log
+    max-size: 10MB
+    max-history: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+  security:
+    enabled: true
+
+# Production security settings (merged into server section above)
