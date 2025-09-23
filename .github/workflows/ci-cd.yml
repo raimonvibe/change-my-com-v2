@@ -1,0 +1,71 @@
+name: CI with Postgres service
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    # Start Postgres als service in de job
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: imagedb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d imagedb"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # -------- Frontend --------
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16'   # hou gelijk aan je project; upgrade kan later
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install deps (frontend)
+        working-directory: frontend
+        run: npm ci
+
+      - name: Test (frontend)
+        working-directory: frontend
+        run: npm test --if-present
+
+      # -------- Backend --------
+      - name: Set up Java 17 (Temurin) + Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Wacht tot Postgres ready
+        run: |
+          for i in {1..30}; do
+            if docker run --network host --rm postgres:15 pg_isready -h 127.0.0.1 -p 5432 -U postgres -d imagedb; then
+              echo "Postgres is ready"; break
+            fi
+            echo "Waiting for Postgres... ($i)"; sleep 2
+          done
+
+      - name: Build & test (backend)
+        working-directory: backend
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/imagedb
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+        run: mvn -B clean verify
