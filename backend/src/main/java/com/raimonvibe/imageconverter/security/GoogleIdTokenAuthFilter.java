@@ -37,6 +37,8 @@ public class GoogleIdTokenAuthFilter extends OncePerRequestFilter {
     String header = request.getHeader("Authorization");
     if (header != null && header.startsWith("Bearer ")) {
       String token = header.substring(7);
+      System.out.println("Received Authorization header for: " + request.getRequestURI());
+      System.out.println("Token length: " + token.length());
       try {
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
             .setAudience(Collections.singletonList(googleClientId))
@@ -51,6 +53,8 @@ public class GoogleIdTokenAuthFilter extends OncePerRequestFilter {
           }
         }
       } catch (Exception e) {
+        System.err.println("Google token validation failed: " + e.getMessage());
+        e.printStackTrace();
       }
     }
     chain.doFilter(request, response);

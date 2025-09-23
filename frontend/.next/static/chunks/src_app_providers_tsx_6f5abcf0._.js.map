@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file:///home/stefan/Documenten/web-development/008change-my-image/frontend/src/app/providers.tsx"],"sourcesContent":["'use client';\nimport React from \"react\";\nimport { SessionProvider } from \"next-auth/react\";\n\nexport function Providers({ children }: { children: React.ReactNode }) {\n  return <SessionProvider>{children}</SessionProvider>;\n}\n"],"names":[],"mappings":";;;;AAEA;AAFA;;;AAIO,SAAS,UAAU,KAA2C;QAA3C,EAAE,QAAQ,EAAiC,GAA3C;IACxB,qBAAO,6LAAC,iJAAA,CAAA,kBAAe;kBAAE;;;;;;AAC3B;KAFgB","debugId":null}}]
-}

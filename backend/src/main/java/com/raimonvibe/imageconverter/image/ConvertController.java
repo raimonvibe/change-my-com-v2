@@ -91,14 +91,8 @@ public class ConvertController {
         try {
             if (principal != null) {
                 final String email = principal.getName();
-                final User user = userRepository.findByEmail(email)
-                        .orElse(null);
-                if (user == null) {
-                    // principal bestaat maar user niet (bijv. verwijderd): behandel als 401
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                            .header("Cache-Control", "no-store")
-                            .build();
-                }
+                // Use UserService to ensure user exists and get proper user object
+                final User user = userService.ensureUserByEmail(email);
                 allowed = userService.consumeOneConversion(user, packSize);
             } else {
                 final String clientIp = getClientIpAddress(request);
