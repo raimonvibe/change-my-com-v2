@@ -26,6 +26,10 @@ spring:
   mvc:
     async:
       request-timeout: 30s
+  security:
+    user:
+      name: ${SPRING_SECURITY_USER_NAME:admin}
+      password: ${SPRING_SECURITY_USER_PASSWORD:change-me-in-production}
 
 app:
   stripe:

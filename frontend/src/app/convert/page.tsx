@@ -90,15 +90,15 @@ export default function ConvertPage() {
   }, [refreshKey]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-sky-800 flex items-center gap-2">
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-lg sm:text-xl font-semibold text-sky-800 flex items-center gap-2">
         <Wand2 className="text-sky-600" /> Convert Images
       </h1>
-      <div className="rounded-lg border bg-white p-4">
-        <div className="grid md:grid-cols-3 gap-4">
+      <div className="rounded-lg border bg-white p-3 sm:p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           <div>
             <label className="block text-sm text-slate-600 mb-1">Target format</label>
-            <select value={target} onChange={(e)=>setTarget(e.target.value)} className="w-full rounded-md border-slate-300">
+            <select value={target} onChange={(e)=>setTarget(e.target.value)} className="w-full rounded-md border-slate-300 text-sm">
               {FORMATS.map(f => <option key={f} value={f}>{f.toUpperCase()}</option>)}
             </select>
           </div>
@@ -107,27 +107,27 @@ export default function ConvertPage() {
             <input type="range" min={1} max={100} value={quality} onChange={(e)=>setQuality(Number(e.target.value))} className="w-full" />
             <div className="text-xs text-slate-500 mt-1">{quality}</div>
           </div>
-          <div className="flex items-end">
-            <button onClick={start} className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-4 py-2 text-white hover:bg-sky-700">
+          <div className="sm:col-span-2 lg:col-span-1 flex items-end">
+            <button onClick={start} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-sky-600 px-4 py-2 text-white hover:bg-sky-700 text-sm">
               <Wand2 size={16} /> Convert
             </button>
           </div>
         </div>
-        <div {...getRootProps()} className={"mt-4 border-2 border-dashed rounded-lg p-8 text-center " + dropClass}>
+        <div {...getRootProps()} className={"mt-4 border-2 border-dashed rounded-lg p-4 sm:p-8 text-center " + dropClass}>
           <input {...getInputProps()} />
-          <div className="flex items-center justify-center gap-2 text-slate-600">
-            <Upload /> Drag & drop images here, or click to select
+          <div className="flex items-center justify-center gap-2 text-slate-600 text-sm sm:text-base">
+            <Upload size={16} /> <span className="hidden sm:inline">Drag & drop images here, or click to select</span><span className="sm:hidden">Tap to select images</span>
           </div>
         </div>
       </div>
 
       <div className="grid gap-3" key={refreshKey}>
         {jobs.map((j, idx) => (
-          <div key={`${idx}-${j.status}-${refreshKey}`} className="rounded-md border bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <div className="text-sm font-medium">{j.file.name}</div>
+          <div key={`${idx}-${j.status}-${refreshKey}`} className="rounded-md border bg-white p-3 sm:p-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                  <div className="text-sm font-medium truncate">{j.file.name}</div>
                   <div className="text-xs text-slate-500">
                     {Math.round(j.file.size/1024)} KB → {target.toUpperCase()}
                   </div>
@@ -156,21 +156,21 @@ export default function ConvertPage() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 {j.status === 'done' && j.url && (
                   <>
                     <button 
                       onClick={() => window.open(j.url, '_blank')}
-                      className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-slate-700 hover:bg-slate-200 text-sm"
+                      className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 sm:px-3 py-1.5 text-slate-700 hover:bg-slate-200 text-xs sm:text-sm"
                     >
-                      <Eye size={14} /> Preview
+                      <Eye size={12} /> <span className="hidden sm:inline">Preview</span>
                     </button>
                     <a 
                       href={j.url} 
                       download={`${j.file.name.split('.')[0]}_converted.${target}`}
-                      className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-white hover:bg-emerald-700 text-sm"
+                      className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 sm:px-3 py-1.5 text-white hover:bg-emerald-700 text-xs sm:text-sm"
                     >
-                      <Download size={16} /> Download
+                      <Download size={12} /> <span className="hidden sm:inline">Download</span>
                     </a>
                   </>
                 )}

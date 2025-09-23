@@ -46,7 +46,8 @@ public class StripeWebhookController {
         if (metadata != null && "unlimited_conversions".equals(metadata.get("subscription"))) {
           if (email != null) {
             User user = userService.ensureUserByEmail(email);
-            userService.addCredits(user, 0, "subscription_activated");
+            // Add a large number of credits for unlimited conversions (999999)
+            userService.addCredits(user, 999999, "subscription_activated");
           }
         }
       }
