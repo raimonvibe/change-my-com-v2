@@ -148,7 +148,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Duplicate lockfiles (keep only root package-lock.json)
-frontend/package-lock.json
+# frontend/package-lock.json  # Commented out - needed for GitHub Actions caching
 
 # Runtime data
 pids
