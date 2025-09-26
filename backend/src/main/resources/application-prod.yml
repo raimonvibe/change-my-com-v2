@@ -1,7 +1,5 @@
 # Production Configuration
 spring:
-  profiles:
-    active: prod
   jpa:
     hibernate:
       ddl-auto: validate  # Never auto-create tables in production
