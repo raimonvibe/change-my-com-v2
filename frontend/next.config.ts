@@ -1,9 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Vercel optimizations
+  // Static export for Render
+  output: 'export',
+  trailingSlash: true,
+  
+  // Image optimization for static export
   images: {
-    domains: ['localhost', 'your-backend.onrender.com'],
+    unoptimized: true,
+    domains: ['localhost', 'imageconverter-backend.onrender.com'],
     formats: ['image/webp', 'image/avif'],
   },
   
