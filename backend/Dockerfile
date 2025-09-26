@@ -1,5 +1,5 @@
 # Multi-stage build for Spring Boot app
-FROM openjdk:17-jdk-slim as builder
+FROM eclipse-temurin:17-jdk-alpine as builder
 
 # Set working directory
 WORKDIR /app
@@ -23,13 +23,10 @@ COPY src src
 RUN ./mvnw clean package -DskipTests
 
 # Runtime stage
-FROM openjdk:17-jre-slim
+FROM eclipse-temurin:17-jre-alpine
 
-# Install ImageMagick for image conversion
-RUN apt-get update && \
-    apt-get install -y imagemagick && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Install ImageMagick and curl for health check
+RUN apk add --no-cache imagemagick curl
 
 # Create app user
 RUN addgroup --system spring && adduser --system spring --ingroup spring
