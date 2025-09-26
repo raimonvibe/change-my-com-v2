@@ -1,6 +1,19 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 
+// Extend the default types
+declare module "next-auth" {
+  interface Session {
+    idToken?: string;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    idToken?: string;
+  }
+}
+
 const handler = NextAuth({
   providers: [
     Google({
@@ -12,12 +25,12 @@ const handler = NextAuth({
   callbacks: {
     async jwt({ token, account }) {
       if (account && account.id_token) {
-        (token as any).idToken = account.id_token;
+        token.idToken = account.id_token;
       }
       return token;
     },
     async session({ session, token }) {
-      (session as any).idToken = (token as any).idToken;
+      session.idToken = token.idToken;
       return session;
     },
   },

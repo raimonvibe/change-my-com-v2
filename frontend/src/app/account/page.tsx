@@ -14,7 +14,7 @@ export default function AccountPage() {
   useEffect(() => {
     const fetchMe = async () => {
       if (!session) return;
-      const token = (session as any).idToken;
+      const token = session?.idToken;
       try {
         console.log('Fetching user data with token:', token ? 'present' : 'missing');
         const res = await fetch(`${API_URL}/api/user/me`, {
