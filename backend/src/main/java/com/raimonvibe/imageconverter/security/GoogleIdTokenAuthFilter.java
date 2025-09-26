@@ -37,8 +37,12 @@ public class GoogleIdTokenAuthFilter extends OncePerRequestFilter {
     String header = request.getHeader("Authorization");
     if (header != null && header.startsWith("Bearer ")) {
       String token = header.substring(7);
-      System.out.println("Received Authorization header for: " + request.getRequestURI());
+      System.out.println("=== GOOGLE OAUTH DEBUG ===");
+      System.out.println("Request URI: " + request.getRequestURI());
       System.out.println("Token length: " + token.length());
+      System.out.println("Expected Client ID: " + googleClientId);
+      System.out.println("Token preview: " + token.substring(0, Math.min(20, token.length())) + "...");
+      
       try {
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
             .setAudience(Collections.singletonList(googleClientId))
@@ -46,16 +50,24 @@ public class GoogleIdTokenAuthFilter extends OncePerRequestFilter {
         GoogleIdToken idToken = verifier.verify(token);
         if (idToken != null) {
           String email = Optional.ofNullable(idToken.getPayload().getEmail()).orElse(null);
+          System.out.println("Token validation SUCCESS for email: " + email);
           if (email != null) {
             var user = userService.ensureUserByEmail(email);
             var auth = new UsernamePasswordAuthenticationToken(user.getEmail(), null, Collections.singleton(new SimpleGrantedAuthority("USER")));
             SecurityContextHolder.getContext().setAuthentication(auth);
+            System.out.println("Authentication set for user: " + user.getEmail());
           }
+        } else {
+          System.err.println("Token validation FAILED - idToken is null");
         }
       } catch (Exception e) {
         System.err.println("Google token validation failed: " + e.getMessage());
+        System.err.println("Exception type: " + e.getClass().getSimpleName());
         e.printStackTrace();
       }
+      System.out.println("=== END GOOGLE OAUTH DEBUG ===");
+    } else {
+      System.out.println("No Authorization header found for: " + request.getRequestURI());
     }
     chain.doFilter(request, response);
   }
