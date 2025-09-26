@@ -9,6 +9,8 @@ server:
     include-exception: false
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/imageconverter}
     username: ${DATABASE_USERNAME:postgres}
