@@ -3,6 +3,7 @@ package com.raimonvibe.imageconverter.config;
 import java.util.List;
 
 import com.raimonvibe.imageconverter.security.RateLimitFilter;
+import com.raimonvibe.imageconverter.security.GoogleIdTokenAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,7 +27,7 @@ public class SecurityConfig {
 
     // ====== Security Filter Chain ======
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, RateLimitFilter rateLimitFilter) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http, RateLimitFilter rateLimitFilter, GoogleIdTokenAuthFilter googleAuthFilter) throws Exception {
         http
             // Stateless API (geen cookies/sessies)
             .csrf(csrf -> csrf.disable())
@@ -80,6 +81,8 @@ public class SecurityConfig {
                 // Alles anders dicht tenzij je elders expliciet opent
                 .anyRequest().authenticated()
             )
+            // Google OAuth filter vóór rate limiting
+            .addFilterBefore(googleAuthFilter, UsernamePasswordAuthenticationFilter.class)
             // Rate limiting vóór auth/handlers
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
 
