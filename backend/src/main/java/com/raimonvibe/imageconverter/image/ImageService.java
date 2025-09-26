@@ -42,7 +42,13 @@ public class ImageService {
                 pb.redirectErrorStream(true);
 
                 try {
+                    System.out.println("Running ImageMagick command: " + String.join(" ", pb.command()));
                     Process p = pb.start();
+                    
+                    // Capture error output for debugging
+                    String errorOutput = new String(p.getErrorStream().readAllBytes());
+                    String standardOutput = new String(p.getInputStream().readAllBytes());
+                    
                     boolean finished = p.waitFor(15, TimeUnit.SECONDS);
                     if (!finished) {
                         p.destroyForcibly();
@@ -51,11 +57,21 @@ public class ImageService {
                     }
 
                     int code = p.exitValue();
+                    System.out.println("ImageMagick exit code: " + code);
+                    if (errorOutput != null && !errorOutput.isEmpty()) {
+                        System.err.println("ImageMagick error output: " + errorOutput);
+                    }
+                    if (standardOutput != null && !standardOutput.isEmpty()) {
+                        System.out.println("ImageMagick standard output: " + standardOutput);
+                    }
+                    
                     if (code == 0 && out.exists() && out.length() > 0) {
+                        System.out.println("Conversion successful, output file size: " + out.length());
                         return out;
                     }
-                    lastError = new IOException("Conversion failed with '" + cmd + "', exit code=" + code);
+                    lastError = new IOException("Conversion failed with '" + cmd + "', exit code=" + code + ", error: " + errorOutput);
                 } catch (IOException ioe) {
+                    System.err.println("IOException during ImageMagick execution: " + ioe.getMessage());
                     lastError = ioe;
                 }
             }
