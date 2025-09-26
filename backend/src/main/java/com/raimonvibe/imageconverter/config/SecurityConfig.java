@@ -92,7 +92,7 @@ public class SecurityConfig {
         // Pas het prod-domein aan naar jouw echte frontend URL
         List<String> allowedOrigins = List.of(
             "http://localhost:3000",
-            "https://change-my-image.app" // <— vervang door jouw productie-frontend
+            "https://change-my-com-v2.vercel.app" // <— Vercel frontend URL
         );
 
         CorsConfiguration conf = new CorsConfiguration();
