@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Vercel optimizations (serverless)
+  // Vercel optimizations (serverless mode)
   images: {
     domains: ['localhost', 'imageconverter-backend.onrender.com'],
     formats: ['image/webp', 'image/avif'],
