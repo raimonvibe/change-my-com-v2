@@ -20,7 +20,7 @@ export default function ConvertPage() {
   const [quality, setQuality] = useState(85);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
-  const token = (session as any)?.idToken;
+  const token = session?.idToken;
 
   const onDrop = (acceptedFiles: File[]) => {
     const newJobs = acceptedFiles.map((f) => ({ file: f, status: 'queued' } as Job));
@@ -74,9 +74,10 @@ export default function ConvertPage() {
           console.log('Updating refresh key from', prev, 'to', prev + 1);
           return prev + 1;
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error('Conversion error:', e);
-        setJobs((prev) => prev.map(x => x === j ? { ...x, status: 'error', error: e.message } : x));
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
+        setJobs((prev) => prev.map(x => x === j ? { ...x, status: 'error', error: errorMessage } : x));
       }
     }
   };
