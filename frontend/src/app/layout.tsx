@@ -19,7 +19,10 @@ export const metadata: Metadata = {
   title: "RaimonVibe Image Converter",
   description: "Convert images across formats. 20 free/day, $1.98/month unlimited.",
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.ico', type: 'image/x-icon' }
+    ],
     shortcut: '/favicon.ico',
     apple: '/favicon.ico',
   },
