@@ -12,9 +12,20 @@ export default function AccountPage() {
   const paidCredits = useAuthStore(s => s.paidCredits);
 
   useEffect(() => {
-    const fetchMe = async () => {
+    const fetchMe = async (retryCount = 0) => {
       if (!session) return;
       const token = session?.idToken;
+      
+      // Wait for idToken to be available
+      if (!token) {
+        console.log('Waiting for idToken to be available...');
+        // Retry after a short delay if we haven't exceeded max retries
+        if (retryCount < 3) {
+          setTimeout(() => fetchMe(retryCount + 1), 1000);
+        }
+        return;
+      }
+      
       try {
         console.log('Fetching user data with token:', token ? 'present' : 'missing');
         const res = await fetch(`${API_URL}/api/user/me`, {
@@ -29,6 +40,12 @@ export default function AccountPage() {
           // Try to get response text for debugging
           const errorText = await res.text();
           console.error('Error response body:', errorText);
+          
+          // If 403 and we haven't retried too many times, try again
+          if (res.status === 403 && retryCount < 2) {
+            console.log('Retrying after 403 error...');
+            setTimeout(() => fetchMe(retryCount + 1), 2000);
+          }
           return;
         }
         
@@ -50,6 +67,11 @@ export default function AccountPage() {
         });
       } catch (error) {
         console.error('Error fetching user data:', error);
+        // Retry on network errors
+        if (retryCount < 2) {
+          console.log('Retrying after network error...');
+          setTimeout(() => fetchMe(retryCount + 1), 2000);
+        }
       }
     };
     fetchMe();
