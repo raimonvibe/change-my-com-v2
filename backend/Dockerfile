@@ -25,8 +25,18 @@ RUN ./mvnw clean package -DskipTests
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
 
-# Install ImageMagick and curl for health check
-RUN apk add --no-cache imagemagick curl
+# Install ImageMagick with all codecs and curl for health check
+RUN apk add --no-cache \
+    imagemagick \
+    imagemagick-dev \
+    imagemagick-libs \
+    libjpeg-turbo \
+    libjpeg-turbo-dev \
+    libpng \
+    libpng-dev \
+    libwebp \
+    libwebp-dev \
+    curl
 
 # Create app user
 RUN addgroup --system spring && adduser --system spring --ingroup spring
