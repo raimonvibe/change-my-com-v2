@@ -47,7 +47,10 @@ public class GoogleIdTokenAuthFilter extends OncePerRequestFilter {
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
             .setAudience(Collections.singletonList(googleClientId))
             .build();
+        
+        System.out.println("Attempting to verify token with Google...");
         GoogleIdToken idToken = verifier.verify(token);
+        
         if (idToken != null) {
           String email = Optional.ofNullable(idToken.getPayload().getEmail()).orElse(null);
           System.out.println("Token validation SUCCESS for email: " + email);
@@ -59,10 +62,16 @@ public class GoogleIdTokenAuthFilter extends OncePerRequestFilter {
           }
         } else {
           System.err.println("Token validation FAILED - idToken is null");
+          System.err.println("This usually means:");
+          System.err.println("1. Token is expired");
+          System.err.println("2. Token audience doesn't match expected client ID");
+          System.err.println("3. Token signature is invalid");
+          System.err.println("4. Token is malformed");
         }
       } catch (Exception e) {
         System.err.println("Google token validation failed: " + e.getMessage());
         System.err.println("Exception type: " + e.getClass().getSimpleName());
+        System.err.println("Full exception details:");
         e.printStackTrace();
       }
       System.out.println("=== END GOOGLE OAUTH DEBUG ===");
