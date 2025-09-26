@@ -34,6 +34,9 @@ RUN addgroup --system spring && adduser --system spring --ingroup spring
 # Set working directory
 WORKDIR /app
 
+# Create logs directory and set permissions
+RUN mkdir -p /app/logs && chown -R spring:spring /app
+
 # Copy jar from builder stage
 COPY --from=builder /app/target/change-my-image-0.0.1-SNAPSHOT.jar app.jar
 
