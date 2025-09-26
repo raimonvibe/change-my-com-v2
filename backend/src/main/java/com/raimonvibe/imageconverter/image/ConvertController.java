@@ -71,18 +71,31 @@ public class ConvertController {
             Principal principal,
             HttpServletRequest request
     ) {
+        System.out.println("=== CONVERSION DEBUG ===");
+        System.out.println("Principal: " + (principal != null ? principal.getName() : "null"));
+        System.out.println("File name: " + file.getOriginalFilename());
+        System.out.println("File size: " + file.getSize());
+        System.out.println("File content type: " + file.getContentType());
+        System.out.println("Target format: " + toFormat);
+        System.out.println("Quality: " + quality);
+        
         // ---- 1) Output-formaat whitelist
         final String fmt = toFormat.toLowerCase();
         if (!ALLOWED_OUT.contains(fmt)) {
+            System.err.println("Unsupported target format: " + fmt);
             return badRequest("Unsupported target format");
         }
 
         // ---- 2) Bestandsvalidatie (size/MIME/magic)
         try {
+            System.out.println("Validating file...");
             FileValidator.validate(file);
+            System.out.println("File validation passed");
         } catch (IllegalArgumentException iae) {
+            System.err.println("File validation failed: " + iae.getMessage());
             return badRequest(iae.getMessage());
         } catch (IOException ioe) {
+            System.err.println("File read failed: " + ioe.getMessage());
             return unprocessable("Failed to read upload");
         }
 
@@ -91,18 +104,25 @@ public class ConvertController {
         try {
             if (principal != null) {
                 final String email = principal.getName();
+                System.out.println("Checking credits for authenticated user: " + email);
                 // Use UserService to ensure user exists and get proper user object
                 final User user = userService.ensureUserByEmail(email);
                 allowed = userService.consumeOneConversion(user, packSize);
+                System.out.println("User conversion allowed: " + allowed);
             } else {
                 final String clientIp = getClientIpAddress(request);
+                System.out.println("Checking credits for anonymous user IP: " + clientIp);
                 allowed = anonymousUserService.consumeOneConversion(clientIp, 20);
+                System.out.println("Anonymous conversion allowed: " + allowed);
             }
         } catch (Exception e) {
+            System.err.println("Credit check failed: " + e.getMessage());
+            e.printStackTrace();
             return serverError("Credit check failed");
         }
 
         if (!allowed) {
+            System.err.println("Conversion not allowed - insufficient credits");
             // 402 Payment Required: client kan flow naar afrekenen starten
             return ResponseEntity.status(402)
                     .header("Cache-Control", "no-store")
@@ -113,11 +133,15 @@ public class ConvertController {
         File tmp = null;
         File out = null;
         try {
+            System.out.println("Creating temporary file...");
             tmp = File.createTempFile("upload-", ".bin");
             file.transferTo(tmp);
+            System.out.println("File transferred to temp location");
 
             final Integer q = (quality != null) ? quality : null;
+            System.out.println("Starting image conversion...");
             out = imageService.convert(tmp, new ImageService.ConversionOptions(fmt, q));
+            System.out.println("Image conversion completed successfully");
 
             // ---- 5) Streaming response (opruimen ná verzenden)
             final File outFile = out; // effectively final voor lambda
@@ -147,11 +171,20 @@ public class ConvertController {
                     .body(body);
 
         } catch (InterruptedException ie) {
+            System.err.println("Conversion interrupted: " + ie.getMessage());
             Thread.currentThread().interrupt();
             safeDelete(tmp);
             safeDelete(out);
             return unprocessable("Conversion interrupted");
         } catch (IOException ioe) {
+            System.err.println("Conversion failed: " + ioe.getMessage());
+            ioe.printStackTrace();
+            safeDelete(tmp);
+            safeDelete(out);
+            return unprocessable("Conversion failed");
+        } catch (Exception e) {
+            System.err.println("Unexpected error during conversion: " + e.getMessage());
+            e.printStackTrace();
             safeDelete(tmp);
             safeDelete(out);
             return unprocessable("Conversion failed");
