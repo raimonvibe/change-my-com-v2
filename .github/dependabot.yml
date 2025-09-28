@@ -8,8 +8,8 @@ updates:
   - package-ecosystem: "npm"
     directory: "/frontend" # De root directory van je frontend
     schedule:
-      interval: "weekly" # Hoe vaak je updates wilt
+      interval: "daily" # Hoe vaak je updates wilt
   - package-ecosystem: "maven"
     directory: "/backend" # De root directory van je backend
     schedule:
-      interval: "weekly" # Hoe vaak je updates wilt
+      interval: "daily" # Hoe vaak je updates wilt
