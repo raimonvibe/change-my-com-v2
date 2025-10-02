@@ -6,6 +6,7 @@ import { API_URL } from "../../env";
 import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle } from "lucide-react";
 
 const FORMATS = ["jpg","jpeg","png","webp","avif","heic","tiff","bmp","gif","svg"];
+const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB in bytes
 
 type Job = {
   file: File;
@@ -22,11 +23,41 @@ export default function ConvertPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const token = session?.idToken;
 
-  const onDrop = (acceptedFiles: File[]) => {
-    const newJobs = acceptedFiles.map((f) => ({ file: f, status: 'queued' } as Job));
+  const onDrop = (acceptedFiles: File[], rejectedFiles: any[]) => {
+    // Handle rejected files (too large, wrong type, etc.)
+    if (rejectedFiles.length > 0) {
+      const rejectedFile = rejectedFiles[0];
+      if (rejectedFile.errors.some((e: any) => e.code === 'file-too-large')) {
+        alert(`Bestand "${rejectedFile.file.name}" is te groot. Maximum toegestane grootte is 8MB.`);
+        return;
+      }
+      if (rejectedFile.errors.some((e: any) => e.code === 'file-invalid-type')) {
+        alert(`Bestand "${rejectedFile.file.name}" heeft een niet-ondersteund formaat. Alleen afbeeldingen zijn toegestaan.`);
+        return;
+      }
+    }
+
+    // Validate file sizes for accepted files
+    const validFiles = acceptedFiles.filter(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`Bestand "${file.name}" is te groot (${Math.round(file.size / 1024 / 1024)}MB). Maximum toegestane grootte is 8MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    const newJobs = validFiles.map((f) => ({ file: f, status: 'queued' } as Job));
     setJobs((prev) => [...prev, ...newJobs]);
   };
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, multiple: true });
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+    onDrop, 
+    multiple: true,
+    maxSize: MAX_FILE_SIZE,
+    accept: {
+      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.heic', '.tiff', '.bmp', '.gif', '.svg']
+    }
+  });
   const dropClass = isDragActive ? 'border-sky-500 bg-sky-50' : 'border-slate-300';
 
   const start = async () => {
@@ -53,7 +84,14 @@ export default function ConvertPage() {
         
         if (res.status === 401) throw new Error('Please sign in with Google to convert.');
         if (res.status === 402) throw new Error('Daily limit reached (20 free conversions). Sign in and subscribe for unlimited conversions.');
-        if (!res.ok) throw new Error(`Conversion failed: ${res.status}`);
+        if (res.status === 413) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Bestand is te groot. Maximum toegestane grootte is 8MB.');
+        }
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `Conversion failed: ${res.status}`);
+        }
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         console.log('Conversion successful, blob URL created:', url);
@@ -116,8 +154,15 @@ export default function ConvertPage() {
         </div>
         <div {...getRootProps()} className={"mt-4 border-2 border-dashed rounded-lg p-4 sm:p-8 text-center " + dropClass}>
           <input {...getInputProps()} />
-          <div className="flex items-center justify-center gap-2 text-slate-600 text-sm sm:text-base">
-            <Upload size={16} /> <span className="hidden sm:inline">Drag & drop images here, or click to select</span><span className="sm:hidden">Tap to select images</span>
+          <div className="flex flex-col items-center justify-center gap-2 text-slate-600 text-sm sm:text-base">
+            <div className="flex items-center gap-2">
+              <Upload size={16} /> 
+              <span className="hidden sm:inline">Drag & drop images here, or click to select</span>
+              <span className="sm:hidden">Tap to select images</span>
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              Maximum bestandsgrootte: 8MB • Ondersteunde formaten: JPG, PNG, WebP, AVIF, HEIC, TIFF, BMP, GIF, SVG
+            </div>
           </div>
         </div>
       </div>
@@ -130,7 +175,10 @@ export default function ConvertPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                   <div className="text-sm font-medium truncate">{j.file.name}</div>
                   <div className="text-xs text-slate-500">
-                    {Math.round(j.file.size/1024)} KB → {target.toUpperCase()}
+                    {j.file.size > 1024 * 1024 
+                      ? `${Math.round(j.file.size / 1024 / 1024)} MB` 
+                      : `${Math.round(j.file.size / 1024)} KB`
+                    } → {target.toUpperCase()}
                   </div>
                 </div>
                 <div className="mt-1 flex items-center gap-2">
