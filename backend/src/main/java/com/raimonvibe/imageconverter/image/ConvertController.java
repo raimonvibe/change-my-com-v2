@@ -5,6 +5,7 @@ import com.raimonvibe.imageconverter.user.AnonymousUserService;
 import com.raimonvibe.imageconverter.user.User;
 import com.raimonvibe.imageconverter.user.UserRepository;
 import com.raimonvibe.imageconverter.user.UserService;
+import com.raimonvibe.imageconverter.monitoring.CostMonitor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -39,6 +40,7 @@ public class ConvertController {
     private final UserRepository userRepository;
     private final UserService userService;
     private final AnonymousUserService anonymousUserService;
+    private final CostMonitor costMonitor;
 
     @Value("${app.stripe.pricePackSize:20}")
     private int packSize;
@@ -46,11 +48,13 @@ public class ConvertController {
     public ConvertController(ImageService imageService,
                              UserRepository userRepository,
                              UserService userService,
-                             AnonymousUserService anonymousUserService) {
+                             AnonymousUserService anonymousUserService,
+                             CostMonitor costMonitor) {
         this.imageService = imageService;
         this.userRepository = userRepository;
         this.userService = userService;
         this.anonymousUserService = anonymousUserService;
+        this.costMonitor = costMonitor;
     }
 
     @GetMapping("/formats")
@@ -132,6 +136,7 @@ public class ConvertController {
         // ---- 4) Veilige temp-bestanden & conversie
         File tmp = null;
         File out = null;
+        long startTime = System.currentTimeMillis();
         try {
             System.out.println("Creating temporary file...");
             tmp = File.createTempFile("upload-", ".bin");
@@ -142,6 +147,11 @@ public class ConvertController {
             System.out.println("Starting image conversion...");
             out = imageService.convert(tmp, new ImageService.ConversionOptions(fmt, q));
             System.out.println("Image conversion completed successfully");
+            
+            // Record cost metrics
+            long processingTime = System.currentTimeMillis() - startTime;
+            String userEmail = principal != null ? principal.getName() : null;
+            costMonitor.recordConversion(file.getSize(), processingTime, userEmail, fmt);
 
             // ---- 5) Streaming response (opruimen ná verzenden)
             final File outFile = out; // effectively final voor lambda
