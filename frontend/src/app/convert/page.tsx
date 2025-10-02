@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useDropzone } from "react-dropzone";
+import { useDropzone, FileRejection } from "react-dropzone";
 import { API_URL } from "../../env";
 import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle } from "lucide-react";
 
@@ -23,15 +23,15 @@ export default function ConvertPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const token = session?.idToken;
 
-  const onDrop = (acceptedFiles: File[], rejectedFiles: any[]) => {
+  const onDrop = (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
     // Handle rejected files (too large, wrong type, etc.)
     if (rejectedFiles.length > 0) {
       const rejectedFile = rejectedFiles[0];
-      if (rejectedFile.errors.some((e: any) => e.code === 'file-too-large')) {
+      if (rejectedFile.errors.some((e) => e.code === 'file-too-large')) {
         alert(`Bestand "${rejectedFile.file.name}" is te groot. Maximum toegestane grootte is 8MB.`);
         return;
       }
-      if (rejectedFile.errors.some((e: any) => e.code === 'file-invalid-type')) {
+      if (rejectedFile.errors.some((e) => e.code === 'file-invalid-type')) {
         alert(`Bestand "${rejectedFile.file.name}" heeft een niet-ondersteund formaat. Alleen afbeeldingen zijn toegestaan.`);
         return;
       }
