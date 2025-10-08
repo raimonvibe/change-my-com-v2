@@ -1,5 +1,7 @@
 package com.raimonvibe.imageconverter.image;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -12,6 +14,8 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class ImageService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ImageService.class);
 
     public record ConversionOptions(String format, Integer quality) {}
 
@@ -42,36 +46,34 @@ public class ImageService {
                 pb.redirectErrorStream(true);
 
                 try {
-                    System.out.println("Running ImageMagick command: " + String.join(" ", pb.command()));
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Executing ImageMagick: {}", String.join(" ", pb.command()));
+                    }
+
                     Process p = pb.start();
-                    
+
                     // Capture error output for debugging
                     String errorOutput = new String(p.getErrorStream().readAllBytes());
                     String standardOutput = new String(p.getInputStream().readAllBytes());
-                    
+
                     boolean finished = p.waitFor(15, TimeUnit.SECONDS);
                     if (!finished) {
                         p.destroyForcibly();
+                        logger.warn("ImageMagick process timeout for command: {}", cmd);
                         lastError = new IOException("ImageMagick process timeout");
                         continue;
                     }
 
                     int code = p.exitValue();
-                    System.out.println("ImageMagick exit code: " + code);
-                    if (errorOutput != null && !errorOutput.isEmpty()) {
-                        System.err.println("ImageMagick error output: " + errorOutput);
-                    }
-                    if (standardOutput != null && !standardOutput.isEmpty()) {
-                        System.out.println("ImageMagick standard output: " + standardOutput);
-                    }
-                    
                     if (code == 0 && out.exists() && out.length() > 0) {
-                        System.out.println("Conversion successful, output file size: " + out.length());
+                        logger.debug("ImageMagick conversion successful, output size: {} bytes", out.length());
                         return out;
                     }
-                    lastError = new IOException("Conversion failed with '" + cmd + "', exit code=" + code + ", error: " + errorOutput);
+
+                    logger.warn("ImageMagick failed with exit code {}: {}", code, errorOutput);
+                    lastError = new IOException("Conversion failed with '" + cmd + "', exit code=" + code);
                 } catch (IOException ioe) {
-                    System.err.println("IOException during ImageMagick execution: " + ioe.getMessage());
+                    logger.error("IOException during ImageMagick execution: {}", ioe.getMessage());
                     lastError = ioe;
                 }
             }

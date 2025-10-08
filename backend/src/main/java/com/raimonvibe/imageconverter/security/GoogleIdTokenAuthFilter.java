@@ -12,6 +12,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +23,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 public class GoogleIdTokenAuthFilter extends OncePerRequestFilter {
+
+  private static final Logger logger = LoggerFactory.getLogger(GoogleIdTokenAuthFilter.class);
 
   private final UserService userService;
 
@@ -37,46 +41,37 @@ public class GoogleIdTokenAuthFilter extends OncePerRequestFilter {
     String header = request.getHeader("Authorization");
     if (header != null && header.startsWith("Bearer ")) {
       String token = header.substring(7);
-      System.out.println("=== GOOGLE OAUTH DEBUG ===");
-      System.out.println("Request URI: " + request.getRequestURI());
-      System.out.println("Token length: " + token.length());
-      System.out.println("Expected Client ID: " + googleClientId);
-      System.out.println("Token preview: " + token.substring(0, Math.min(20, token.length())) + "...");
-      
+
+      if (logger.isDebugEnabled()) {
+        logger.debug("Processing OAuth token for URI: {}", request.getRequestURI());
+      }
+
       try {
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
             .setAudience(Collections.singletonList(googleClientId))
             .build();
-        
-        System.out.println("Attempting to verify token with Google...");
+
         GoogleIdToken idToken = verifier.verify(token);
-        
+
         if (idToken != null) {
           String email = Optional.ofNullable(idToken.getPayload().getEmail()).orElse(null);
-          System.out.println("Token validation SUCCESS for email: " + email);
           if (email != null) {
             var user = userService.ensureUserByEmail(email);
             var auth = new UsernamePasswordAuthenticationToken(user.getEmail(), null, Collections.singleton(new SimpleGrantedAuthority("USER")));
             SecurityContextHolder.getContext().setAuthentication(auth);
-            System.out.println("Authentication set for user: " + user.getEmail());
+            logger.info("Authentication successful for user: {}", email);
+          } else {
+            logger.warn("Token validation succeeded but email is null");
           }
         } else {
-          System.err.println("Token validation FAILED - idToken is null");
-          System.err.println("This usually means:");
-          System.err.println("1. Token is expired");
-          System.err.println("2. Token audience doesn't match expected client ID");
-          System.err.println("3. Token signature is invalid");
-          System.err.println("4. Token is malformed");
+          logger.warn("Token validation failed - invalid or expired token for URI: {}", request.getRequestURI());
         }
       } catch (Exception e) {
-        System.err.println("Google token validation failed: " + e.getMessage());
-        System.err.println("Exception type: " + e.getClass().getSimpleName());
-        System.err.println("Full exception details:");
-        e.printStackTrace();
+        logger.error("Google token validation error: {}", e.getMessage());
+        if (logger.isDebugEnabled()) {
+          logger.debug("Token validation exception details", e);
+        }
       }
-      System.out.println("=== END GOOGLE OAUTH DEBUG ===");
-    } else {
-      System.out.println("No Authorization header found for: " + request.getRequestURI());
     }
     chain.doFilter(request, response);
   }
