@@ -3,5 +3,10 @@
   "outputDirectory": ".next",
   "framework": "nextjs",
   "installCommand": "npm install",
-  "devCommand": "npm run dev"
+  "devCommand": "npm run dev",
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_BUILD_ID": "force-rebuild-2025-10-08"
+    }
+  }
 }
