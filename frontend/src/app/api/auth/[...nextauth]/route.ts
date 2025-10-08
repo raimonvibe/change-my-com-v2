@@ -14,6 +14,13 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     idToken?: string;
+    id_token?: string;
+  }
+}
+
+declare module "next-auth" {
+  interface Account {
+    id_token?: string;
   }
 }
 
@@ -26,13 +33,13 @@ const handler = NextAuth({
   ],
   session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, account }: { token: JWT; account: Account | null }) {
-      if (account && account.id_token) {
+    async jwt({ token, account }) {
+      if (account?.id_token) {
         token.idToken = account.id_token;
       }
       return token;
     },
-    async session({ session, token }: { session: Session; token: JWT }) {
+    async session({ session, token }) {
       session.idToken = token.idToken;
       return session;
     },
