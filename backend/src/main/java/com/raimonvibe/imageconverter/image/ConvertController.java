@@ -37,7 +37,7 @@ public class ConvertController {
     private static final Set<String> ALLOWED_OUT = Set.of(
         "jpg", "jpeg", "png", "webp", "avif",
         "gif", "bmp", "tiff", "tif", "heic", "heif",
-        "ico", "svg", "pdf"
+        "ico"
     );
 
     private final ImageService imageService;
@@ -262,8 +262,6 @@ public class ConvertController {
             case "tiff", "tif" -> "image/tiff";
             case "heic", "heif" -> "image/heic";
             case "ico" -> "image/x-icon";
-            case "svg" -> "image/svg+xml";
-            case "pdf" -> MediaType.APPLICATION_PDF_VALUE;
             default -> MediaType.APPLICATION_OCTET_STREAM_VALUE;
         };
     }
