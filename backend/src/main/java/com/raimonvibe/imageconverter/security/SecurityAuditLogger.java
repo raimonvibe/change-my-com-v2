@@ -1,0 +1,51 @@
+package com.raimonvibe.imageconverter.security;
+
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+@Component
+public class SecurityAuditLogger {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SecurityAuditLogger.class);
+    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    
+    public void logSecurityEvent(String event, HttpServletRequest request, String details) {
+        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+        String ip = getClientIpAddress(request);
+        String userAgent = request.getHeader("User-Agent");
+        String method = request.getMethod();
+        String uri = request.getRequestURI();
+        
+        logger.warn("SECURITY_EVENT [{}] {} {} {} {} {} - {}", 
+            timestamp, event, ip, method, uri, userAgent, details);
+    }
+    
+    public void logRateLimitExceeded(String identifier, String endpoint) {
+        logger.warn("RATE_LIMIT_EXCEEDED [{}] {} - {}", 
+            LocalDateTime.now().format(TIMESTAMP_FORMAT), identifier, endpoint);
+    }
+    
+    public void logFileUploadAttempt(String filename, String contentType, long size, String result) {
+        logger.info("FILE_UPLOAD [{}] {} {} {} bytes - {}", 
+            LocalDateTime.now().format(TIMESTAMP_FORMAT), filename, contentType, size, result);
+    }
+    
+    public void logAuthenticationAttempt(String email, boolean success, String reason) {
+        String status = success ? "SUCCESS" : "FAILED";
+        logger.info("AUTH_ATTEMPT [{}] {} {} - {}", 
+            LocalDateTime.now().format(TIMESTAMP_FORMAT), email, status, reason);
+    }
+    
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isEmpty()) {
+            return xff.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+}
