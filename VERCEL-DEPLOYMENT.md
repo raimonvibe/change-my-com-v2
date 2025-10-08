@@ -1,6 +1,6 @@
 # ⚡ Vercel Frontend Deployment Guide
 
-## 🎯 When to Use Vercel
+## 🎯When to Use Vercel
 
 Vercel is **perfect** for frontend deployment when:
 - ✅ You want **maximum frontend performance**
