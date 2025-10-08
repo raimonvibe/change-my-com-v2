@@ -31,6 +31,7 @@ export default function ConvertPage() {
   const [quality, setQuality] = useState(85);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const token = session?.idToken as string | undefined;
 
   const onDrop = (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
@@ -259,14 +260,14 @@ export default function ConvertPage() {
               <div className="flex items-center gap-2 flex-shrink-0">
                 {j.status === 'done' && j.url && (
                   <>
-                    <button 
-                      onClick={() => window.open(j.url, '_blank')}
+                    <button
+                      onClick={() => setPreviewUrl(j.url || null)}
                       className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 sm:px-3 py-1.5 text-slate-700 hover:bg-slate-200 text-xs sm:text-sm"
                     >
                       <Eye size={12} /> <span className="hidden sm:inline">Preview</span>
                     </button>
-                    <a 
-                      href={j.url} 
+                    <a
+                      href={j.url}
                       download={`${j.file.name.split('.')[0]}_converted.${target}`}
                       className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 sm:px-3 py-1.5 text-white hover:bg-emerald-700 text-xs sm:text-sm"
                     >
@@ -279,6 +280,32 @@ export default function ConvertPage() {
           </div>
         ))}
       </div>
+
+      {/* Preview Modal */}
+      {previewUrl && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setPreviewUrl(null)}
+        >
+          <div className="relative max-w-7xl max-h-[90vh] bg-white rounded-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute top-2 right-2 z-10">
+              <button
+                onClick={() => setPreviewUrl(null)}
+                className="bg-white rounded-full p-2 shadow-lg hover:bg-gray-100"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <img
+              src={previewUrl}
+              alt="Preview"
+              className="max-w-full max-h-[90vh] object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
