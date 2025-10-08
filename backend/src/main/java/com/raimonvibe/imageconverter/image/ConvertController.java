@@ -34,7 +34,11 @@ import java.util.Set;
 @Validated
 public class ConvertController {
 
-    private static final Set<String> ALLOWED_OUT = Set.of("png", "jpg", "jpeg", "webp", "avif");
+    private static final Set<String> ALLOWED_OUT = Set.of(
+        "jpg", "jpeg", "png", "webp", "avif",
+        "gif", "bmp", "tiff", "tif", "heic", "heif",
+        "ico", "svg", "pdf"
+    );
 
     private final ImageService imageService;
     private final UserRepository userRepository;
@@ -83,8 +87,15 @@ public class ConvertController {
         System.out.println("Target format: " + toFormat);
         System.out.println("Quality: " + quality);
         
-        // ---- 1) Output-formaat whitelist
-        final String fmt = toFormat.toLowerCase();
+        // ---- 1) Output-formaat whitelist & normalisatie
+        String fmt = toFormat.toLowerCase();
+        // Normaliseer jpg naar jpeg voor consistentie
+        if ("jpg".equals(fmt)) {
+            fmt = "jpeg";
+        }
+        if ("tif".equals(fmt)) {
+            fmt = "tiff";
+        }
         if (!ALLOWED_OUT.contains(fmt)) {
             System.err.println("Unsupported target format: " + fmt);
             return badRequest("Unsupported target format");
@@ -246,6 +257,13 @@ public class ConvertController {
             case "jpg", "jpeg" -> MediaType.IMAGE_JPEG_VALUE;
             case "webp" -> "image/webp";
             case "avif" -> "image/avif";
+            case "gif" -> MediaType.IMAGE_GIF_VALUE;
+            case "bmp" -> "image/bmp";
+            case "tiff", "tif" -> "image/tiff";
+            case "heic", "heif" -> "image/heic";
+            case "ico" -> "image/x-icon";
+            case "svg" -> "image/svg+xml";
+            case "pdf" -> MediaType.APPLICATION_PDF_VALUE;
             default -> MediaType.APPLICATION_OCTET_STREAM_VALUE;
         };
     }

@@ -87,6 +87,10 @@ public class ImageService {
      * Sync houden met validator in controller.
      */
     public static List<String> supportedFormats() {
-        return List.of("jpg", "jpeg", "png", "webp", "avif");
+        return List.of(
+            "jpg", "jpeg", "png", "webp", "avif",
+            "gif", "bmp", "tiff", "tif", "heic", "heif",
+            "ico", "svg", "pdf"
+        );
     }
 }
