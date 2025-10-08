@@ -6,12 +6,13 @@ import { API_URL } from "../../env";
 import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle } from "lucide-react";
 
 // Organized format groups for better UX
+// Only safe raster formats - SVG/PDF excluded for security
 const FORMAT_GROUPS = {
   'Modern Web': ['webp', 'avif'],
   'Standard': ['jpg', 'png', 'gif'],
   'Professional': ['tiff', 'bmp'],
   'Mobile': ['heic'],
-  'Other': ['ico', 'svg', 'pdf']
+  'Other': ['ico']
 };
 
 const ALL_FORMATS = Object.values(FORMAT_GROUPS).flat();
@@ -64,8 +65,7 @@ export default function ConvertPage() {
     multiple: true,
     maxSize: MAX_FILE_SIZE,
     accept: {
-      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.bmp', '.tiff', '.tif', '.heic', '.heif', '.ico', '.svg'],
-      'application/pdf': ['.pdf']
+      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.bmp', '.tiff', '.tif', '.heic', '.heif', '.ico']
     }
   });
   const dropClass = isDragActive ? 'border-sky-500 bg-sky-50' : 'border-slate-300';
@@ -212,7 +212,7 @@ export default function ConvertPage() {
               <span className="sm:hidden">Tap to select images</span>
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Maximum bestandsgrootte: 8MB • Ondersteunde formaten: JPG, PNG, WebP, AVIF, GIF, BMP, TIFF, HEIC, ICO, SVG, PDF
+              Maximum bestandsgrootte: 8MB • Ondersteunde formaten: JPG, PNG, WebP, AVIF, GIF, BMP, TIFF, HEIC, ICO
             </div>
           </div>
         </div>
