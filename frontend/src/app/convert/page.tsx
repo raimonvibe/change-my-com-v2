@@ -5,7 +5,16 @@ import { useDropzone, FileRejection } from "react-dropzone";
 import { API_URL } from "../../env";
 import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle } from "lucide-react";
 
-const FORMATS = ["jpg","jpeg","png","webp","avif"];
+// Organized format groups for better UX
+const FORMAT_GROUPS = {
+  'Modern Web': ['webp', 'avif'],
+  'Standard': ['jpg', 'png', 'gif'],
+  'Professional': ['tiff', 'bmp'],
+  'Mobile': ['heic'],
+  'Other': ['ico', 'svg', 'pdf']
+};
+
+const ALL_FORMATS = Object.values(FORMAT_GROUPS).flat();
 const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB in bytes
 
 type Job = {
@@ -55,7 +64,8 @@ export default function ConvertPage() {
     multiple: true,
     maxSize: MAX_FILE_SIZE,
     accept: {
-      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.avif']
+      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.bmp', '.tiff', '.tif', '.heic', '.heif', '.ico', '.svg'],
+      'application/pdf': ['.pdf']
     }
   });
   const dropClass = isDragActive ? 'border-sky-500 bg-sky-50' : 'border-slate-300';
@@ -134,21 +144,62 @@ export default function ConvertPage() {
         <Wand2 className="text-sky-600" /> Convert Images
       </h1>
       <div className="rounded-lg border bg-white p-3 sm:p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="space-y-4">
+          {/* Format Selection - Organized Grid */}
           <div>
-            <label className="block text-sm text-slate-600 mb-1">Target format</label>
-            <select value={target} onChange={(e)=>setTarget(e.target.value)} className="w-full rounded-md border-slate-300 text-sm">
-              {FORMATS.map(f => <option key={f} value={f}>{f.toUpperCase()}</option>)}
-            </select>
+            <label className="block text-sm font-medium text-slate-700 mb-3">Convert to:</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+              {Object.entries(FORMAT_GROUPS).map(([groupName, formats]) => (
+                <div key={groupName} className="space-y-1.5">
+                  <div className="text-xs font-medium text-slate-500 px-1">{groupName}</div>
+                  <div className="space-y-1">
+                    {formats.map(fmt => (
+                      <button
+                        key={fmt}
+                        onClick={() => setTarget(fmt)}
+                        className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                          target === fmt
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                        }`}
+                      >
+                        {fmt.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div>
-            <label className="block text-sm text-slate-600 mb-1">Quality</label>
-            <input type="range" min={1} max={100} value={quality} onChange={(e)=>setQuality(Number(e.target.value))} className="w-full" />
-            <div className="text-xs text-slate-500 mt-1">{quality}</div>
+
+          {/* Quality Slider */}
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-slate-700">Quality</label>
+              <span className="text-sm font-semibold text-sky-600">{quality}%</span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={100}
+              value={quality}
+              onChange={(e)=>setQuality(Number(e.target.value))}
+              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+            />
+            <div className="flex justify-between text-xs text-slate-500 mt-1">
+              <span>Lower size</span>
+              <span>Higher quality</span>
+            </div>
           </div>
-          <div className="sm:col-span-2 lg:col-span-1 flex items-end">
-            <button onClick={start} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-sky-600 px-4 py-2 text-white hover:bg-sky-700 text-sm">
-              <Wand2 size={16} /> Convert
+
+          {/* Convert Button */}
+          <div className="border-t pt-4">
+            <button
+              onClick={start}
+              disabled={jobs.filter(j => j.status === 'queued').length === 0}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-sky-600 px-4 py-3 text-white hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm"
+            >
+              <Wand2 size={18} /> Convert {jobs.filter(j => j.status === 'queued').length > 0 ? `(${jobs.filter(j => j.status === 'queued').length})` : 'All'}
             </button>
           </div>
         </div>
@@ -161,7 +212,7 @@ export default function ConvertPage() {
               <span className="sm:hidden">Tap to select images</span>
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Maximum bestandsgrootte: 8MB • Ondersteunde formaten: JPG, PNG, WebP, AVIF
+              Maximum bestandsgrootte: 8MB • Ondersteunde formaten: JPG, PNG, WebP, AVIF, GIF, BMP, TIFF, HEIC, ICO, SVG, PDF
             </div>
           </div>
         </div>
