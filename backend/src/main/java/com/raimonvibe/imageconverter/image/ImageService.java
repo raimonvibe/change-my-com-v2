@@ -85,12 +85,13 @@ public class ImageService {
     /**
      * Ondersteunde outputformaten.
      * Sync houden met validator in controller.
+     * Alleen veilige raster formaten - SVG/PDF uitgesloten om veiligheidsredenen.
      */
     public static List<String> supportedFormats() {
         return List.of(
             "jpg", "jpeg", "png", "webp", "avif",
             "gif", "bmp", "tiff", "tif", "heic", "heif",
-            "ico", "svg", "pdf"
+            "ico"
         );
     }
 }
