@@ -5,7 +5,7 @@ import { useDropzone, FileRejection } from "react-dropzone";
 import { API_URL } from "../../env";
 import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle } from "lucide-react";
 
-const FORMATS = ["jpg","jpeg","png","webp","avif","heic","tiff","bmp","gif","svg"];
+const FORMATS = ["jpg","jpeg","png","webp","avif"];
 const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB in bytes
 
 type Job = {
@@ -50,12 +50,12 @@ export default function ConvertPage() {
     setJobs((prev) => [...prev, ...newJobs]);
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
-    onDrop, 
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
     multiple: true,
     maxSize: MAX_FILE_SIZE,
     accept: {
-      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.heic', '.tiff', '.bmp', '.gif', '.svg']
+      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.avif']
     }
   });
   const dropClass = isDragActive ? 'border-sky-500 bg-sky-50' : 'border-slate-300';
@@ -161,7 +161,7 @@ export default function ConvertPage() {
               <span className="sm:hidden">Tap to select images</span>
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Maximum bestandsgrootte: 8MB • Ondersteunde formaten: JPG, PNG, WebP, AVIF, HEIC, TIFF, BMP, GIF, SVG
+              Maximum bestandsgrootte: 8MB • Ondersteunde formaten: JPG, PNG, WebP, AVIF
             </div>
           </div>
         </div>
