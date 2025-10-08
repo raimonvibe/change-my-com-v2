@@ -13,7 +13,7 @@ export default function AccountPage() {
   const paidCredits = useAuthStore(s => s.paidCredits);
 
   useEffect(() => {
-    const fetchMe = async (retryCount = 0) => {
+    const fetchMe = async (retryCount = 0): Promise<void> => {
       if (!session) return;
       const token = session?.idToken;
       

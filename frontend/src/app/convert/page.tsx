@@ -21,7 +21,7 @@ export default function ConvertPage() {
   const [quality, setQuality] = useState(85);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
-  const token: string | undefined = session?.idToken;
+  const token = session?.idToken as string | undefined;
 
   const onDrop = (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
     // Handle rejected files (too large, wrong type, etc.)
@@ -75,7 +75,7 @@ export default function ConvertPage() {
         
         const res = await fetch(`${API_URL}/api/convert`, {
           method: 'POST',
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: form,
         });
         
