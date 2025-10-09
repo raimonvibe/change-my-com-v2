@@ -76,31 +76,50 @@ public class StripeWebhookController {
   }
 
   private void handleCheckoutCompleted(Event event) {
-    Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
-    if (session != null) {
-      String email = session.getCustomerDetails() != null ? session.getCustomerDetails().getEmail() : null;
-      String subscriptionId = session.getSubscription();
-      Map<String, String> metadata = session.getMetadata();
+    try {
+      logger.info("Raw event data: {}", event.getData());
 
-      logger.info("Processing checkout.session.completed for email: {}, subscriptionId: {}, metadata: {}",
-                  email, subscriptionId, metadata);
+      // Try to get the session from the event data
+      Session session = null;
+      if (event.getDataObjectDeserializer().getObject().isPresent()) {
+        session = (Session) event.getDataObjectDeserializer().getObject().get();
+      }
 
-      if (metadata != null && "monthly_1000".equals(metadata.get("subscription"))) {
-        if (email != null && subscriptionId != null) {
-          User user = userService.ensureUserByEmail(email);
-          user.setStripeSubscriptionId(subscriptionId);
-          user.setSubscriptionStatus("active");
-          user.setAutoRenewal(true); // Enable auto-renewal by default when subscribing
-          userService.activateSubscription(user, 1000);
-          logger.info("Activated subscription for user: {}, subscriptionId: {}, auto-renewal: enabled", email, subscriptionId);
+      if (session == null) {
+        logger.error("Session object is null, trying alternative deserialization");
+        // Try alternative approach using Stripe API
+        String sessionId = event.getData().getObject().get("id").getAsString();
+        logger.info("Attempting to retrieve session with ID: {}", sessionId);
+        session = Session.retrieve(sessionId);
+      }
+
+      if (session != null) {
+        String email = session.getCustomerDetails() != null ? session.getCustomerDetails().getEmail() : null;
+        String subscriptionId = session.getSubscription();
+        Map<String, String> metadata = session.getMetadata();
+
+        logger.info("Processing checkout.session.completed for email: {}, subscriptionId: {}, metadata: {}",
+                    email, subscriptionId, metadata);
+
+        if (metadata != null && "monthly_1000".equals(metadata.get("subscription"))) {
+          if (email != null && subscriptionId != null) {
+            User user = userService.ensureUserByEmail(email);
+            user.setStripeSubscriptionId(subscriptionId);
+            user.setSubscriptionStatus("active");
+            user.setAutoRenewal(true); // Enable auto-renewal by default when subscribing
+            userService.activateSubscription(user, 1000);
+            logger.info("Activated subscription for user: {}, subscriptionId: {}, auto-renewal: enabled", email, subscriptionId);
+          } else {
+            logger.warn("Missing email or subscriptionId in checkout session");
+          }
         } else {
-          logger.warn("Missing email or subscriptionId in checkout session");
+          logger.warn("Metadata missing or subscription type not matched. Metadata: {}", metadata);
         }
       } else {
-        logger.warn("Metadata missing or subscription type not matched. Metadata: {}", metadata);
+        logger.error("Failed to deserialize checkout session from webhook event - session is still null after all attempts");
       }
-    } else {
-      logger.error("Failed to deserialize checkout session from webhook event");
+    } catch (Exception e) {
+      logger.error("Error handling checkout.session.completed: {}", e.getMessage(), e);
     }
   }
 
