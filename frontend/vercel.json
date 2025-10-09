@@ -6,7 +6,7 @@
   "devCommand": "npm run dev",
   "build": {
     "env": {
-      "NEXT_PUBLIC_BUILD_ID": "force-rebuild-2025-10-08"
+      "NEXT_PUBLIC_BUILD_ID": "force-rebuild-2025-10-09"
     }
   }
 }
