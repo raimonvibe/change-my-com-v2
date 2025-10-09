@@ -44,6 +44,9 @@ RUN addgroup --system spring && adduser --system spring --ingroup spring
 # Set working directory
 WORKDIR /app
 
+# Copy ImageMagick security policy
+COPY src/main/resources/imagemagick-policy.xml /etc/ImageMagick-7/policy.xml
+
 # Create logs directory and set permissions
 RUN mkdir -p /app/logs && chown -R spring:spring /app
 
