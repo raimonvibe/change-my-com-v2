@@ -24,4 +24,9 @@ public class User {
 
   private Integer paidCredits = 0;
   private LocalDate lastPaidReset = null;
+
+  // Stripe subscription tracking
+  private String stripeSubscriptionId = null;
+  private String subscriptionStatus = null; // active, canceled, past_due, etc.
+  private Boolean autoRenewal = false; // Whether user wants auto-renewal
 }

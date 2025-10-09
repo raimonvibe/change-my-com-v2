@@ -50,6 +50,11 @@ public class UserService {
   }
 
   @Transactional
+  public User saveUser(User user) {
+    return userRepository.save(user);
+  }
+
+  @Transactional
   public boolean consumeOneConversion(User user, int freeDailyLimit) {
     LocalDate today = LocalDate.now();
     if (!today.equals(user.getLastFreeReset())) {
@@ -57,23 +62,8 @@ public class UserService {
       user.setFreeUsedToday(0);
     }
 
-    // Check if monthly subscription needs to be reset (if user has lastPaidReset set)
-    if (user.getLastPaidReset() != null && user.getPaidCredits() == 0) {
-      // Check if a month has passed since last reset
-      if (today.isAfter(user.getLastPaidReset().plusMonths(1).minusDays(1))) {
-        // Reset monthly credits
-        user.setPaidCredits(1000);
-        user.setLastPaidReset(today);
-        userRepository.save(user);
-        CreditLedger ledger = new CreditLedger();
-        ledger.setUser(user);
-        ledger.setDelta(1000);
-        ledger.setReason("subscription_monthly_reset");
-        creditLedgerRepository.save(ledger);
-      }
-    }
-
     // If user has paid credits (subscriber), use those FIRST
+    // Credits are only added via Stripe webhooks when subscription is renewed
     if (user.getPaidCredits() > 0) {
       user.setPaidCredits(user.getPaidCredits() - 1);
       userRepository.save(user);
