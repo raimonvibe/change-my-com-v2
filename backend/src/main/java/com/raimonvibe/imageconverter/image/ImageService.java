@@ -17,7 +17,7 @@ public class ImageService {
 
     private static final Logger logger = LoggerFactory.getLogger(ImageService.class);
 
-    public record ConversionOptions(String format, Integer quality) {}
+    public record ConversionOptions(String format, Integer quality, Integer sharpness) {}
 
     // Maximaal 4 conversies tegelijk
     private final Semaphore semaphore = new Semaphore(4);
@@ -40,29 +40,42 @@ public class ImageService {
             for (String cmd : List.of("magick", "convert")) {
                 ProcessBuilder pb;
 
+                // Build command arguments
+                java.util.List<String> args = new java.util.ArrayList<>();
+                args.add(cmd);
+                args.add(input.getAbsolutePath());
+
                 // Special handling for ICO format
                 if ("ico".equals(outExt)) {
                     // ICO requires specific sizing and color handling
-                    if (options.quality() != null) {
-                        pb = new ProcessBuilder(cmd, input.getAbsolutePath(),
-                                "-resize", "256x256",
-                                "-define", "icon:auto-resize=256,128,64,48,32,16",
-                                "-colors", "256",
-                                "-quality", String.valueOf(options.quality()),
-                                out.getAbsolutePath());
-                    } else {
-                        pb = new ProcessBuilder(cmd, input.getAbsolutePath(),
-                                "-resize", "256x256",
-                                "-define", "icon:auto-resize=256,128,64,48,32,16",
-                                "-colors", "256",
-                                out.getAbsolutePath());
-                    }
-                } else {
-                    pb = (options.quality() != null)
-                            ? new ProcessBuilder(cmd, input.getAbsolutePath(),
-                                    "-quality", String.valueOf(options.quality()), out.getAbsolutePath())
-                            : new ProcessBuilder(cmd, input.getAbsolutePath(), out.getAbsolutePath());
+                    args.add("-resize");
+                    args.add("256x256");
+                    args.add("-define");
+                    args.add("icon:auto-resize=256,128,64,48,32,16");
+                    args.add("-colors");
+                    args.add("256");
                 }
+
+                // Apply sharpening if requested (0-200 scale)
+                if (options.sharpness() != null && options.sharpness() > 0) {
+                    // Convert 0-200 scale to ImageMagick parameters
+                    // radius: 0-2.0, amount: 0-2.0, threshold: 0.03
+                    double radius = 1.5;
+                    double amount = options.sharpness() / 100.0; // 0-2.0
+                    double threshold = 0.03;
+
+                    args.add("-unsharp");
+                    args.add(String.format("%.1fx%.1f+%.2f+%.2f", radius, radius, amount, threshold));
+                }
+
+                // Apply quality if specified
+                if (options.quality() != null) {
+                    args.add("-quality");
+                    args.add(String.valueOf(options.quality()));
+                }
+
+                args.add(out.getAbsolutePath());
+                pb = new ProcessBuilder(args);
 
                 pb.redirectErrorStream(true);
 
