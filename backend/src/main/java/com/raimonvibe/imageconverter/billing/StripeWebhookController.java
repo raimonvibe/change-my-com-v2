@@ -79,8 +79,10 @@ public class StripeWebhookController {
     try {
       logger.info("Processing checkout.session.completed event");
 
-      // Get data from the raw JSON object
-      com.google.gson.JsonObject dataObject = event.getData().getObject();
+      // Parse the JSON from the event
+      Gson gson = new Gson();
+      String jsonString = event.getData().getObject().toJson();
+      com.google.gson.JsonObject dataObject = gson.fromJson(jsonString, com.google.gson.JsonObject.class);
 
       String email = null;
       if (dataObject.has("customer_details") && !dataObject.get("customer_details").isJsonNull()) {
