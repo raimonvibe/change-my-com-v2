@@ -90,7 +90,7 @@ export default function ConvertPage() {
     multiple: true,
     maxSize: MAX_FILE_SIZE,
     accept: {
-      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.bmp', '.tiff', '.tif', '.heic', '.heif', '.ico']
+      'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif', '.heic', '.heif', '.ico']
     }
   });
   const dropClass = isDragActive ? 'border-sky-500 bg-sky-50' : 'border-slate-300';
