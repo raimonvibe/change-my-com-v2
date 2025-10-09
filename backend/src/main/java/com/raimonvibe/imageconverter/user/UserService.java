@@ -16,12 +16,22 @@ public class UserService {
 
   @Transactional
   public User ensureUserByEmail(String email) {
-    return userRepository.findByEmail(email).orElseGet(() -> {
+    return userRepository.findByEmail(email).map(user -> {
+      // Fix null autoRenewal for existing users (from old schema/rebuilds)
+      if (user.getAutoRenewal() == null) {
+        // Default to true if they have an active subscription, false otherwise
+        boolean defaultValue = user.getStripeSubscriptionId() != null;
+        user.setAutoRenewal(defaultValue);
+        return userRepository.save(user);
+      }
+      return user;
+    }).orElseGet(() -> {
       User u = new User();
       u.setEmail(email);
       u.setFreeUsedToday(0);
       u.setLastFreeReset(LocalDate.now());
       u.setPaidCredits(0);
+      u.setAutoRenewal(false); // Default for new users
       return userRepository.save(u);
     });
   }

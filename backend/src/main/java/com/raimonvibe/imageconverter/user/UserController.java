@@ -51,9 +51,17 @@ public class UserController {
         return Map.of("success", false, "error", "No active subscription");
       }
 
-      boolean newValue = !user.getAutoRenewal();
+      // Handle null autoRenewal (from old data/schema migrations)
+      Boolean currentValue = user.getAutoRenewal();
+      if (currentValue == null) {
+        currentValue = true; // Default to true for active subscriptions
+      }
+
+      boolean newValue = !currentValue;
       user.setAutoRenewal(newValue);
       userService.saveUser(user);
+
+      System.out.println("Auto-renewal toggled for " + user.getEmail() + ": " + currentValue + " -> " + newValue);
 
       return Map.of(
           "success", true,
@@ -62,6 +70,7 @@ public class UserController {
       );
     } catch (Exception e) {
       System.err.println("Error toggling auto-renewal: " + e.getMessage());
+      e.printStackTrace();
       return Map.of("success", false, "error", "Failed to toggle auto-renewal");
     }
   }
