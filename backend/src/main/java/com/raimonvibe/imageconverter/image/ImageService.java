@@ -38,10 +38,31 @@ public class ImageService {
             IOException lastError = null;
 
             for (String cmd : List.of("magick", "convert")) {
-                ProcessBuilder pb = (options.quality() != null)
-                        ? new ProcessBuilder(cmd, input.getAbsolutePath(),
-                                "-quality", String.valueOf(options.quality()), out.getAbsolutePath())
-                        : new ProcessBuilder(cmd, input.getAbsolutePath(), out.getAbsolutePath());
+                ProcessBuilder pb;
+
+                // Special handling for ICO format
+                if ("ico".equals(outExt)) {
+                    // ICO requires specific sizing and color handling
+                    if (options.quality() != null) {
+                        pb = new ProcessBuilder(cmd, input.getAbsolutePath(),
+                                "-resize", "256x256",
+                                "-define", "icon:auto-resize=256,128,64,48,32,16",
+                                "-colors", "256",
+                                "-quality", String.valueOf(options.quality()),
+                                out.getAbsolutePath());
+                    } else {
+                        pb = new ProcessBuilder(cmd, input.getAbsolutePath(),
+                                "-resize", "256x256",
+                                "-define", "icon:auto-resize=256,128,64,48,32,16",
+                                "-colors", "256",
+                                out.getAbsolutePath());
+                    }
+                } else {
+                    pb = (options.quality() != null)
+                            ? new ProcessBuilder(cmd, input.getAbsolutePath(),
+                                    "-quality", String.valueOf(options.quality()), out.getAbsolutePath())
+                            : new ProcessBuilder(cmd, input.getAbsolutePath(), out.getAbsolutePath());
+                }
 
                 pb.redirectErrorStream(true);
 
