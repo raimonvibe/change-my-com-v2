@@ -86,7 +86,13 @@ export default function RootLayout({
                   </a>
                   . All rights reserved.
                 </div>
-                <div className="flex gap-6">
+                <div className="flex flex-wrap justify-center sm:justify-end gap-4 sm:gap-6">
+                  <Link
+                    href="/contact"
+                    className="hover:text-sky-700 transition-colors"
+                  >
+                    Contact
+                  </Link>
                   <Link
                     href="/privacy"
                     className="hover:text-sky-700 transition-colors"
