@@ -56,6 +56,15 @@ public class ImageService {
                     args.add("256");
                 }
 
+                // Special handling for TIFF format - use LZW compression to reduce file size and processing time
+                if ("tiff".equals(outExt) || "tif".equals(outExt)) {
+                    args.add("-compress");
+                    args.add("LZW");
+                    // Limit TIFF dimensions to reduce memory usage on low-resource servers
+                    args.add("-define");
+                    args.add("tiff:tile-geometry=256x256");
+                }
+
                 // Apply sharpening if requested (0-200 scale)
                 if (options.sharpness() != null && options.sharpness() > 0) {
                     // Convert 0-200 scale to ImageMagick parameters
@@ -77,6 +86,11 @@ public class ImageService {
                 args.add(out.getAbsolutePath());
                 pb = new ProcessBuilder(args);
 
+                // Set memory limit for ImageMagick to prevent OOM on low-resource servers
+                pb.environment().put("MAGICK_MEMORY_LIMIT", "128MB");
+                pb.environment().put("MAGICK_MAP_LIMIT", "256MB");
+                pb.environment().put("MAGICK_DISK_LIMIT", "512MB");
+
                 pb.redirectErrorStream(true);
 
                 try {
@@ -90,7 +104,9 @@ public class ImageService {
                     String errorOutput = new String(p.getErrorStream().readAllBytes());
                     String standardOutput = new String(p.getInputStream().readAllBytes());
 
-                    boolean finished = p.waitFor(15, TimeUnit.SECONDS);
+                    // Longer timeout for heavy formats like TIFF
+                    int timeoutSeconds = ("tiff".equals(outExt) || "tif".equals(outExt)) ? 30 : 15;
+                    boolean finished = p.waitFor(timeoutSeconds, TimeUnit.SECONDS);
                     if (!finished) {
                         p.destroyForcibly();
                         logger.warn("ImageMagick process timeout for command: {}", cmd);
