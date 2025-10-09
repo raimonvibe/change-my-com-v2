@@ -15,7 +15,6 @@ const FORMAT_GROUPS = {
   'Other': ['ico']
 };
 
-const ALL_FORMATS = Object.values(FORMAT_GROUPS).flat();
 const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB in bytes
 
 type Job = {
