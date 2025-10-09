@@ -40,8 +40,7 @@ public class ConvertController {
 
     private static final Set<String> ALLOWED_OUT = Set.of(
         "jpg", "jpeg", "png", "webp", "avif",
-        "gif", "bmp", "tiff", "tif", "heic", "heif",
-        "ico"
+        "gif", "heic", "heif", "ico"
     );
 
     private final ImageService imageService;
@@ -94,9 +93,6 @@ public class ConvertController {
         // Normaliseer jpg naar jpeg voor consistentie
         if ("jpg".equals(fmt)) {
             fmt = "jpeg";
-        }
-        if ("tif".equals(fmt)) {
-            fmt = "tiff";
         }
         if (!ALLOWED_OUT.contains(fmt)) {
             logger.warn("Unsupported format requested: {}", fmt);
@@ -258,8 +254,6 @@ public class ConvertController {
             case "webp" -> "image/webp";
             case "avif" -> "image/avif";
             case "gif" -> MediaType.IMAGE_GIF_VALUE;
-            case "bmp" -> "image/bmp";
-            case "tiff", "tif" -> "image/tiff";
             case "heic", "heif" -> "image/heic";
             case "ico" -> "image/x-icon";
             default -> MediaType.APPLICATION_OCTET_STREAM_VALUE;

@@ -56,15 +56,6 @@ public class ImageService {
                     args.add("256");
                 }
 
-                // Special handling for TIFF format - use LZW compression to reduce file size and processing time
-                if ("tiff".equals(outExt) || "tif".equals(outExt)) {
-                    args.add("-compress");
-                    args.add("LZW");
-                    // Limit TIFF dimensions to reduce memory usage on low-resource servers
-                    args.add("-define");
-                    args.add("tiff:tile-geometry=256x256");
-                }
-
                 // Apply sharpening if requested (0-200 scale)
                 if (options.sharpness() != null && options.sharpness() > 0) {
                     // Convert 0-200 scale to ImageMagick parameters
@@ -104,9 +95,7 @@ public class ImageService {
                     String errorOutput = new String(p.getErrorStream().readAllBytes());
                     String standardOutput = new String(p.getInputStream().readAllBytes());
 
-                    // Longer timeout for heavy formats like TIFF
-                    int timeoutSeconds = ("tiff".equals(outExt) || "tif".equals(outExt)) ? 30 : 15;
-                    boolean finished = p.waitFor(timeoutSeconds, TimeUnit.SECONDS);
+                    boolean finished = p.waitFor(15, TimeUnit.SECONDS);
                     if (!finished) {
                         p.destroyForcibly();
                         logger.warn("ImageMagick process timeout for command: {}", cmd);
@@ -138,12 +127,12 @@ public class ImageService {
      * Ondersteunde outputformaten.
      * Sync houden met validator in controller.
      * Alleen veilige raster formaten - SVG/PDF uitgesloten om veiligheidsredenen.
+     * TIFF & BMP verwijderd vanwege hoge resource-eisen op beperkte server specs.
      */
     public static List<String> supportedFormats() {
         return List.of(
             "jpg", "jpeg", "png", "webp", "avif",
-            "gif", "bmp", "tiff", "tif", "heic", "heif",
-            "ico"
+            "gif", "heic", "heif", "ico"
         );
     }
 }
