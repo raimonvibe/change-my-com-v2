@@ -14,7 +14,7 @@ spring:
         sslmode: require
   jpa:
     hibernate:
-      ddl-auto: validate  # Only validate schema in production, don't auto-update
+      ddl-auto: update  # Auto-update schema for new columns
     show-sql: false
     properties:
       hibernate:
