@@ -19,6 +19,43 @@ export const metadata: Metadata = {
   title: "RaimonVibe Image Converter",
   description: "Convert images across formats. 20 free/day, $1.98/month for 1000 conversions.",
   robots: "index, follow",
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png', sizes: '192x192' },
+    ],
+    apple: '/apple-icon.png',
+    other: [
+      {
+        rel: 'icon',
+        type: 'image/png',
+        sizes: '192x192',
+        url: '/icon.png',
+      },
+    ],
+  },
+  openGraph: {
+    title: "RaimonVibe Image Converter",
+    description: "Convert images across formats. 20 free/day, $1.98/month for 1000 conversions.",
+    url: "https://change-my-com-v2.vercel.app",
+    siteName: "RaimonVibe Image Converter",
+    images: [
+      {
+        url: 'https://change-my-com-v2.vercel.app/icon.png',
+        width: 192,
+        height: 192,
+        alt: 'RaimonVibe Image Converter Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: "RaimonVibe Image Converter",
+    description: "Convert images across formats. 20 free/day, $1.98/month for 1000 conversions.",
+    images: ['https://change-my-com-v2.vercel.app/icon.png'],
+  },
 };
 
 export const viewport: Viewport = {
