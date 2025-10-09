@@ -97,12 +97,12 @@ export default function RootLayout({
               
               {/* Mobile Navigation */}
               <div className="md:hidden mt-3 pt-3 border-t border-slate-200">
-                <nav className="flex gap-3 text-base">
-                  <Link href="/home" className="text-slate-600 hover:text-sky-700">Home</Link>
-                  <Link href="/convert" className="text-slate-600 hover:text-sky-700">Convert</Link>
-                  <Link href="/billing" className="text-slate-600 hover:text-sky-700">Pricing</Link>
-                  <Link href="/account" className="text-slate-600 hover:text-sky-700">Account</Link>
-                  <Link href="/contact" className="text-slate-600 hover:text-sky-700">Contact</Link>
+                <nav className="grid grid-cols-3 gap-3 text-base">
+                  <Link href="/home" className="text-slate-600 hover:text-sky-700 py-2 text-center">Home</Link>
+                  <Link href="/convert" className="text-slate-600 hover:text-sky-700 py-2 text-center">Convert</Link>
+                  <Link href="/billing" className="text-slate-600 hover:text-sky-700 py-2 text-center">Pricing</Link>
+                  <Link href="/account" className="text-slate-600 hover:text-sky-700 py-2 text-center col-span-1">Account</Link>
+                  <Link href="/contact" className="text-slate-600 hover:text-sky-700 py-2 text-center col-span-2">Contact</Link>
                 </nav>
               </div>
             </div>
