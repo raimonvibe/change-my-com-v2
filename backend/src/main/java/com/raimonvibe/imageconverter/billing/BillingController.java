@@ -48,7 +48,7 @@ public class BillingController {
                                                                 .build())
                                                 .setProductData(
                                                         SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                .setName("Unlimited Conversions")
+                                                                .setName("1000 Conversions per Month")
                                                                 .build())
                                                 .build())
                                 .build());
