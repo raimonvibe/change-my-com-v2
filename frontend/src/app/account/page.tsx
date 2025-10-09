@@ -123,16 +123,16 @@ export default function AccountPage() {
           <div className="rounded-lg border bg-white p-6">
             <h2 className="text-xl md:text-2xl font-medium text-slate-800 mb-4">Account Information</h2>
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 sm:gap-4">
                 {session.user.image ? (
                   <img
                     src={session.user.image}
                     alt="Profile"
-                    className="w-12 h-12 rounded-full"
+                    className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full"
                   />
                 ) : (
-                  <div className="w-12 h-12 bg-sky-100 rounded-full flex items-center justify-center">
-                    <span className="text-sky-600 font-medium text-lg">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-sky-100 rounded-full flex items-center justify-center">
+                    <span className="text-sky-600 font-medium text-xl sm:text-2xl md:text-3xl">
                       {email ? email.charAt(0).toUpperCase() : 'U'}
                     </span>
                   </div>
