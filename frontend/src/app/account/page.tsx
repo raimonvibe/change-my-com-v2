@@ -128,17 +128,17 @@ export default function AccountPage() {
                   <img
                     src={session.user.image}
                     alt="Profile"
-                    className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full"
+                    className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-sky-100 rounded-full flex items-center justify-center">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-sky-600 font-medium text-xl sm:text-2xl md:text-3xl">
                       {email ? email.charAt(0).toUpperCase() : 'U'}
                     </span>
                   </div>
                 )}
-                <div>
-                  <div className="font-medium text-slate-800 text-lg">{email || 'Loading...'}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-slate-800 text-lg break-words">{email || 'Loading...'}</div>
                   <div className="text-base text-slate-500">Google Account</div>
                 </div>
               </div>
