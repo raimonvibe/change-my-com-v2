@@ -40,16 +40,21 @@ public class StripeWebhookController {
 
   @PostMapping("/webhook")
   public ResponseEntity<String> webhook(HttpServletRequest request, @RequestBody byte[] payloadBytes, @RequestHeader("Stripe-Signature") String sigHeader) throws IOException {
+    logger.info("=== WEBHOOK RECEIVED === Signature present: {}", sigHeader != null);
+
     String payload = new String(payloadBytes, StandardCharsets.UTF_8);
+    logger.info("Webhook payload length: {} bytes", payloadBytes.length);
+
     Event event;
     try {
       event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
     } catch (SignatureVerificationException e) {
       logger.error("Stripe webhook signature verification failed: {}", e.getMessage());
+      logger.error("Webhook secret configured: {}", webhookSecret != null && !webhookSecret.isEmpty());
       return ResponseEntity.status(400).body("Invalid signature");
     }
 
-    logger.info("Received Stripe webhook event: {}", event.getType());
+    logger.info("=== Received Stripe webhook event: {} ===", event.getType());
 
     switch (event.getType()) {
       case "checkout.session.completed":
