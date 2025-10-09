@@ -31,6 +31,7 @@ export default function ConvertPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
   const token = session?.idToken as string | undefined;
 
   const onDrop = (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
@@ -38,11 +39,11 @@ export default function ConvertPage() {
     if (rejectedFiles.length > 0) {
       const rejectedFile = rejectedFiles[0];
       if (rejectedFile.errors.some((e) => e.code === 'file-too-large')) {
-        alert(`Bestand "${rejectedFile.file.name}" is te groot. Maximum toegestane grootte is 8MB.`);
+        alert(`File "${rejectedFile.file.name}" is too large. Maximum allowed size is 8MB.`);
         return;
       }
       if (rejectedFile.errors.some((e) => e.code === 'file-invalid-type')) {
-        alert(`Bestand "${rejectedFile.file.name}" heeft een niet-ondersteund formaat. Alleen afbeeldingen zijn toegestaan.`);
+        alert(`File "${rejectedFile.file.name}" has an unsupported format. Only images are allowed.`);
         return;
       }
     }
@@ -50,7 +51,7 @@ export default function ConvertPage() {
     // Validate file sizes for accepted files
     const validFiles = acceptedFiles.filter(file => {
       if (file.size > MAX_FILE_SIZE) {
-        alert(`Bestand "${file.name}" is te groot (${Math.round(file.size / 1024 / 1024)}MB). Maximum toegestane grootte is 8MB.`);
+        alert(`File "${file.name}" is too large (${Math.round(file.size / 1024 / 1024)}MB). Maximum allowed size is 8MB.`);
         return false;
       }
       return true;
@@ -93,10 +94,14 @@ export default function ConvertPage() {
         console.log('Response ok:', res.ok);
         
         if (res.status === 401) throw new Error('Please sign in with Google to convert.');
-        if (res.status === 402) throw new Error('Daily limit reached (20 free conversions). Sign in and subscribe for unlimited conversions.');
+        if (res.status === 402) {
+          setShowLimitModal(true);
+          setJobs((prev) => prev.map(x => x === j ? { ...x, status: 'error', error: 'Conversion limit reached' } : x));
+          return; // Stop processing this job
+        }
         if (res.status === 413) {
           const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Bestand is te groot. Maximum toegestane grootte is 8MB.');
+          throw new Error(errorData.error || 'File is too large. Maximum allowed size is 8MB.');
         }
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
@@ -212,7 +217,7 @@ export default function ConvertPage() {
               <span className="sm:hidden">Tap to select images</span>
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Maximum bestandsgrootte: 8MB • Ondersteunde formaten: JPG, PNG, WebP, AVIF, GIF, BMP, TIFF, HEIC, ICO
+              Maximum file size: 8MB • Supported formats: JPG, PNG, WebP, AVIF, GIF, BMP, TIFF, HEIC, ICO
             </div>
           </div>
         </div>
@@ -303,6 +308,58 @@ export default function ConvertPage() {
               alt="Preview"
               className="max-w-full max-h-[90vh] object-contain"
             />
+          </div>
+        </div>
+      )}
+
+      {/* Conversion Limit Modal */}
+      {showLimitModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowLimitModal(false)}
+        >
+          <div className="relative max-w-md w-full bg-white rounded-lg shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-amber-600" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                  Conversion Limit Reached
+                </h3>
+                <p className="text-slate-600 mb-4">
+                  {session ? (
+                    <>You've used all your conversions for today. Subscribe to get 1000 conversions per month for just $1.98/month.</>
+                  ) : (
+                    <>You've used all 20 free conversions for today. Sign in to continue, or subscribe for 1000 conversions per month at $1.98/month.</>
+                  )}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {!session && (
+                    <button
+                      onClick={() => window.location.href = '/convert'}
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-sky-600 px-4 py-2.5 text-white hover:bg-sky-700 text-sm font-medium"
+                    >
+                      Sign In
+                    </button>
+                  )}
+                  <button
+                    onClick={() => window.location.href = '/billing'}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-white hover:bg-emerald-700 text-sm font-medium"
+                  >
+                    Subscribe Now
+                  </button>
+                  <button
+                    onClick={() => setShowLimitModal(false)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-slate-100 px-4 py-2.5 text-slate-700 hover:bg-slate-200 text-sm font-medium"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
