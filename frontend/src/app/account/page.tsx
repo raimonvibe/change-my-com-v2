@@ -119,7 +119,7 @@ export default function AccountPage() {
               <div className="bg-emerald-50 rounded-lg p-4">
                 <div className="text-sm text-slate-600 mb-1">Paid Credits</div>
                 <div className="text-2xl font-bold text-emerald-600">{paidCredits || 0}</div>
-                <div className="text-xs text-slate-500">unlimited conversions</div>
+                <div className="text-xs text-slate-500">1000 conversions/month</div>
               </div>
             </div>
           </div>

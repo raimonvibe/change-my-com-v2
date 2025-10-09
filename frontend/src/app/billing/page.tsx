@@ -64,7 +64,7 @@ export default function BillingPage() {
 
       <div className="rounded-lg border bg-white p-6">
         <div className="text-slate-700">20 free conversions per day.</div>
-        <div className="text-slate-700 mb-4">$1.98/month for unlimited conversions (optional monthly renewal).</div>
+        <div className="text-slate-700 mb-4">$1.98/month for 1000 conversions per month (optional monthly renewal).</div>
         <button
           onClick={buy}
           disabled={loading}
