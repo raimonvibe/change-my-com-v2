@@ -67,8 +67,8 @@ public class SecurityConfig {
                 .requestMatchers("/health").permitAll()
                 // Stripe webhook moet publiek zijn maar ondertekend (verificatie in controller!)
                 .requestMatchers("/stripe/webhook").permitAll()
-                // Stripe checkout aanroep vanaf frontend toestaan
-                .requestMatchers(HttpMethod.POST, "/api/billing/checkout").permitAll()
+                // Stripe checkout: REQUIRES authentication to link subscription to user
+                .requestMatchers(HttpMethod.POST, "/api/billing/checkout").authenticated()
                 // Convert endpoints open (credits/limits in controller)
                 .requestMatchers(HttpMethod.GET, "/api/convert/formats").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/convert").permitAll()
