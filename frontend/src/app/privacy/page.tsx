@@ -25,6 +25,7 @@ export default function PrivacyPage() {
             <li><strong>Image Files:</strong> Images you upload for conversion are temporarily processed on our servers and are automatically deleted after conversion is complete.</li>
             <li><strong>Usage Data:</strong> We track the number of conversions performed to enforce daily limits and subscription quotas.</li>
             <li><strong>Payment Information:</strong> If you subscribe to our paid plan, payment processing is handled securely by Stripe. We do not store your credit card details.</li>
+            <li><strong>Contact Form:</strong> When you submit our contact form, your name, email address, and message are processed by Formspree (a third-party service) and forwarded to us via email. We use this information solely to respond to your inquiry.</li>
           </ul>
         </section>
 
@@ -36,6 +37,7 @@ export default function PrivacyPage() {
             <li>To manage your account and authentication</li>
             <li>To process payments and manage subscriptions</li>
             <li>To enforce usage limits and prevent abuse</li>
+            <li>To respond to your inquiries and provide customer support</li>
             <li>To improve our service quality</li>
           </ul>
         </section>
@@ -66,6 +68,7 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Authentication Providers:</strong> Google, GitHub, or other OAuth providers you choose to authenticate with</li>
             <li><strong>Payment Processor:</strong> Stripe for subscription payment processing</li>
+            <li><strong>Contact Form Service:</strong> Formspree for processing and forwarding contact form submissions</li>
           </ul>
           <p className="mt-3">
             We do not sell, rent, or share your personal data with any other third parties for marketing purposes.

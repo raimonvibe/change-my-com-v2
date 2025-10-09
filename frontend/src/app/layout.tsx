@@ -46,6 +46,7 @@ export default function RootLayout({
                     <Link href="/convert" className="text-slate-600 hover:text-sky-700">Convert</Link>
                     <Link href="/billing" className="text-slate-600 hover:text-sky-700">Pricing</Link>
                     <Link href="/account" className="text-slate-600 hover:text-sky-700">Account</Link>
+                    <Link href="/contact" className="text-slate-600 hover:text-sky-700">Contact</Link>
                   </nav>
                   <AuthButtons />
                 </div>
@@ -64,6 +65,7 @@ export default function RootLayout({
                   <Link href="/convert" className="text-slate-600 hover:text-sky-700">Convert</Link>
                   <Link href="/billing" className="text-slate-600 hover:text-sky-700">Pricing</Link>
                   <Link href="/account" className="text-slate-600 hover:text-sky-700">Account</Link>
+                  <Link href="/contact" className="text-slate-600 hover:text-sky-700">Contact</Link>
                 </nav>
               </div>
             </div>
