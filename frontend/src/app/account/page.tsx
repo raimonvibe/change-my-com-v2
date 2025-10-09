@@ -11,7 +11,6 @@ export default function AccountPage() {
   const email = useAuthStore(s => s.email);
   const freeRemaining = useAuthStore(s => s.freeRemaining);
   const paidCredits = useAuthStore(s => s.paidCredits);
-  const subscriptionStatus = useAuthStore(s => s.subscriptionStatus);
   const autoRenewal = useAuthStore(s => s.autoRenewal);
   const [toggleLoading, setToggleLoading] = useState(false);
 
