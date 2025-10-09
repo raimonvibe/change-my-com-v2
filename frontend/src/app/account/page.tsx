@@ -1,6 +1,6 @@
 'use client';
 // Trigger new deployment - TypeScript fixes applied - v2
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useAuthStore } from "../../store/useAuthStore";
 import { API_URL } from "../../env";
@@ -11,6 +11,9 @@ export default function AccountPage() {
   const email = useAuthStore(s => s.email);
   const freeRemaining = useAuthStore(s => s.freeRemaining);
   const paidCredits = useAuthStore(s => s.paidCredits);
+  const subscriptionStatus = useAuthStore(s => s.subscriptionStatus);
+  const autoRenewal = useAuthStore(s => s.autoRenewal);
+  const [toggleLoading, setToggleLoading] = useState(false);
 
   useEffect(() => {
     const fetchMe = async (retryCount = 0): Promise<void> => {
@@ -63,13 +66,17 @@ export default function AccountPage() {
           email: string;
           freeRemaining: number;
           paidCredits: number;
+          subscriptionStatus: string;
+          autoRenewal: boolean;
         };
         console.log('User data received:', data);
         setAuth({
           authenticated: data.authenticated,
           email: data.email,
           freeRemaining: data.freeRemaining,
-          paidCredits: data.paidCredits
+          paidCredits: data.paidCredits,
+          subscriptionStatus: data.subscriptionStatus,
+          autoRenewal: data.autoRenewal
         });
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -82,6 +89,29 @@ export default function AccountPage() {
     };
     fetchMe();
   }, [session, setAuth]);
+
+  const toggleAutoRenewal = async () => {
+    if (!session?.idToken) return;
+
+    setToggleLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/user/toggle-auto-renewal`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.idToken}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setAuth({ autoRenewal: data.autoRenewal });
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling auto-renewal:', error);
+    } finally {
+      setToggleLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -125,6 +155,32 @@ export default function AccountPage() {
                   <div className="text-sm text-emerald-700">conversions remaining this month</div>
                   <div className="text-xs text-emerald-600 mt-2">You have 1000 conversions per month</div>
                 </div>
+
+                {/* Auto-renewal toggle */}
+                <div className="bg-white rounded-lg p-4 border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-slate-800">Auto-Renewal</div>
+                      <div className="text-sm text-slate-600">
+                        {autoRenewal ? 'Your subscription will automatically renew each month' : 'Your subscription will not renew automatically'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={toggleAutoRenewal}
+                      disabled={toggleLoading}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        autoRenewal ? 'bg-emerald-600' : 'bg-slate-300'
+                      } ${toggleLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          autoRenewal ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
                 <div className="text-sm text-slate-600 bg-slate-50 rounded-lg p-4">
                   <strong>Note:</strong> As a subscriber, you&apos;re using your monthly credits. Free daily conversions are available after your subscription expires.
                 </div>

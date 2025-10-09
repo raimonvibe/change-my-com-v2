@@ -17,7 +17,7 @@ public class UserController {
   @GetMapping("/me")
   public Map<String, Object> me(Principal principal) {
     if (principal == null) return Map.of("authenticated", false);
-    
+
     try {
       // Use ensureUserByEmail to create user if they don't exist
       var user = userService.ensureUserByEmail(principal.getName());
@@ -27,13 +27,42 @@ public class UserController {
           "authenticated", true,
           "email", user.getEmail(),
           "freeRemaining", freeRemaining,
-          "paidCredits", user.getPaidCredits()
+          "paidCredits", user.getPaidCredits(),
+          "subscriptionStatus", user.getSubscriptionStatus() != null ? user.getSubscriptionStatus() : "none",
+          "autoRenewal", user.getAutoRenewal() != null ? user.getAutoRenewal() : false
       );
     } catch (Exception e) {
       // Log the error and return unauthenticated
       System.err.println("Error in /api/user/me: " + e.getMessage());
       e.printStackTrace();
       return Map.of("authenticated", false, "error", "Failed to fetch user data");
+    }
+  }
+
+  @PostMapping("/toggle-auto-renewal")
+  public Map<String, Object> toggleAutoRenewal(Principal principal) {
+    if (principal == null) return Map.of("success", false, "error", "Not authenticated");
+
+    try {
+      var user = userService.ensureUserByEmail(principal.getName());
+
+      // Only allow toggling if user has an active subscription
+      if (user.getStripeSubscriptionId() == null) {
+        return Map.of("success", false, "error", "No active subscription");
+      }
+
+      boolean newValue = !user.getAutoRenewal();
+      user.setAutoRenewal(newValue);
+      userService.saveUser(user);
+
+      return Map.of(
+          "success", true,
+          "autoRenewal", newValue,
+          "message", newValue ? "Auto-renewal enabled" : "Auto-renewal disabled"
+      );
+    } catch (Exception e) {
+      System.err.println("Error toggling auto-renewal: " + e.getMessage());
+      return Map.of("success", false, "error", "Failed to toggle auto-renewal");
     }
   }
 }
