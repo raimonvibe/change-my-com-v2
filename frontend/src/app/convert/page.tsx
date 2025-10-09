@@ -181,7 +181,7 @@ export default function ConvertPage() {
 
           {/* Image Settings */}
           <div className="border-t pt-4 space-y-4">
-            <div className="text-sm font-semibold text-slate-800 mb-3">Image Settings</div>
+            <div className="text-sm sm:text-base font-semibold text-slate-800 mb-3">Image Settings</div>
 
             {/* Quality Slider */}
             <div>

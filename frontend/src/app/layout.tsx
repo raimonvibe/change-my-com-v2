@@ -18,10 +18,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.change-my.com'),
   title: {
-    default: "Free Online Image Converter - Convert JPG, PNG, WebP & More | RaimonVibe",
+    default: "Free Online Image Converter - Convert, Sharpen & Optimize JPG, PNG, WebP | RaimonVibe",
     template: "%s | RaimonVibe Image Converter"
   },
-  description: "Free online image converter tool. Convert images between JPG, PNG, WebP, GIF, and more formats instantly. 20 free conversions daily, or subscribe for 1000 monthly conversions at $1.98/month.",
+  description: "Free online image converter with quality control and sharpening. Convert images between JPG, PNG, WebP, GIF, and more. Adjust quality, apply sharpening filters. 20 free conversions daily, or subscribe for 1000 monthly conversions at $1.98/month.",
   keywords: [
     "image converter",
     "convert images online",
@@ -35,7 +35,12 @@ export const metadata: Metadata = {
     "image transformation",
     "photo converter",
     "gif converter",
-    "batch image converter"
+    "batch image converter",
+    "image sharpening",
+    "sharpen images online",
+    "image quality control",
+    "compress images",
+    "image optimizer"
   ],
   authors: [{ name: "RaimonVibe", url: "https://www.raimonvibe.com" }],
   creator: "RaimonVibe",
@@ -70,8 +75,8 @@ export const metadata: Metadata = {
     canonical: 'https://www.change-my.com',
   },
   openGraph: {
-    title: "Free Online Image Converter - Convert JPG, PNG, WebP & More",
-    description: "Free online image converter tool. Convert images between JPG, PNG, WebP, GIF, and more formats instantly. 20 free conversions daily.",
+    title: "Free Online Image Converter - Convert, Sharpen & Optimize Images",
+    description: "Free online image converter with quality control and sharpening. Convert images between JPG, PNG, WebP, GIF, and more. Adjust quality and apply sharpening filters. 20 free conversions daily.",
     url: "https://www.change-my.com",
     siteName: "RaimonVibe Image Converter",
     images: [
@@ -87,8 +92,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Free Online Image Converter - Convert JPG, PNG, WebP & More",
-    description: "Free online image converter tool. Convert images between JPG, PNG, WebP, GIF, and more formats instantly. 20 free conversions daily.",
+    title: "Free Online Image Converter - Convert, Sharpen & Optimize Images",
+    description: "Free online image converter with quality control and sharpening. Convert, optimize, and sharpen images instantly. 20 free conversions daily.",
     images: ['https://www.change-my.com/icon.png'],
   },
   category: 'technology',
@@ -108,7 +113,7 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "RaimonVibe Image Converter",
-    "description": "Free online image converter tool. Convert images between JPG, PNG, WebP, GIF, and more formats instantly.",
+    "description": "Free online image converter with quality control and sharpening. Convert images between JPG, PNG, WebP, GIF, and more formats with advanced optimization.",
     "url": "https://www.change-my.com",
     "applicationCategory": "MultimediaApplication",
     "operatingSystem": "Any",
@@ -123,8 +128,12 @@ export default function RootLayout({
       "Convert PNG to JPG",
       "Convert WebP images",
       "Convert GIF images",
+      "Image quality control (1-100%)",
+      "Image sharpening (0-200%)",
+      "Unsharp mask filter",
       "20 free conversions daily",
-      "Batch image conversion"
+      "Batch image conversion",
+      "Support for AVIF, HEIC, TIFF, BMP, ICO"
     ],
     "screenshot": "https://www.change-my.com/icon.png",
     "publisher": {
