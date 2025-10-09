@@ -56,7 +56,7 @@ public class StripeWebhookController {
         if (metadata != null && "monthly_1000".equals(metadata.get("subscription"))) {
           if (email != null) {
             User user = userService.ensureUserByEmail(email);
-            userService.addCredits(user, 1000, "subscription_activated");
+            userService.activateSubscription(user, 1000);
             logger.info("Added 1000 credits to user: {}", email);
           } else {
             logger.warn("No email found in checkout session");
