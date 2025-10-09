@@ -51,7 +51,8 @@
     - **NEW:** Image sharpening (0-200%)
     - **NEW:** Unsharp mask filter
     - Batch image conversion
-    - Support for AVIF, HEIC, TIFF, BMP, ICO
+    - Support for AVIF, HEIC, ICO
+    - **REMOVED:** TIFF & BMP (resource-intensive formats removed for server optimization)
   - Pricing information ($1.98/month)
   - Publisher information (RaimonVibe)
 

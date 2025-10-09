@@ -8,10 +8,10 @@ import { useAuthStore } from "../../store/useAuthStore";
 
 // Organized format groups for better UX
 // Only safe raster formats - SVG/PDF excluded for security
+// TIFF & BMP removed due to high resource requirements on limited server specs
 const FORMAT_GROUPS = {
   'Modern Web': ['webp', 'avif'],
   'Standard': ['jpg', 'png', 'gif'],
-  'Professional': ['tiff', 'bmp'],
   'Mobile': ['heic'],
   'Other': ['ico']
 };
@@ -181,11 +181,6 @@ export default function ConvertPage() {
           {/* Format Selection - Organized Grid */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-3">Convert to:</label>
-            {(target === 'tiff' || target === 'tif') && (
-              <div className="mb-3 bg-amber-50 border border-amber-200 rounded-md p-3 text-xs sm:text-sm text-amber-800">
-                <strong>Note:</strong> TIFF conversions may take longer (up to 30 seconds) due to the format&apos;s high quality. We use LZW compression to optimize file size.
-              </div>
-            )}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {Object.entries(FORMAT_GROUPS).map(([groupName, formats]) => (
                 <div key={groupName} className="space-y-1.5">
@@ -275,7 +270,7 @@ export default function ConvertPage() {
               <span className="sm:hidden">Tap to select images</span>
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Maximum file size: 8MB • Supported formats: JPG, PNG, WebP, AVIF, GIF, BMP, TIFF, HEIC, ICO
+              Maximum file size: 8MB • Supported formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO
             </div>
           </div>
         </div>

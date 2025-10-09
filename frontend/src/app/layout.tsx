@@ -133,7 +133,7 @@ export default function RootLayout({
       "Unsharp mask filter",
       "20 free conversions daily",
       "Batch image conversion",
-      "Support for AVIF, HEIC, TIFF, BMP, ICO"
+      "Support for AVIF, HEIC, ICO"
     ],
     "screenshot": "https://www.change-my.com/icon.png",
     "publisher": {
