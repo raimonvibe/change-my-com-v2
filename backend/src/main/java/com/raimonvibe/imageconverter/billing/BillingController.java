@@ -27,15 +27,22 @@ public class BillingController {
             @RequestParam("successUrl") String successUrl,
             @RequestParam("cancelUrl") String cancelUrl,
             java.security.Principal principal) throws Exception {
+
+        // Ensure user is authenticated (security config requires it, but double-check)
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required to subscribe"));
+        }
+
         Stripe.apiKey = stripeSecretKey;
 
         long priceCents = Math.round(priceUsd * 100); // Convert $1.98 to cents (198 cents)
 
-        SessionCreateParams.Builder builder = SessionCreateParams.builder()
+        SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
                 .setSuccessUrl(successUrl)
                 .setCancelUrl(cancelUrl)
                 .putMetadata("subscription", "monthly_1000")
+                .setCustomerEmail(principal.getName()) // Always set email from authenticated user
                 .addLineItem(
                         SessionCreateParams.LineItem.builder()
                                 .setQuantity(1L)
@@ -52,13 +59,10 @@ public class BillingController {
                                                                 .setName("1000 Conversions per Month")
                                                                 .build())
                                                 .build())
-                                .build());
+                                .build())
+                .build();
 
-        if (principal != null) {
-            builder.setCustomerEmail(principal.getName());
-        }
-
-        Session session = Session.create(builder.build());
+        Session session = Session.create(params);
         return ResponseEntity.ok(Map.of("id", session.getId(), "url", session.getUrl()));
     }
 }
