@@ -69,6 +69,33 @@ export default function RootLayout({
             </div>
           </header>
           <main className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">{children}</main>
+          <footer className="border-t bg-white mt-12">
+            <div className="max-w-5xl mx-auto px-4 py-6">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-600">
+                <div>
+                  © {new Date().getFullYear()} RaimonVibe. All rights reserved.
+                </div>
+                <div className="flex gap-6">
+                  <Link
+                    href="/privacy"
+                    className="hover:text-sky-700 transition-colors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Privacy Notice
+                  </Link>
+                  <Link
+                    href="/legal"
+                    className="hover:text-sky-700 transition-colors"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Legal Notice
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </footer>
         </Providers>
       </body>
     </html>
