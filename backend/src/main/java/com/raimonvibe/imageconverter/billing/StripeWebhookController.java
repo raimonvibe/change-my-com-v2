@@ -102,8 +102,9 @@ public class StripeWebhookController {
   private void handleInvoicePaid(Event event) {
     try {
       Invoice invoice = (Invoice) event.getDataObjectDeserializer().getObject().orElse(null);
-      if (invoice != null && invoice.getSubscription() != null) {
-        String subscriptionId = invoice.getSubscription();
+      if (invoice != null && invoice.getLines() != null && invoice.getLines().getData().size() > 0) {
+        // Get subscription ID from the first line item
+        String subscriptionId = invoice.getLines().getData().get(0).getSubscription();
 
         logger.info("Processing invoice.paid for subscriptionId: {}", subscriptionId);
 
