@@ -331,9 +331,9 @@ export default function ConvertPage() {
                 </h3>
                 <p className="text-slate-600 mb-4">
                   {session ? (
-                    <>You've used all your conversions for today. Subscribe to get 1000 conversions per month for just $1.98/month.</>
+                    <>You&apos;ve used all your conversions for today. Subscribe to get 1000 conversions per month for just $1.98/month.</>
                   ) : (
-                    <>You've used all 20 free conversions for today. Sign in to continue, or subscribe for 1000 conversions per month at $1.98/month.</>
+                    <>You&apos;ve used all 20 free conversions for today. Sign in to continue, or subscribe for 1000 conversions per month at $1.98/month.</>
                   )}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
