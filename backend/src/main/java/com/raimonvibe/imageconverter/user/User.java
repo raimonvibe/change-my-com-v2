@@ -23,4 +23,5 @@ public class User {
   private LocalDate lastFreeReset = LocalDate.now();
 
   private Integer paidCredits = 0;
+  private LocalDate lastPaidReset = null;
 }
