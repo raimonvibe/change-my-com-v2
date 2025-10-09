@@ -124,11 +124,19 @@ export default function AccountPage() {
             <h2 className="text-xl md:text-2xl font-medium text-slate-800 mb-4">Account Information</h2>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-sky-100 rounded-full flex items-center justify-center">
-                  <span className="text-sky-600 font-medium text-lg">
-                    {email ? email.charAt(0).toUpperCase() : 'U'}
-                  </span>
-                </div>
+                {session.user.image ? (
+                  <img
+                    src={session.user.image}
+                    alt="Profile"
+                    className="w-12 h-12 rounded-full"
+                  />
+                ) : (
+                  <div className="w-12 h-12 bg-sky-100 rounded-full flex items-center justify-center">
+                    <span className="text-sky-600 font-medium text-lg">
+                      {email ? email.charAt(0).toUpperCase() : 'U'}
+                    </span>
+                  </div>
+                )}
                 <div>
                   <div className="font-medium text-slate-800 text-lg">{email || 'Loading...'}</div>
                   <div className="text-base text-slate-500">Google Account</div>
