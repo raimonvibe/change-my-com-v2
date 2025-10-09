@@ -29,10 +29,12 @@ public class StripeWebhookController {
 
   private final UserService userService;
   private final UserRepository userRepository;
+  private final WebhookEventRepository webhookEventRepository;
 
-  public StripeWebhookController(UserService userService, UserRepository userRepository) {
+  public StripeWebhookController(UserService userService, UserRepository userRepository, WebhookEventRepository webhookEventRepository) {
     this.userService = userService;
     this.userRepository = userRepository;
+    this.webhookEventRepository = webhookEventRepository;
   }
 
   @Value("${app.stripe.webhookSecret:}")
@@ -54,8 +56,15 @@ public class StripeWebhookController {
       return ResponseEntity.status(400).body("Invalid signature");
     }
 
-    logger.info("=== Received Stripe webhook event: {} ===", event.getType());
+    logger.info("=== Received Stripe webhook event: {} (id: {}) ===", event.getType(), event.getId());
 
+    // Idempotency check: prevent duplicate processing
+    if (webhookEventRepository.existsByStripeEventId(event.getId())) {
+      logger.warn("Webhook event {} already processed, skipping", event.getId());
+      return ResponseEntity.ok("already_processed");
+    }
+
+    // Process the event
     switch (event.getType()) {
       case "checkout.session.completed":
         handleCheckoutCompleted(event);
@@ -72,6 +81,15 @@ public class StripeWebhookController {
       default:
         logger.info("Unhandled event type: {}", event.getType());
     }
+
+    // Record this event as processed
+    try {
+      webhookEventRepository.save(new WebhookEvent(event.getId(), event.getType()));
+      logger.info("Recorded webhook event {} as processed", event.getId());
+    } catch (Exception e) {
+      logger.error("Failed to record webhook event: {}", e.getMessage());
+    }
+
     return ResponseEntity.ok("ok");
   }
 
@@ -139,12 +157,23 @@ public class StripeWebhookController {
         // Find user by subscription ID
         User user = userRepository.findByStripeSubscriptionId(subscriptionId).orElse(null);
         if (user != null && user.getAutoRenewal()) {
-          // Only renew if auto-renewal is enabled
-          user.setPaidCredits(1000);
-          user.setLastPaidReset(LocalDate.now());
-          user.setSubscriptionStatus("active");
-          userRepository.save(user);
-          logger.info("Renewed 1000 credits for user: {} (auto-renewal enabled)", user.getEmail());
+          LocalDate today = LocalDate.now();
+          LocalDate lastReset = user.getLastPaidReset();
+
+          // Only reset credits if this is a NEW billing period (monthly renewal)
+          // Prevent duplicate resets within the same day
+          if (lastReset == null || !lastReset.equals(today)) {
+            int previousCredits = user.getPaidCredits();
+            user.setPaidCredits(1000);
+            user.setLastPaidReset(today);
+            user.setSubscriptionStatus("active");
+            userRepository.save(user);
+            logger.info("Monthly renewal: Reset credits from {} to 1000 for user: {} (lastReset was: {})",
+                       previousCredits, user.getEmail(), lastReset);
+          } else {
+            logger.info("Skipping credit reset for user {} - already reset today ({})",
+                       user.getEmail(), today);
+          }
         } else if (user != null) {
           logger.info("User {} has auto-renewal disabled, not adding credits", user.getEmail());
         } else {
