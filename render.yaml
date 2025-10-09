@@ -42,13 +42,13 @@ services:
       - key: ALLOWED_ORIGINS
         value: https://imageconverter-frontend.onrender.com
 
-  # Frontend Next.js Static Site
+  # Frontend Next.js Web Service
   - type: web
     name: imageconverter-frontend
-    env: static
+    env: node
     plan: free
     buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/out
+    startCommand: cd frontend && npm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
         fromService:

@@ -1,12 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Static export for Render deployment
-  output: 'export',
-
-  // Images configuration for static export
+  // Images configuration
   images: {
-    unoptimized: true, // Required for static export
+    unoptimized: true,
   },
 
   // Environment variables
@@ -15,13 +12,15 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   },
 
-  // Trailing slash for better static hosting compatibility
-  trailingSlash: true,
-
   // Disable experimental CSS optimization to prevent critters module errors
   experimental: {
     // optimizeCss: true, // Disabled - causes critters module errors
-  }
+  },
+
+  // ESLint configuration
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
 };
 
 export default nextConfig;
