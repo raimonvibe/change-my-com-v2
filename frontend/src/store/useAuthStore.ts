@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 type AuthState = {
   email: string | null;
@@ -11,13 +12,21 @@ type AuthState = {
   reset: () => void;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
-  email: null,
-  authenticated: false,
-  freeRemaining: 0,
-  paidCredits: 0,
-  subscriptionStatus: 'none',
-  autoRenewal: false,
-  setAuth: (data) => set((s) => ({ ...s, ...data })),
-  reset: () => set({ email: null, authenticated: false, freeRemaining: 0, paidCredits: 0, subscriptionStatus: 'none', autoRenewal: false }),
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      email: null,
+      authenticated: false,
+      freeRemaining: 0,
+      paidCredits: 0,
+      subscriptionStatus: 'none',
+      autoRenewal: false,
+      setAuth: (data) => set((s) => ({ ...s, ...data })),
+      reset: () => set({ email: null, authenticated: false, freeRemaining: 0, paidCredits: 0, subscriptionStatus: 'none', autoRenewal: false }),
+    }),
+    {
+      name: 'auth-storage',
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);
