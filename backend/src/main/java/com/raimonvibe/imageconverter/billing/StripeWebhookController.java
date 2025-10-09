@@ -79,30 +79,34 @@ public class StripeWebhookController {
     try {
       logger.info("Processing checkout.session.completed event");
 
-      // Try to get the session from the event data
-      Session session = null;
-      try {
-        if (event.getDataObjectDeserializer().getObject().isPresent()) {
-          session = (Session) event.getDataObjectDeserializer().getObject().get();
-          logger.info("Successfully deserialized session from event");
+      // Get data from the raw JSON object
+      com.google.gson.JsonObject dataObject = event.getData().getObject();
+
+      String email = null;
+      if (dataObject.has("customer_details") && !dataObject.get("customer_details").isJsonNull()) {
+        com.google.gson.JsonObject customerDetails = dataObject.getAsJsonObject("customer_details");
+        if (customerDetails.has("email") && !customerDetails.get("email").isJsonNull()) {
+          email = customerDetails.get("email").getAsString();
         }
-      } catch (Exception e) {
-        logger.warn("Failed to deserialize session: {}", e.getMessage());
       }
 
-      if (session == null) {
-        logger.error("Session object is null after deserialization attempt");
-        return;
+      String subscriptionId = null;
+      if (dataObject.has("subscription") && !dataObject.get("subscription").isJsonNull()) {
+        subscriptionId = dataObject.get("subscription").getAsString();
       }
 
-      String email = session.getCustomerDetails() != null ? session.getCustomerDetails().getEmail() : null;
-      String subscriptionId = session.getSubscription();
-      Map<String, String> metadata = session.getMetadata();
+      Map<String, String> metadata = new java.util.HashMap<>();
+      if (dataObject.has("metadata") && !dataObject.get("metadata").isJsonNull()) {
+        com.google.gson.JsonObject metadataObj = dataObject.getAsJsonObject("metadata");
+        for (String key : metadataObj.keySet()) {
+          metadata.put(key, metadataObj.get(key).getAsString());
+        }
+      }
 
       logger.info("Session details - email: {}, subscriptionId: {}, metadata: {}",
                   email, subscriptionId, metadata);
 
-      if (metadata != null && "monthly_1000".equals(metadata.get("subscription"))) {
+      if (metadata.containsKey("subscription") && "monthly_1000".equals(metadata.get("subscription"))) {
         if (email != null && subscriptionId != null) {
           User user = userService.ensureUserByEmail(email);
           user.setStripeSubscriptionId(subscriptionId);
