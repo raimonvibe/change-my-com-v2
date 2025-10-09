@@ -37,11 +37,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "RaimonVibe Image Converter",
     description: "Convert images across formats. 20 free/day, $1.98/month for 1000 conversions.",
-    url: "https://change-my-com-v2.vercel.app",
+    url: "https://www.change-my.com",
     siteName: "RaimonVibe Image Converter",
     images: [
       {
-        url: 'https://change-my-com-v2.vercel.app/icon.png',
+        url: 'https://www.change-my.com/icon.png',
         width: 192,
         height: 192,
         alt: 'RaimonVibe Image Converter Logo',
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     card: 'summary',
     title: "RaimonVibe Image Converter",
     description: "Convert images across formats. 20 free/day, $1.98/month for 1000 conversions.",
-    images: ['https://change-my-com-v2.vercel.app/icon.png'],
+    images: ['https://www.change-my.com/icon.png'],
   },
 };
 
