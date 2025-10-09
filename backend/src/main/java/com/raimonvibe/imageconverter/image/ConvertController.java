@@ -80,6 +80,7 @@ public class ConvertController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("to") @NotBlank String toFormat,
             @RequestParam(value = "quality", required = false) @Min(1) @Max(100) Integer quality,
+            @RequestParam(value = "sharpness", required = false) @Min(0) @Max(200) Integer sharpness,
             Principal principal,
             HttpServletRequest request
     ) {
@@ -152,7 +153,8 @@ public class ConvertController {
             file.transferTo(tmp);
 
             final Integer q = (quality != null) ? quality : null;
-            out = imageService.convert(tmp, new ImageService.ConversionOptions(fmt, q));
+            final Integer s = (sharpness != null) ? sharpness : 0;
+            out = imageService.convert(tmp, new ImageService.ConversionOptions(fmt, q, s));
 
             // Record cost metrics
             long processingTime = System.currentTimeMillis() - startTime;

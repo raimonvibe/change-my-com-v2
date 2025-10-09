@@ -28,6 +28,7 @@ export default function ConvertPage() {
   const { data: session } = useSession();
   const [target, setTarget] = useState('webp');
   const [quality, setQuality] = useState(85);
+  const [sharpness, setSharpness] = useState(0);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -79,6 +80,7 @@ export default function ConvertPage() {
       form.append('file', j.file);
       form.append('to', target);
       form.append('quality', String(quality));
+      form.append('sharpness', String(sharpness));
       try {
         console.log('Starting conversion for:', j.file.name, 'to', target);
         console.log('API_URL:', API_URL);
@@ -177,23 +179,48 @@ export default function ConvertPage() {
             </div>
           </div>
 
-          {/* Quality Slider */}
-          <div className="border-t pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-slate-700">Quality</label>
-              <span className="text-sm font-semibold text-sky-600">{quality}%</span>
+          {/* Image Settings */}
+          <div className="border-t pt-4 space-y-4">
+            <div className="text-sm font-semibold text-slate-800 mb-3">Image Settings</div>
+
+            {/* Quality Slider */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-slate-700">Quality</label>
+                <span className="text-sm font-semibold text-sky-600">{quality}%</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={100}
+                value={quality}
+                onChange={(e)=>setQuality(Number(e.target.value))}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+              />
+              <div className="flex justify-between text-xs text-slate-500 mt-1">
+                <span>Lower size</span>
+                <span>Higher quality</span>
+              </div>
             </div>
-            <input
-              type="range"
-              min={1}
-              max={100}
-              value={quality}
-              onChange={(e)=>setQuality(Number(e.target.value))}
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
-            />
-            <div className="flex justify-between text-xs text-slate-500 mt-1">
-              <span>Lower size</span>
-              <span>Higher quality</span>
+
+            {/* Sharpness Slider */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-slate-700">Sharpness</label>
+                <span className="text-sm font-semibold text-sky-600">{sharpness}%</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={200}
+                value={sharpness}
+                onChange={(e)=>setSharpness(Number(e.target.value))}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+              />
+              <div className="flex justify-between text-xs text-slate-500 mt-1">
+                <span>No sharpening</span>
+                <span>Maximum sharpness</span>
+              </div>
             </div>
           </div>
 
