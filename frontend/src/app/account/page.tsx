@@ -126,7 +126,7 @@ export default function AccountPage() {
                   <div className="text-xs text-emerald-600 mt-2">You have 1000 conversions per month</div>
                 </div>
                 <div className="text-sm text-slate-600 bg-slate-50 rounded-lg p-4">
-                  <strong>Note:</strong> As a subscriber, you're using your monthly credits. Free daily conversions are available after your subscription expires.
+                  <strong>Note:</strong> As a subscriber, you&apos;re using your monthly credits. Free daily conversions are available after your subscription expires.
                 </div>
               </div>
             ) : (
