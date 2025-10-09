@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useDropzone, FileRejection } from "react-dropzone";
 import { API_URL } from "../../env";
 import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle } from "lucide-react";
+import { useAuthStore } from "../../store/useAuthStore";
 
 // Organized format groups for better UX
 // Only safe raster formats - SVG/PDF excluded for security
@@ -26,6 +27,7 @@ type Job = {
 
 export default function ConvertPage() {
   const { data: session } = useSession();
+  const setAuth = useAuthStore(s => s.setAuth);
   const [target, setTarget] = useState('webp');
   const [quality, setQuality] = useState(85);
   const [sharpness, setSharpness] = useState(0);
@@ -34,6 +36,27 @@ export default function ConvertPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const token = session?.idToken as string | undefined;
+
+  // Function to refresh user credits after conversion
+  const refreshCredits = async () => {
+    if (!session?.idToken) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/user/me`, {
+        headers: { Authorization: `Bearer ${session.idToken}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setAuth({
+          freeRemaining: data.freeRemaining,
+          paidCredits: data.paidCredits,
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing credits:', error);
+    }
+  };
 
   const onDrop = (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
     // Handle rejected files (too large, wrong type, etc.)
@@ -129,6 +152,9 @@ export default function ConvertPage() {
           console.log('Updating refresh key from', prev, 'to', prev + 1);
           return prev + 1;
         });
+
+        // Refresh user credits after successful conversion
+        await refreshCredits();
       } catch (e: unknown) {
         console.error('Conversion error:', e);
         const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
