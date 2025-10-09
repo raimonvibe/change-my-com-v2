@@ -34,8 +34,8 @@ export default function ContactPage() {
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-4">Contact Us</h1>
-      <p className="text-slate-700 mb-8">
+      <h1 className="text-3xl md:text-4xl font-bold mb-4">Contact Us</h1>
+      <p className="text-slate-700 mb-8 text-lg">
         Have a question, feedback, or need support? We&apos;d love to hear from you!
       </p>
 
@@ -45,7 +45,7 @@ export default function ContactPage() {
           <input type="text" name="_gotcha" style={{ display: 'none' }} />
 
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="name" className="block text-base font-medium text-slate-700 mb-2">
               Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -53,14 +53,14 @@ export default function ContactPage() {
               id="name"
               name="name"
               required
-              className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
               placeholder="Your name"
               disabled={status === 'submitting'}
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="email" className="block text-base font-medium text-slate-700 mb-2">
               Email <span className="text-red-500">*</span>
             </label>
             <input
@@ -68,14 +68,14 @@ export default function ContactPage() {
               id="email"
               name="email"
               required
-              className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
               placeholder="your.email@example.com"
               disabled={status === 'submitting'}
             />
           </div>
 
           <div>
-            <label htmlFor="subject" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="subject" className="block text-base font-medium text-slate-700 mb-2">
               Subject <span className="text-red-500">*</span>
             </label>
             <input
@@ -83,14 +83,14 @@ export default function ContactPage() {
               id="subject"
               name="subject"
               required
-              className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
               placeholder="What is this about?"
               disabled={status === 'submitting'}
             />
           </div>
 
           <div>
-            <label htmlFor="message" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="message" className="block text-base font-medium text-slate-700 mb-2">
               Message <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -98,7 +98,7 @@ export default function ContactPage() {
               name="message"
               required
               rows={6}
-              className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-vertical"
+              className="w-full px-4 py-3 text-base border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-vertical"
               placeholder="Your message..."
               disabled={status === 'submitting'}
             />
@@ -108,7 +108,7 @@ export default function ContactPage() {
             <button
               type="submit"
               disabled={status === 'submitting'}
-              className="w-full bg-sky-600 hover:bg-sky-700 disabled:bg-slate-400 text-white font-medium py-3 px-6 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+              className="w-full bg-sky-600 hover:bg-sky-700 disabled:bg-slate-400 text-white font-medium py-3 px-6 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 text-lg"
             >
               {status === 'submitting' ? 'Sending...' : 'Send Message'}
             </button>
@@ -131,8 +131,8 @@ export default function ContactPage() {
       </div>
 
       <div className="bg-slate-50 rounded-lg border border-slate-200 p-6">
-        <h2 className="text-xl font-semibold mb-4">Other Ways to Reach Us</h2>
-        <div className="space-y-3 text-slate-700">
+        <h2 className="text-xl md:text-2xl font-semibold mb-4">Other Ways to Reach Us</h2>
+        <div className="space-y-3 text-slate-700 text-base">
           <div>
             <span className="font-medium">Email:</span>{' '}
             <a href="mailto:info@raimonvibe.com" className="text-sky-600 hover:text-sky-700">
@@ -153,7 +153,7 @@ export default function ContactPage() {
         </div>
       </div>
 
-      <p className="text-sm text-slate-600 mt-6">
+      <p className="text-base text-slate-600 mt-6">
         By submitting this form, you agree to our{' '}
         <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-700">
           Privacy Notice

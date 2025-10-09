@@ -1,11 +1,11 @@
 export default function LegalPage() {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Legal Notice</h1>
+      <h1 className="text-3xl md:text-4xl font-bold mb-6">Legal Notice</h1>
 
-      <div className="space-y-6 text-slate-700">
+      <div className="space-y-6 text-slate-700 text-base md:text-lg leading-relaxed">
         <section>
-          <h2 className="text-xl font-semibold mb-3">1. Service Provider Information</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">1. Service Provider Information</h2>
           <p>
             This website is operated by:
           </p>
@@ -19,7 +19,7 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">2. Terms of Service</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">2. Terms of Service</h2>
 
           <h3 className="font-semibold mt-4 mb-2">2.1 Service Description</h3>
           <p>
@@ -61,7 +61,7 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">3. Liability and Warranties</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">3. Liability and Warranties</h2>
 
           <h3 className="font-semibold mt-4 mb-2">3.1 Service Availability</h3>
           <p>
@@ -90,7 +90,7 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">4. Copyright and Trademarks</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">4. Copyright and Trademarks</h2>
           <p>
             All content on this website, including but not limited to text, graphics, logos, and software,
             is the property of RaimonVibe or its content suppliers and is protected by international copyright laws.
@@ -99,7 +99,7 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">5. Third-Party Services</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">5. Third-Party Services</h2>
           <p>
             Our service uses third-party services for authentication (Google, GitHub, etc.) and payment processing (Stripe).
             Your use of these services is subject to their respective terms of service and privacy policies.
@@ -108,7 +108,7 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">6. Termination</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">6. Termination</h2>
           <p>
             We reserve the right to suspend or terminate your account and access to the service at any time,
             without prior notice, for any reason, including but not limited to violation of these terms.
@@ -117,7 +117,7 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">7. Modifications to Service and Terms</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">7. Modifications to Service and Terms</h2>
           <p>
             We reserve the right to modify or discontinue the service at any time, with or without notice.
             We may also update these terms from time to time. Continued use of the service after changes
@@ -126,7 +126,7 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">8. Governing Law and Jurisdiction</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">8. Governing Law and Jurisdiction</h2>
           <p>
             These terms shall be governed by and construed in accordance with the laws of the Netherlands.
             Any disputes arising from these terms or your use of the service shall be subject to the exclusive
@@ -135,7 +135,7 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">9. Severability</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">9. Severability</h2>
           <p>
             If any provision of these terms is found to be invalid or unenforceable, the remaining provisions
             shall continue in full force and effect.
@@ -143,7 +143,7 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">10. Contact Information</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">10. Contact Information</h2>
           <p>
             For questions about these terms or any legal matters, please contact us at:
           </p>
@@ -154,7 +154,7 @@ export default function LegalPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">11. Dispute Resolution</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">11. Dispute Resolution</h2>
           <p>
             In the event of any dispute arising from your use of our service, we encourage you to first
             contact us directly at info@raimonvibe.com to seek an amicable resolution. If a resolution

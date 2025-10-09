@@ -39,9 +39,9 @@ export default function RootLayout({
             <div className="max-w-5xl mx-auto px-4 py-3">
               {/* Desktop Header */}
               <div className="hidden md:flex items-center justify-between">
-                <Link href="/" className="font-semibold text-sky-700">Image Converter</Link>
+                <Link href="/" className="font-semibold text-sky-700 text-lg">Image Converter</Link>
                 <div className="flex items-center gap-4">
-                  <nav className="flex gap-4 text-sm">
+                  <nav className="flex gap-4 text-base">
                     <Link href="/home" className="text-slate-600 hover:text-sky-700">Home</Link>
                     <Link href="/convert" className="text-slate-600 hover:text-sky-700">Convert</Link>
                     <Link href="/billing" className="text-slate-600 hover:text-sky-700">Pricing</Link>
@@ -60,7 +60,7 @@ export default function RootLayout({
               
               {/* Mobile Navigation */}
               <div className="md:hidden mt-3 pt-3 border-t border-slate-200">
-                <nav className="flex gap-3 text-sm">
+                <nav className="flex gap-3 text-base">
                   <Link href="/home" className="text-slate-600 hover:text-sky-700">Home</Link>
                   <Link href="/convert" className="text-slate-600 hover:text-sky-700">Convert</Link>
                   <Link href="/billing" className="text-slate-600 hover:text-sky-700">Pricing</Link>
@@ -73,7 +73,7 @@ export default function RootLayout({
           <main className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">{children}</main>
           <footer className="border-t bg-white mt-12">
             <div className="max-w-5xl mx-auto px-4 py-6">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-600">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-base text-slate-600">
                 <div>
                   © {new Date().getFullYear()}{' '}
                   <a

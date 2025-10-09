@@ -1,11 +1,11 @@
 export default function PrivacyPage() {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Privacy Notice</h1>
+      <h1 className="text-3xl md:text-4xl font-bold mb-6">Privacy Notice</h1>
 
-      <div className="space-y-6 text-slate-700">
+      <div className="space-y-6 text-slate-700 text-base md:text-lg leading-relaxed">
         <section>
-          <h2 className="text-xl font-semibold mb-3">1. Data Controller</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">1. Data Controller</h2>
           <p>
             RaimonVibe<br />
             Timpaan 1-B<br />
@@ -16,7 +16,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">2. Data Collection and Processing</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">2. Data Collection and Processing</h2>
           <p className="mb-3">
             Our image converter application processes the following data:
           </p>
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">3. Purpose of Data Processing</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">3. Purpose of Data Processing</h2>
           <p className="mb-2">We process your data for the following purposes:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>To provide image conversion services</li>
@@ -43,14 +43,14 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">4. Analytics and Tracking</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">4. Analytics and Tracking</h2>
           <p>
             We do not use any third-party analytics tools, cookies, or tracking technologies. Your browsing behavior is not monitored or analyzed.
           </p>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">5. Data Storage and Security</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">5. Data Storage and Security</h2>
           <p className="mb-2">
             We implement appropriate technical and organizational measures to protect your data:
           </p>
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">6. Data Sharing</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">6. Data Sharing</h2>
           <p className="mb-2">We share your data only with the following service providers:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Authentication Providers:</strong> Google, GitHub, or other OAuth providers you choose to authenticate with</li>
@@ -76,7 +76,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">7. Your Rights (GDPR)</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">7. Your Rights (GDPR)</h2>
           <p className="mb-2">Under the General Data Protection Regulation (GDPR), you have the following rights:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Right to Access:</strong> Request a copy of the personal data we hold about you</li>
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">8. Data Retention</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">8. Data Retention</h2>
           <p>
             We retain your account information for as long as your account is active. If you delete your account,
             we will delete your personal data within 30 days, except where we are required to retain it for legal purposes.
@@ -102,7 +102,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">9. International Data Transfers</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">9. International Data Transfers</h2>
           <p>
             Your data may be transferred to and processed in countries outside the European Economic Area (EEA).
             We ensure that appropriate safeguards are in place to protect your data in accordance with GDPR requirements.
@@ -110,7 +110,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">10. Children&apos;s Privacy</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">10. Children&apos;s Privacy</h2>
           <p>
             Our service is not directed to individuals under the age of 16. We do not knowingly collect personal
             information from children under 16. If you become aware that a child has provided us with personal data,
@@ -119,7 +119,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">11. Changes to This Privacy Notice</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">11. Changes to This Privacy Notice</h2>
           <p>
             We may update this Privacy Notice from time to time. We will notify you of any changes by posting
             the new Privacy Notice on this page and updating the &quot;Last Updated&quot; date below.
@@ -127,7 +127,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">12. Contact Us</h2>
+          <h2 className="text-xl md:text-2xl font-semibold mb-3">12. Contact Us</h2>
           <p>
             If you have any questions about this Privacy Notice or our data practices, please contact us at:
           </p>
