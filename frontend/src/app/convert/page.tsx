@@ -177,6 +177,21 @@ export default function ConvertPage() {
         <Wand2 className="text-sky-600" /> Convert Images
       </h1>
       <div className="rounded-lg border bg-white p-3 sm:p-4">
+        {/* Drop Zone - Now at the top and bigger */}
+        <div {...getRootProps()} className={"mb-6 border-2 border-dashed rounded-lg p-8 sm:p-16 text-center " + dropClass}>
+          <input {...getInputProps()} />
+          <div className="flex flex-col items-center justify-center gap-3 text-slate-600">
+            <Upload size={48} className="text-sky-500" />
+            <div className="text-base sm:text-lg font-medium">
+              <span className="hidden sm:inline">Drag & drop images here, or click to select</span>
+              <span className="sm:hidden">Tap to select images</span>
+            </div>
+            <div className="text-sm text-slate-500 mt-1">
+              Maximum file size: 8MB • Supported formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-4">
           {/* Format Selection - Organized Grid */}
           <div>
@@ -259,19 +274,6 @@ export default function ConvertPage() {
             >
               <Wand2 size={18} /> Convert {jobs.filter(j => j.status === 'queued').length > 0 ? `(${jobs.filter(j => j.status === 'queued').length})` : 'All'}
             </button>
-          </div>
-        </div>
-        <div {...getRootProps()} className={"mt-4 border-2 border-dashed rounded-lg p-4 sm:p-8 text-center " + dropClass}>
-          <input {...getInputProps()} />
-          <div className="flex flex-col items-center justify-center gap-2 text-slate-600 text-sm sm:text-base">
-            <div className="flex items-center gap-2">
-              <Upload size={16} /> 
-              <span className="hidden sm:inline">Drag & drop images here, or click to select</span>
-              <span className="sm:hidden">Tap to select images</span>
-            </div>
-            <div className="text-xs text-slate-500 mt-1">
-              Maximum file size: 8MB • Supported formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO
-            </div>
           </div>
         </div>
       </div>
