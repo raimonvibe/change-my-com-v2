@@ -10,7 +10,7 @@ export default function HomePage() {
           <Camera className="text-sky-600" /> Image Converter
         </h1>
       </div>
-      <p className="text-slate-600">Convert images between PNG, JPG, WEBP, AVIF, HEIC, TIFF, BMP, GIF, SVG and more. 20 free conversions per day. $1.98/month for 1000 conversions per month.</p>
+      <p className="text-slate-600">Convert images between PNG, JPG, WEBP, AVIF, HEIC, GIF and more. 20 free conversions per day. $1.98/month for 1000 conversions per month.</p>
       <div className="grid md:grid-cols-3 gap-4">
         {[
           "Classy and trustworthy light blue UI",
