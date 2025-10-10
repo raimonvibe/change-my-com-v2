@@ -26,7 +26,13 @@ declare module "next-auth" {
   }
 }
 
-async function refreshAccessToken(token: any) {
+async function refreshAccessToken(token: {
+  accessToken?: string;
+  idToken?: string;
+  refreshToken?: string;
+  accessTokenExpires?: number;
+  error?: string;
+}) {
   try {
     const url = "https://oauth2.googleapis.com/token";
     const response = await fetch(url, {
