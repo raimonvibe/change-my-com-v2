@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState, useCallback } from "react";
 import { useSession, signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useDropzone, FileRejection } from "react-dropzone";
 import { API_URL } from "../../env";
 import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle, X } from "lucide-react";
@@ -25,9 +26,12 @@ type Job = {
   status: 'queued' | 'running' | 'done' | 'error';
   url?: string;
   error?: string;
+  progress?: number;
+  startTime?: number;
 };
 
 export default function ConvertPage() {
+  const router = useRouter();
   const { data: session } = useSession();
   const setAuth = useAuthStore(s => s.setAuth);
   const [target, setTarget] = useState('webp');
@@ -37,6 +41,7 @@ export default function ConvertPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rateLimitRemaining, setRateLimitRemaining] = useState<number | null>(null);
   const token = session?.idToken as string | undefined;
 
   // Cleanup blob URLs on unmount to prevent memory leaks
@@ -169,18 +174,43 @@ export default function ConvertPage() {
   const start = async () => {
     const pending = jobs.filter(j => j.status === 'queued');
     for (const j of pending) {
-      setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'running' } : x));
+      const startTime = Date.now();
+      setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'running', startTime, progress: 0 } : x));
+
+      // Simulate progress for better UX (actual progress not available from backend)
+      const progressInterval = setInterval(() => {
+        setJobs((prev) => prev.map(x => {
+          if (x.id === j.id && x.status === 'running' && x.progress !== undefined) {
+            const elapsed = Date.now() - (x.startTime || Date.now());
+            // Progress based on file size and elapsed time
+            const estimatedTime = (x.file.size / 1024 / 1024) * 2000; // ~2s per MB
+            const newProgress = Math.min(90, Math.floor((elapsed / estimatedTime) * 100));
+            return { ...x, progress: newProgress };
+          }
+          return x;
+        }));
+      }, 200);
+
       const form = new FormData();
       form.append('file', j.file);
       form.append('to', target);
       form.append('quality', String(quality));
       form.append('sharpness', String(sharpness));
+
       try {
         const res = await fetch(`${API_URL}/api/convert`, {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: form,
         });
+
+        clearInterval(progressInterval);
+
+        // Extract rate limit info from headers
+        const remaining = res.headers.get('X-RateLimit-Remaining');
+        if (remaining) {
+          setRateLimitRemaining(parseInt(remaining));
+        }
 
         if (res.status === 401) throw new Error('Please sign in with Google to convert.');
         if (res.status === 402) {
@@ -198,11 +228,12 @@ export default function ConvertPage() {
         }
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
-        setJobs((prev) => prev.map(job => job.id === j.id ? { ...job, status: 'done' as const, url } : job));
+        setJobs((prev) => prev.map(job => job.id === j.id ? { ...job, status: 'done' as const, url, progress: 100 } : job));
 
         // Refresh user credits after successful conversion
         await refreshCredits();
       } catch (e: unknown) {
+        clearInterval(progressInterval);
         const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
         setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: errorMessage } : x));
       }
@@ -223,6 +254,21 @@ export default function ConvertPage() {
             <p className="text-sm text-red-800">{errorMessage}</p>
           </div>
           <button onClick={() => setErrorMessage(null)} className="text-red-600 hover:text-red-800">
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Rate Limit Warning */}
+      {rateLimitRemaining !== null && rateLimitRemaining <= 3 && rateLimitRemaining > 0 && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
+          <AlertTriangle className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
+          <div className="flex-1">
+            <p className="text-sm text-amber-800">
+              <strong>Rate limit warning:</strong> Only {rateLimitRemaining} request{rateLimitRemaining === 1 ? '' : 's'} remaining. Please wait before making more conversions.
+            </p>
+          </div>
+          <button onClick={() => setRateLimitRemaining(null)} className="text-amber-600 hover:text-amber-800">
             <X size={18} />
           </button>
         </div>
@@ -346,9 +392,19 @@ export default function ConvertPage() {
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   {j.status === 'running' && (
-                    <div className="flex items-center gap-2 text-xs text-blue-600">
-                      <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full"></div>
-                      Converting...
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 text-xs text-blue-600 mb-1">
+                        <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full"></div>
+                        Converting... {j.progress !== undefined ? `${j.progress}%` : ''}
+                      </div>
+                      {j.progress !== undefined && (
+                        <div className="w-full bg-slate-200 rounded-full h-1.5">
+                          <div
+                            className="bg-blue-600 h-1.5 rounded-full transition-all duration-200"
+                            style={{ width: `${j.progress}%` }}
+                          ></div>
+                        </div>
+                      )}
                     </div>
                   )}
                   {j.status === 'done' && (
@@ -453,7 +509,7 @@ export default function ConvertPage() {
                     </button>
                   )}
                   <button
-                    onClick={() => window.location.href = '/billing'}
+                    onClick={() => router.push('/billing')}
                     className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-white hover:bg-emerald-700 text-sm font-medium"
                   >
                     Subscribe Now

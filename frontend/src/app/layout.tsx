@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Link from "next/link";
 import { Providers } from "./providers";
-import { AuthButtons } from "../components/AuthButtons";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { Header } from "../components/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -153,42 +153,10 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} bg-sky-50 text-slate-800 antialiased`}>
         <Providers>
-          <header className="border-b bg-white">
-            <div className="max-w-5xl mx-auto px-4 py-3">
-              {/* Desktop Header */}
-              <div className="hidden md:flex items-center justify-between">
-                <Link href="/" className="font-semibold text-sky-700 text-lg">Image Converter</Link>
-                <div className="flex items-center gap-4">
-                  <nav className="flex gap-4 text-base">
-                    <Link href="/home" className="text-slate-600 hover:text-sky-700">Home</Link>
-                    <Link href="/convert" className="text-slate-600 hover:text-sky-700">Convert</Link>
-                    <Link href="/billing" className="text-slate-600 hover:text-sky-700">Pricing</Link>
-                    <Link href="/account" className="text-slate-600 hover:text-sky-700">Account</Link>
-                    <Link href="/contact" className="text-slate-600 hover:text-sky-700">Contact</Link>
-                  </nav>
-                  <AuthButtons />
-                </div>
-              </div>
-              
-              {/* Mobile Header */}
-              <div className="md:hidden flex items-center justify-between">
-                <Link href="/" className="font-semibold text-sky-700 text-lg">Converter</Link>
-                <AuthButtons />
-              </div>
-              
-              {/* Mobile Navigation */}
-              <div className="md:hidden mt-3 pt-3 border-t border-slate-200">
-                <nav className="grid grid-cols-2 gap-3 text-base">
-                  <Link href="/home" className="text-slate-600 hover:text-sky-700 py-2 text-center">Home</Link>
-                  <Link href="/convert" className="text-slate-600 hover:text-sky-700 py-2 text-center">Convert</Link>
-                  <Link href="/billing" className="text-slate-600 hover:text-sky-700 py-2 text-center">Pricing</Link>
-                  <Link href="/account" className="text-slate-600 hover:text-sky-700 py-2 text-center">Account</Link>
-                  <Link href="/contact" className="text-slate-600 hover:text-sky-700 py-2 text-center col-span-2">Contact</Link>
-                </nav>
-              </div>
-            </div>
-          </header>
-          <main className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">{children}</main>
+          <Header />
+          <main className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </main>
           <footer className="border-t bg-white mt-12">
             <div className="max-w-5xl mx-auto px-4 py-6">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-base text-slate-600">

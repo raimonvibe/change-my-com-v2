@@ -2,10 +2,12 @@
 // Trigger new deployment - TypeScript fixes applied - v2
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../store/useAuthStore";
 import { API_URL } from "../../env";
 
 export default function AccountPage() {
+  const router = useRouter();
   const { data: session } = useSession();
   const setAuth = useAuthStore(s => s.setAuth);
   const email = useAuthStore(s => s.email);
@@ -171,7 +173,7 @@ export default function AccountPage() {
         <div className="rounded-lg border bg-white p-6 text-center">
           <div className="text-slate-600 mb-4 text-lg">Please sign in to view your account information</div>
           <button
-            onClick={() => window.location.href = '/convert'}
+            onClick={() => router.push('/convert')}
             className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-5 py-3 text-white hover:bg-sky-700 text-base"
           >
             Go to Convert Page
