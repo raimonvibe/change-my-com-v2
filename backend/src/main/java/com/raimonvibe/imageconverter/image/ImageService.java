@@ -64,15 +64,21 @@ public class ImageService {
                 }
 
                 // Apply sharpening if requested (0-200 scale)
+                // Note: Sharpening is applied AFTER resize for best results
                 if (options.sharpness() != null && options.sharpness() > 0) {
-                    // Convert 0-200 scale to ImageMagick parameters
-                    // radius: 0-2.0, amount: 0-2.0, threshold: 0.03
-                    double radius = 1.5;
-                    double amount = options.sharpness() / 100.0; // 0-2.0
-                    double threshold = 0.03;
+                    // Unsharp mask syntax: radiusxsigma+amount+threshold
+                    // - radius: size of sharpening effect (0.5-2.0 for most images)
+                    // - sigma: blur radius for mask (typically radius/2 to radius)
+                    // - amount: strength multiplier (0.5-5.0, higher = stronger)
+                    // - threshold: minimum brightness change to sharpen (0-0.1)
+
+                    double radius = 0.8;  // Smaller radius works better for all image sizes
+                    double sigma = 0.8;   // Equal to radius for balanced sharpening
+                    double amount = options.sharpness() / 50.0; // 0-4.0 range for visible effect
+                    double threshold = 0.05;
 
                     args.add("-unsharp");
-                    args.add(String.format("%.1fx%.1f+%.2f+%.2f", radius, radius, amount, threshold));
+                    args.add(String.format("%.1fx%.1f+%.2f+%.2f", radius, sigma, amount, threshold));
                 }
 
                 // Apply quality if specified
