@@ -381,7 +381,10 @@ export default function ConvertPage() {
             {/* Resize Toggle */}
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-sm font-medium text-slate-700">Resize Image</label>
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-slate-700">Resize Image</label>
+                  <p className="text-xs text-slate-500 mt-0.5">Perfect for favicons, thumbnails & optimization</p>
+                </div>
                 <button
                   onClick={() => setResizeEnabled(!resizeEnabled)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -396,27 +399,77 @@ export default function ConvertPage() {
                 </button>
               </div>
               {resizeEnabled && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-slate-700">Max Width</label>
-                    <span className="text-sm font-semibold text-sky-600">{maxWidth}px</span>
+                <div className="space-y-3">
+                  {/* Quick Presets */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-2">Quick Presets:</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <button
+                        onClick={() => setMaxWidth(256)}
+                        className={`px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                          maxWidth === 256
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                        }`}
+                      >
+                        256px<span className="block text-[10px] opacity-80">Small Icon</span>
+                      </button>
+                      <button
+                        onClick={() => setMaxWidth(512)}
+                        className={`px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                          maxWidth === 512
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                        }`}
+                      >
+                        512px<span className="block text-[10px] opacity-80">Favicon</span>
+                      </button>
+                      <button
+                        onClick={() => setMaxWidth(1024)}
+                        className={`px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                          maxWidth === 1024
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                        }`}
+                      >
+                        1024px<span className="block text-[10px] opacity-80">Thumbnail</span>
+                      </button>
+                      <button
+                        onClick={() => setMaxWidth(1920)}
+                        className={`px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                          maxWidth === 1920
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                        }`}
+                      >
+                        1920px<span className="block text-[10px] opacity-80">Full HD</span>
+                      </button>
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min={16}
-                    max={8000}
-                    step={16}
-                    value={maxWidth}
-                    onChange={(e)=>setMaxWidth(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
-                  />
-                  <div className="flex justify-between text-xs text-slate-500 mt-1">
-                    <span>16px</span>
-                    <span>Common: 512px (favicon), 1920px (full HD)</span>
-                    <span>8000px</span>
+
+                  {/* Custom Slider */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-medium text-slate-600">Custom Width:</label>
+                      <span className="text-sm font-semibold text-sky-600">{maxWidth}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={16}
+                      max={8000}
+                      step={16}
+                      value={maxWidth}
+                      onChange={(e)=>setMaxWidth(Number(e.target.value))}
+                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                    />
+                    <div className="flex justify-between text-xs text-slate-400 mt-1">
+                      <span>16px</span>
+                      <span>8000px</span>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-500 mt-2">
-                    Images will be resized to fit within this width while maintaining aspect ratio. Smaller images won&apos;t be enlarged.
+
+                  <p className="text-xs text-slate-500 bg-slate-50 rounded p-2">
+                    💡 Images maintain aspect ratio and won&apos;t be enlarged beyond their original size.
                   </p>
                 </div>
               )}
