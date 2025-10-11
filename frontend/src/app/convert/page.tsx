@@ -90,8 +90,8 @@ export default function ConvertPage() {
     }
   };
 
-  // Validate image dimensions
-  const validateImageDimensions = (file: File): Promise<{ valid: boolean; error?: string }> => {
+  // Validate image dimensions and return dimensions
+  const validateImageDimensions = (file: File): Promise<{ valid: boolean; error?: string; width?: number; height?: number }> => {
     return new Promise((resolve) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
@@ -104,7 +104,7 @@ export default function ConvertPage() {
             error: `Image dimensions (${img.width}x${img.height}) exceed maximum allowed (${MAX_DIMENSION}x${MAX_DIMENSION}px)`
           });
         } else {
-          resolve({ valid: true });
+          resolve({ valid: true, width: img.width, height: img.height });
         }
       };
 
@@ -135,6 +135,7 @@ export default function ConvertPage() {
 
     // Validate file sizes and dimensions for accepted files
     const validatedJobs: Job[] = [];
+    let largestWidth = 0;
 
     for (const file of acceptedFiles) {
       if (file.size > MAX_FILE_SIZE) {
@@ -151,6 +152,11 @@ export default function ConvertPage() {
         continue;
       }
 
+      // Track the largest width for setting default resize value
+      if (validation.width && validation.width > largestWidth) {
+        largestWidth = validation.width;
+      }
+
       validatedJobs.push({
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         file,
@@ -160,6 +166,12 @@ export default function ConvertPage() {
 
     if (validatedJobs.length > 0) {
       setJobs((prev) => [...prev, ...validatedJobs]);
+
+      // Set maxWidth to the largest uploaded image's width (capped at 8000px)
+      // This gives users a sensible default that matches their content
+      if (largestWidth > 0) {
+        setMaxWidth(Math.min(largestWidth, 8000));
+      }
     }
   };
 
