@@ -4,7 +4,7 @@ import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDropzone, FileRejection } from "react-dropzone";
 import { API_URL } from "../../env";
-import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle, X } from "lucide-react";
+import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle, X, Trash2 } from "lucide-react";
 import { useAuthStore } from "../../store/useAuthStore";
 
 // Organized format groups for better UX
@@ -170,6 +170,17 @@ export default function ConvertPage() {
     }
   });
   const dropClass = isDragActive ? 'border-sky-500 bg-sky-50' : 'border-slate-300';
+
+  const removeJob = (jobId: string) => {
+    setJobs((prev) => {
+      const jobToRemove = prev.find(j => j.id === jobId);
+      // Revoke blob URL if it exists to prevent memory leak
+      if (jobToRemove?.url) {
+        URL.revokeObjectURL(jobToRemove.url);
+      }
+      return prev.filter(j => j.id !== jobId);
+    });
+  };
 
   const start = async () => {
     const pending = jobs.filter(j => j.status === 'queued');
@@ -381,16 +392,27 @@ export default function ConvertPage() {
           <div key={j.id} className="rounded-md border bg-white p-3 sm:p-4 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                  <div className="text-sm font-medium truncate">{j.file.name}</div>
-                  <div className="text-xs text-slate-500">
-                    {j.file.size > 1024 * 1024 
-                      ? `${Math.round(j.file.size / 1024 / 1024)} MB` 
-                      : `${Math.round(j.file.size / 1024)} KB`
-                    } → {target.toUpperCase()}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => removeJob(j.id)}
+                    className="flex-shrink-0 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    title="Remove image"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                      <div className="text-sm font-medium truncate">{j.file.name}</div>
+                      <div className="text-xs text-slate-500">
+                        {j.file.size > 1024 * 1024
+                          ? `${Math.round(j.file.size / 1024 / 1024)} MB`
+                          : `${Math.round(j.file.size / 1024)} KB`
+                        } → {target.toUpperCase()}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="mt-1 flex items-center gap-2">
+                <div className="mt-1 flex items-center gap-2 ml-7">
                   {j.status === 'running' && (
                     <div className="flex-1">
                       <div className="flex items-center gap-2 text-xs text-blue-600 mb-1">
