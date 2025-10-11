@@ -612,17 +612,17 @@ export default function ConvertPage() {
                     <button
                       onClick={() => setPreviewUrl(j.url || null)}
                       aria-label={`Preview converted ${j.file.name}`}
-                      className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 sm:px-3 py-1.5 text-slate-700 hover:bg-slate-200 text-xs sm:text-sm"
+                      className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-3 sm:px-3 py-2.5 sm:py-1.5 text-slate-700 hover:bg-slate-200 text-xs sm:text-sm min-h-[44px] sm:min-h-0"
                     >
-                      <Eye size={12} aria-hidden="true" /> <span className="hidden sm:inline">Preview</span><span className="sm:hidden sr-only">Preview</span>
+                      <Eye size={16} className="sm:size-3" aria-hidden="true" /> <span className="hidden sm:inline">Preview</span><span className="sm:hidden sr-only">Preview</span>
                     </button>
                     <a
                       href={j.url}
                       download={`${j.file.name.split('.')[0]}_converted.${target}`}
                       aria-label={`Download converted ${j.file.name}`}
-                      className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 sm:px-3 py-1.5 text-white hover:bg-emerald-700 text-xs sm:text-sm"
+                      className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 sm:px-3 py-2.5 sm:py-1.5 text-white hover:bg-emerald-700 text-xs sm:text-sm min-h-[44px] sm:min-h-0"
                     >
-                      <Download size={12} aria-hidden="true" /> <span className="hidden sm:inline">Download</span><span className="sm:hidden sr-only">Download</span>
+                      <Download size={16} className="sm:size-3" aria-hidden="true" /> <span className="hidden sm:inline">Download</span><span className="sm:hidden sr-only">Download</span>
                     </a>
                   </>
                 )}
