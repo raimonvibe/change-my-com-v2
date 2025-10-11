@@ -15,51 +15,16 @@ export default function AccountPage() {
   const [toggleLoading, setToggleLoading] = useState(false);
 
   useEffect(() => {
-    const fetchMe = async (retryCount = 0): Promise<void> => {
-      if (!session) return;
-      const token = session?.idToken;
-      
-      // Wait for idToken to be available
-      if (!token) {
-        console.log('Waiting for idToken to be available...');
-        // Retry after a short delay if we haven't exceeded max retries
-        if (retryCount < 3) {
-          setTimeout(() => fetchMe(retryCount + 1), 1000);
-        }
-        return;
-      }
-      
+    const fetchMe = async (): Promise<void> => {
+      if (!session?.idToken) return;
+
       try {
-        console.log('Fetching user data with token:', token ? 'present' : 'missing');
         const res = await fetch(`${API_URL}/api/user/me`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${session.idToken}` },
         });
-        
-        console.log('Response status:', res.status, res.statusText);
-        console.log('Response headers:', Object.fromEntries(res.headers.entries()));
-        
-        if (!res.ok) {
-          console.error('Failed to fetch user data:', res.status, res.statusText);
-          // Try to get response text for debugging
-          const errorText = await res.text();
-          console.error('Error response body:', errorText);
-          
-          // If 403 and we haven't retried too many times, try again
-          if (res.status === 403 && retryCount < 2) {
-            console.log('Retrying after 403 error...');
-            setTimeout(() => fetchMe(retryCount + 1), 2000);
-          }
-          return;
-        }
-        
-        const contentType = res.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          console.error('Response is not JSON:', contentType);
-          const responseText = await res.text();
-          console.error('Response body:', responseText);
-          return;
-        }
-        
+
+        if (!res.ok) return;
+
         const data = await res.json() as {
           authenticated: boolean;
           email: string;
@@ -68,7 +33,7 @@ export default function AccountPage() {
           subscriptionStatus: string;
           autoRenewal: boolean;
         };
-        console.log('User data received:', data);
+
         setAuth({
           authenticated: data.authenticated,
           email: data.email,
@@ -77,13 +42,8 @@ export default function AccountPage() {
           subscriptionStatus: data.subscriptionStatus,
           autoRenewal: data.autoRenewal
         });
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        // Retry on network errors
-        if (retryCount < 2) {
-          console.log('Retrying after network error...');
-          setTimeout(() => fetchMe(retryCount + 1), 2000);
-        }
+      } catch {
+        // Silently fail - user can refresh page if needed
       }
     };
     fetchMe();
@@ -105,8 +65,8 @@ export default function AccountPage() {
           setAuth({ autoRenewal: data.autoRenewal });
         }
       }
-    } catch (error) {
-      console.error('Error toggling auto-renewal:', error);
+    } catch {
+      // Silently fail - toggle will revert to previous state
     } finally {
       setToggleLoading(false);
     }

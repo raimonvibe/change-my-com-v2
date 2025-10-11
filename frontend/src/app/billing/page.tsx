@@ -76,6 +76,12 @@ export default function BillingPage() {
         <div className="text-slate-700">20 free conversions per day.</div>
         <div className="text-slate-700 mb-4">$1.98/month for 1000 conversions per month (optional monthly renewal).</div>
 
+        {status === 'loading' && (
+          <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-md text-sm text-slate-600">
+            Loading...
+          </div>
+        )}
+
         {!session && status !== 'loading' && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
             Please sign in to subscribe
@@ -88,7 +94,7 @@ export default function BillingPage() {
           className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-4 py-2 text-white hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <CreditCard size={16} />
-          {loading ? 'Processing…' : !session ? 'Sign in to Subscribe' : 'Subscribe'}
+          {loading ? 'Processing…' : status === 'loading' ? 'Loading...' : !session ? 'Sign in to Subscribe' : 'Subscribe'}
         </button>
 
         {err && (

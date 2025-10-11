@@ -1,9 +1,9 @@
 'use client';
-import React, { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useSession, signIn } from "next-auth/react";
 import { useDropzone, FileRejection } from "react-dropzone";
 import { API_URL } from "../../env";
-import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle } from "lucide-react";
+import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle, X } from "lucide-react";
 import { useAuthStore } from "../../store/useAuthStore";
 
 // Organized format groups for better UX
@@ -17,8 +17,10 @@ const FORMAT_GROUPS = {
 };
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB in bytes
+const MAX_DIMENSION = 8000; // Maximum width or height in pixels
 
 type Job = {
+  id: string;
   file: File;
   status: 'queued' | 'running' | 'done' | 'error';
   url?: string;
@@ -32,10 +34,33 @@ export default function ConvertPage() {
   const [quality, setQuality] = useState(85);
   const [sharpness, setSharpness] = useState(0);
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const token = session?.idToken as string | undefined;
+
+  // Cleanup blob URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      jobs.forEach(job => {
+        if (job.url) {
+          URL.revokeObjectURL(job.url);
+        }
+      });
+    };
+  }, [jobs]);
+
+  // Close modals on ESC key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPreviewUrl(null);
+        setShowLimitModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, []);
 
   // Function to refresh user credits after conversion
   const refreshCredits = async () => {
@@ -53,36 +78,82 @@ export default function ConvertPage() {
           paidCredits: data.paidCredits,
         });
       }
-    } catch (error) {
-      console.error('Error refreshing credits:', error);
+    } catch {
+      // Silently fail - not critical
     }
   };
 
-  const onDrop = (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
+  // Validate image dimensions
+  const validateImageDimensions = (file: File): Promise<{ valid: boolean; error?: string }> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        if (img.width > MAX_DIMENSION || img.height > MAX_DIMENSION) {
+          resolve({
+            valid: false,
+            error: `Image dimensions (${img.width}x${img.height}) exceed maximum allowed (${MAX_DIMENSION}x${MAX_DIMENSION}px)`
+          });
+        } else {
+          resolve({ valid: true });
+        }
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve({ valid: false, error: 'Unable to read image dimensions' });
+      };
+
+      img.src = url;
+    });
+  };
+
+  const onDrop = async (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
     // Handle rejected files (too large, wrong type, etc.)
     if (rejectedFiles.length > 0) {
       const rejectedFile = rejectedFiles[0];
       if (rejectedFile.errors.some((e) => e.code === 'file-too-large')) {
-        alert(`File "${rejectedFile.file.name}" is too large. Maximum allowed size is 8MB.`);
+        setErrorMessage(`File "${rejectedFile.file.name}" is too large. Maximum allowed size is 8MB.`);
+        setTimeout(() => setErrorMessage(null), 5000);
         return;
       }
       if (rejectedFile.errors.some((e) => e.code === 'file-invalid-type')) {
-        alert(`File "${rejectedFile.file.name}" has an unsupported format. Only images are allowed.`);
+        setErrorMessage(`File "${rejectedFile.file.name}" has an unsupported format. Only images are allowed.`);
+        setTimeout(() => setErrorMessage(null), 5000);
         return;
       }
     }
 
-    // Validate file sizes for accepted files
-    const validFiles = acceptedFiles.filter(file => {
-      if (file.size > MAX_FILE_SIZE) {
-        alert(`File "${file.name}" is too large (${Math.round(file.size / 1024 / 1024)}MB). Maximum allowed size is 8MB.`);
-        return false;
-      }
-      return true;
-    });
+    // Validate file sizes and dimensions for accepted files
+    const validatedJobs: Job[] = [];
 
-    const newJobs = validFiles.map((f) => ({ file: f, status: 'queued' } as Job));
-    setJobs((prev) => [...prev, ...newJobs]);
+    for (const file of acceptedFiles) {
+      if (file.size > MAX_FILE_SIZE) {
+        setErrorMessage(`File "${file.name}" is too large (${Math.round(file.size / 1024 / 1024)}MB). Maximum allowed size is 8MB.`);
+        setTimeout(() => setErrorMessage(null), 5000);
+        continue;
+      }
+
+      // Validate dimensions
+      const validation = await validateImageDimensions(file);
+      if (!validation.valid) {
+        setErrorMessage(validation.error || 'Invalid image');
+        setTimeout(() => setErrorMessage(null), 5000);
+        continue;
+      }
+
+      validatedJobs.push({
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        file,
+        status: 'queued'
+      });
+    }
+
+    if (validatedJobs.length > 0) {
+      setJobs((prev) => [...prev, ...validatedJobs]);
+    }
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -98,31 +169,24 @@ export default function ConvertPage() {
   const start = async () => {
     const pending = jobs.filter(j => j.status === 'queued');
     for (const j of pending) {
-      setJobs((prev) => prev.map(x => x === j ? { ...x, status: 'running' } : x));
+      setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'running' } : x));
       const form = new FormData();
       form.append('file', j.file);
       form.append('to', target);
       form.append('quality', String(quality));
       form.append('sharpness', String(sharpness));
       try {
-        console.log('Starting conversion for:', j.file.name, 'to', target);
-        console.log('API_URL:', API_URL);
-        console.log('Token present:', !!token);
-        
         const res = await fetch(`${API_URL}/api/convert`, {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: form,
         });
-        
-        console.log('Response status:', res.status);
-        console.log('Response ok:', res.ok);
-        
+
         if (res.status === 401) throw new Error('Please sign in with Google to convert.');
         if (res.status === 402) {
           setShowLimitModal(true);
-          setJobs((prev) => prev.map(x => x === j ? { ...x, status: 'error', error: 'Conversion limit reached' } : x));
-          return; // Stop processing this job
+          setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: 'Conversion limit reached' } : x));
+          return;
         }
         if (res.status === 413) {
           const errorData = await res.json().catch(() => ({}));
@@ -134,48 +198,36 @@ export default function ConvertPage() {
         }
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
-        console.log('Conversion successful, blob URL created:', url);
-        console.log('Current job object:', j);
-        setJobs((prev) => {
-          console.log('Previous jobs state:', prev);
-          const updated = prev.map(job => {
-            if (job.file.name === j.file.name && job.status === 'running') {
-              console.log('Updating job from running to done:', job);
-              return { ...job, status: 'done' as const, url };
-            }
-            return job;
-          });
-          console.log('New jobs state:', updated);
-          return updated;
-        });
-        setRefreshKey(prev => {
-          console.log('Updating refresh key from', prev, 'to', prev + 1);
-          return prev + 1;
-        });
+        setJobs((prev) => prev.map(job => job.id === j.id ? { ...job, status: 'done' as const, url } : job));
 
         // Refresh user credits after successful conversion
         await refreshCredits();
       } catch (e: unknown) {
-        console.error('Conversion error:', e);
         const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
-        setJobs((prev) => prev.map(x => x === j ? { ...x, status: 'error', error: errorMessage } : x));
+        setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: errorMessage } : x));
       }
     }
   };
-
-  useEffect(() => {
-    console.log('Jobs state changed:', jobs);
-  }, [jobs]);
-
-  useEffect(() => {
-    console.log('RefreshKey changed:', refreshKey);
-  }, [refreshKey]);
 
   return (
     <div className="space-y-4 sm:space-y-6">
       <h1 className="text-lg sm:text-xl font-semibold text-sky-800 flex items-center gap-2">
         <Wand2 className="text-sky-600" /> Convert Images
       </h1>
+
+      {/* Error Message Toast */}
+      {errorMessage && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-start gap-3">
+          <AlertTriangle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
+          <div className="flex-1">
+            <p className="text-sm text-red-800">{errorMessage}</p>
+          </div>
+          <button onClick={() => setErrorMessage(null)} className="text-red-600 hover:text-red-800">
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
       <div className="rounded-lg border bg-white p-3 sm:p-4">
         {/* Drop Zone - Now at the top and bigger */}
         <div {...getRootProps()} className={"mb-6 border-2 border-dashed rounded-lg p-8 sm:p-16 text-center " + dropClass}>
@@ -187,7 +239,7 @@ export default function ConvertPage() {
               <span className="sm:hidden">Tap to select images</span>
             </div>
             <div className="text-sm text-slate-500 mt-1">
-              Maximum file size: 8MB • Supported formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO
+              Max: 8MB, {MAX_DIMENSION}x{MAX_DIMENSION}px • Formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO
             </div>
           </div>
         </div>
@@ -278,9 +330,9 @@ export default function ConvertPage() {
         </div>
       </div>
 
-      <div className="grid gap-3" key={refreshKey}>
-        {jobs.map((j, idx) => (
-          <div key={`${idx}-${j.status}-${refreshKey}`} className="rounded-md border bg-white p-3 sm:p-4 shadow-sm">
+      <div className="grid gap-3">
+        {jobs.map((j) => (
+          <div key={j.id} className="rounded-md border bg-white p-3 sm:p-4 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
@@ -394,7 +446,7 @@ export default function ConvertPage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   {!session && (
                     <button
-                      onClick={() => window.location.href = '/convert'}
+                      onClick={() => signIn('google')}
                       className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-sky-600 px-4 py-2.5 text-white hover:bg-sky-700 text-sm font-medium"
                     >
                       Sign In
