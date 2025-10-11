@@ -80,6 +80,7 @@ public class ConvertController {
             @RequestParam("to") @NotBlank String toFormat,
             @RequestParam(value = "quality", required = false) @Min(1) @Max(100) Integer quality,
             @RequestParam(value = "sharpness", required = false) @Min(0) @Max(200) Integer sharpness,
+            @RequestParam(value = "width", required = false) @Min(16) @Max(8000) Integer width,
             Principal principal,
             HttpServletRequest request
     ) {
@@ -150,7 +151,8 @@ public class ConvertController {
 
             final Integer q = (quality != null) ? quality : null;
             final Integer s = (sharpness != null) ? sharpness : 0;
-            out = imageService.convert(tmp, new ImageService.ConversionOptions(fmt, q, s));
+            final Integer w = (width != null) ? width : null;
+            out = imageService.convert(tmp, new ImageService.ConversionOptions(fmt, q, s, w));
 
             // Record cost metrics
             long processingTime = System.currentTimeMillis() - startTime;

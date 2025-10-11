@@ -17,7 +17,7 @@ public class ImageService {
 
     private static final Logger logger = LoggerFactory.getLogger(ImageService.class);
 
-    public record ConversionOptions(String format, Integer quality, Integer sharpness) {}
+    public record ConversionOptions(String format, Integer quality, Integer sharpness, Integer width) {}
 
     // Maximaal 4 conversies tegelijk
     private final Semaphore semaphore = new Semaphore(4);
@@ -44,6 +44,13 @@ public class ImageService {
                 java.util.List<String> args = new java.util.ArrayList<>();
                 args.add(cmd);
                 args.add(input.getAbsolutePath());
+
+                // Apply width resize if specified (before format-specific handling)
+                if (options.width() != null && options.width() > 0 && !"ico".equals(outExt)) {
+                    // Resize maintaining aspect ratio, only if larger than specified width
+                    args.add("-resize");
+                    args.add(options.width() + "x>");
+                }
 
                 // Special handling for ICO format
                 if ("ico".equals(outExt)) {

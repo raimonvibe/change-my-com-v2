@@ -37,6 +37,8 @@ export default function ConvertPage() {
   const [target, setTarget] = useState('webp');
   const [quality, setQuality] = useState(85);
   const [sharpness, setSharpness] = useState(0);
+  const [resizeEnabled, setResizeEnabled] = useState(false);
+  const [maxWidth, setMaxWidth] = useState(1920);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showLimitModal, setShowLimitModal] = useState(false);
@@ -207,6 +209,9 @@ export default function ConvertPage() {
       form.append('to', target);
       form.append('quality', String(quality));
       form.append('sharpness', String(sharpness));
+      if (resizeEnabled && maxWidth) {
+        form.append('width', String(maxWidth));
+      }
 
       try {
         const res = await fetch(`${API_URL}/api/convert`, {
@@ -371,6 +376,50 @@ export default function ConvertPage() {
                 <span>No sharpening</span>
                 <span>Maximum sharpness</span>
               </div>
+            </div>
+
+            {/* Resize Toggle */}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-medium text-slate-700">Resize Image</label>
+                <button
+                  onClick={() => setResizeEnabled(!resizeEnabled)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    resizeEnabled ? 'bg-sky-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      resizeEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              {resizeEnabled && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-slate-700">Max Width</label>
+                    <span className="text-sm font-semibold text-sky-600">{maxWidth}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={16}
+                    max={8000}
+                    step={16}
+                    value={maxWidth}
+                    onChange={(e)=>setMaxWidth(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                  />
+                  <div className="flex justify-between text-xs text-slate-500 mt-1">
+                    <span>16px</span>
+                    <span>Common: 512px (favicon), 1920px (full HD)</span>
+                    <span>8000px</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Images will be resized to fit within this width while maintaining aspect ratio. Smaller images won&apos;t be enlarged.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
