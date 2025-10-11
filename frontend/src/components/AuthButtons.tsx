@@ -14,8 +14,8 @@ export function AuthButtons() {
   if (!mounted) {
     return (
       <div className="flex items-center gap-2">
-        <button className="inline-flex items-center gap-1 rounded-md bg-sky-600 px-2 sm:px-3 py-1.5 text-white text-sm">
-          <LogIn size={14} /> <span className="hidden sm:inline">Sign in with Google</span><span className="sm:hidden">Sign in</span>
+        <button className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-4 sm:px-6 py-2.5 sm:py-3 text-white text-base sm:text-lg">
+          <LogIn size={18} className="sm:w-5 sm:h-5" /> Continue with Google
         </button>
       </div>
     );
@@ -24,12 +24,12 @@ export function AuthButtons() {
   return (
     <div className="flex items-center gap-2">
       {data?.user ? (
-        <button onClick={() => signOut()} className="inline-flex items-center gap-1 rounded-md bg-sky-600 px-2 sm:px-3 py-1.5 text-white hover:bg-sky-700 text-sm">
-          <LogOut size={14} /> <span className="hidden sm:inline">Sign out</span>
+        <button onClick={() => signOut()} className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-4 sm:px-6 py-2.5 sm:py-3 text-white hover:bg-sky-700 text-base sm:text-lg">
+          <LogOut size={18} className="sm:w-5 sm:h-5" /> Sign out
         </button>
       ) : (
-        <button onClick={() => signIn('google')} className="inline-flex items-center gap-1 rounded-md bg-sky-600 px-2 sm:px-3 py-1.5 text-white hover:bg-sky-700 text-sm">
-          <LogIn size={14} /> <span className="hidden sm:inline">Sign in with Google</span><span className="sm:hidden">Sign in</span>
+        <button onClick={() => signIn('google')} className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-4 sm:px-6 py-2.5 sm:py-3 text-white hover:bg-sky-700 text-base sm:text-lg">
+          <LogIn size={18} className="sm:w-5 sm:h-5" /> Continue with Google
         </button>
       )}
     </div>
