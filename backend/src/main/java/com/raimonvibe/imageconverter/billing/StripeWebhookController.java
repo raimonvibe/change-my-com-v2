@@ -160,18 +160,18 @@ public class StripeWebhookController {
           LocalDate today = LocalDate.now();
           LocalDate lastReset = user.getLastPaidReset();
 
-          // Only reset credits if this is a NEW billing period (monthly renewal)
-          // Prevent duplicate resets within the same day
+          // Only add credits if this is a NEW billing period (monthly renewal)
+          // Prevent duplicate additions within the same day
           if (lastReset == null || !lastReset.equals(today)) {
             int previousCredits = user.getPaidCredits();
-            user.setPaidCredits(1000);
+            user.setPaidCredits(previousCredits + 1000);
             user.setLastPaidReset(today);
             user.setSubscriptionStatus("active");
             userRepository.save(user);
-            logger.info("Monthly renewal: Reset credits from {} to 1000 for user: {} (lastReset was: {})",
-                       previousCredits, user.getEmail(), lastReset);
+            logger.info("Monthly renewal: Added 1000 credits (from {} to {}) for user: {} (lastReset was: {})",
+                       previousCredits, previousCredits + 1000, user.getEmail(), lastReset);
           } else {
-            logger.info("Skipping credit reset for user {} - already reset today ({})",
+            logger.info("Skipping credit addition for user {} - already added today ({})",
                        user.getEmail(), today);
           }
         } else if (user != null) {

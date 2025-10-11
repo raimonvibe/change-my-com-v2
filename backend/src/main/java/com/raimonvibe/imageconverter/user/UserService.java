@@ -49,7 +49,9 @@ public class UserService {
 
   @Transactional
   public void activateSubscription(User user, int credits) {
-    user.setPaidCredits(credits);
+    // Add credits to existing balance instead of replacing
+    int previousCredits = user.getPaidCredits();
+    user.setPaidCredits(previousCredits + credits);
     user.setLastPaidReset(LocalDate.now());
     userRepository.save(user);
     CreditLedger ledger = new CreditLedger();
