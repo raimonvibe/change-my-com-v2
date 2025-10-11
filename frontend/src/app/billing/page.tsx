@@ -1,18 +1,24 @@
 'use client';
 
 import React, { useCallback, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import { CreditCard } from 'lucide-react';
 import { API_URL } from '../../env';
 
 export default function BillingPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const token = session?.idToken as string | undefined;
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const buy = useCallback(async () => {
+    // Check if user is authenticated before making request
+    if (!session || !token) {
+      setErr('Please sign in to subscribe');
+      return;
+    }
+
     setErr(null);
     setLoading(true);
 
@@ -27,11 +33,15 @@ export default function BillingPage() {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!res.ok) {
+        // Handle 403 Forbidden specifically
+        if (res.status === 403) {
+          throw new Error('Please sign in to subscribe');
+        }
         const text = await res.text().catch(() => '');
         throw new Error(`Checkout failed: ${res.status} ${res.statusText}${text ? ` — ${text}` : ''}`);
       }
@@ -56,7 +66,7 @@ export default function BillingPage() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [session, token]);
 
   return (
     <div className="space-y-4">
@@ -65,13 +75,20 @@ export default function BillingPage() {
       <div className="rounded-lg border bg-white p-6">
         <div className="text-slate-700">20 free conversions per day.</div>
         <div className="text-slate-700 mb-4">$1.98/month for 1000 conversions per month (optional monthly renewal).</div>
+
+        {!session && status !== 'loading' && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
+            Please sign in to subscribe
+          </div>
+        )}
+
         <button
-          onClick={buy}
-          disabled={loading}
+          onClick={!session ? () => signIn('google') : buy}
+          disabled={loading || status === 'loading'}
           className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-4 py-2 text-white hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <CreditCard size={16} />
-          {loading ? 'Processing…' : 'Subscribe'}
+          {loading ? 'Processing…' : !session ? 'Sign in to Subscribe' : 'Subscribe'}
         </button>
 
         {err && (
