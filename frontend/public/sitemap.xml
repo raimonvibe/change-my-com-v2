@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <url>
+    <loc>https://www.change-my.com/</loc>
+    <lastmod>2025-10-09T04:24:09+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.00</priority>
+  </url>
+
+  <url>
+    <loc>https://www.change-my.com/home</loc>
+    <lastmod>2025-10-09T04:24:09+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <url>
+    <loc>https://www.change-my.com/convert</loc>
+    <lastmod>2025-10-09T04:24:09+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.00</priority>
+  </url>
+
+  <url>
+    <loc>https://www.change-my.com/billing</loc>
+    <lastmod>2025-10-09T04:24:09+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <url>
+    <loc>https://www.change-my.com/contact</loc>
+    <lastmod>2025-10-09T04:24:09+00:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <url>
+    <loc>https://www.change-my.com/privacy</loc>
+    <lastmod>2025-10-09T04:24:09+00:00</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.40</priority>
+  </url>
+
+  <url>
+    <loc>https://www.change-my.com/legal</loc>
+    <lastmod>2025-10-09T04:24:09+00:00</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.40</priority>
+  </url>
+
+</urlset>
