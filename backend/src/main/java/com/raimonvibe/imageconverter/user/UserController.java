@@ -3,11 +3,15 @@ package com.raimonvibe.imageconverter.user;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
+
+  private static final Logger logger = LoggerFactory.getLogger(UserController.class);
   private final UserService userService;
 
   public UserController(UserService userService) {
@@ -32,9 +36,7 @@ public class UserController {
           "autoRenewal", user.getAutoRenewal() != null ? user.getAutoRenewal() : false
       );
     } catch (Exception e) {
-      // Log the error and return unauthenticated
-      System.err.println("Error in /api/user/me: " + e.getMessage());
-      e.printStackTrace();
+      logger.error("Error in /api/user/me for user {}: {}", principal.getName(), e.getMessage(), e);
       return Map.of("authenticated", false, "error", "Failed to fetch user data");
     }
   }
@@ -61,7 +63,7 @@ public class UserController {
       user.setAutoRenewal(newValue);
       userService.saveUser(user);
 
-      System.out.println("Auto-renewal toggled for " + user.getEmail() + ": " + currentValue + " -> " + newValue);
+      logger.info("Auto-renewal toggled for {}: {} -> {}", user.getEmail(), currentValue, newValue);
 
       return Map.of(
           "success", true,
@@ -69,8 +71,7 @@ public class UserController {
           "message", newValue ? "Auto-renewal enabled" : "Auto-renewal disabled"
       );
     } catch (Exception e) {
-      System.err.println("Error toggling auto-renewal: " + e.getMessage());
-      e.printStackTrace();
+      logger.error("Error toggling auto-renewal for {}: {}", principal.getName(), e.getMessage(), e);
       return Map.of("success", false, "error", "Failed to toggle auto-renewal");
     }
   }

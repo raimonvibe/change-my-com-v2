@@ -1,5 +1,7 @@
 package com.raimonvibe.imageconverter.monitoring;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -7,7 +9,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Component
 public class CostMonitor {
-    
+
+    private static final Logger logger = LoggerFactory.getLogger(CostMonitor.class);
+
     private final AtomicLong totalConversions = new AtomicLong(0);
     private final AtomicLong totalBytesProcessed = new AtomicLong(0);
     private final AtomicLong totalProcessingTimeMs = new AtomicLong(0);
@@ -16,23 +20,19 @@ public class CostMonitor {
         totalConversions.incrementAndGet();
         totalBytesProcessed.addAndGet(fileSizeBytes);
         totalProcessingTimeMs.addAndGet(processingTimeMs);
-        
-        // Log cost metrics
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        System.out.println("=== COST METRICS ===");
-        System.out.println("Timestamp: " + timestamp);
-        System.out.println("User: " + (userEmail != null ? userEmail : "anonymous"));
-        System.out.println("File size: " + formatBytes(fileSizeBytes));
-        System.out.println("Processing time: " + processingTimeMs + "ms");
-        System.out.println("Target format: " + format);
-        System.out.println("Total conversions today: " + totalConversions.get());
-        System.out.println("Total data processed today: " + formatBytes(totalBytesProcessed.get()));
-        System.out.println("Total processing time today: " + (totalProcessingTimeMs.get() / 1000) + "s");
-        
-        // Cost estimation (rough estimates)
+
         double estimatedCost = estimateCost(fileSizeBytes, processingTimeMs);
-        System.out.println("Estimated cost: $" + String.format("%.4f", estimatedCost));
-        System.out.println("=== END COST METRICS ===");
+
+        logger.info("Cost metrics - User: {}, Size: {}, Time: {}ms, Format: {}, Est. cost: ${}, Total conversions: {}, Total data: {}, Total time: {}s",
+                userEmail != null ? userEmail : "anonymous",
+                formatBytes(fileSizeBytes),
+                processingTimeMs,
+                format,
+                String.format("%.4f", estimatedCost),
+                totalConversions.get(),
+                formatBytes(totalBytesProcessed.get()),
+                totalProcessingTimeMs.get() / 1000
+        );
     }
     
     private double estimateCost(long fileSizeBytes, long processingTimeMs) {
@@ -55,13 +55,10 @@ public class CostMonitor {
     }
     
     public void recordFailedUpload(String reason, long fileSizeBytes) {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        System.out.println("=== FAILED UPLOAD COST ===");
-        System.out.println("Timestamp: " + timestamp);
-        System.out.println("Reason: " + reason);
-        System.out.println("File size: " + formatBytes(fileSizeBytes));
-        System.out.println("Cost: Wasted bandwidth and processing time");
-        System.out.println("=== END FAILED UPLOAD COST ===");
+        logger.warn("Failed upload - Reason: {}, Size: {}, Cost: Wasted bandwidth",
+                reason,
+                formatBytes(fileSizeBytes)
+        );
     }
     
     // Getters for monitoring
