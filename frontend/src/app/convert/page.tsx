@@ -395,10 +395,10 @@ export default function ConvertPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => removeJob(j.id)}
-                    className="flex-shrink-0 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    className="flex-shrink-0 p-1.5 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                     title="Remove image"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={20} className="sm:size-5" />
                   </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
