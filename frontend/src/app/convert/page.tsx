@@ -403,7 +403,7 @@ export default function ConvertPage() {
                   {/* Quick Presets */}
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-2">Quick Presets:</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                       <button
                         onClick={() => setMaxWidth(256)}
                         className={`px-3 py-2 rounded-md text-xs font-medium transition-all ${
@@ -443,6 +443,16 @@ export default function ConvertPage() {
                         }`}
                       >
                         1920px<span className="block text-[10px] opacity-80">Full HD</span>
+                      </button>
+                      <button
+                        onClick={() => setMaxWidth(3840)}
+                        className={`px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                          maxWidth === 3840
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                        }`}
+                      >
+                        3840px<span className="block text-[10px] opacity-80">4K UHD</span>
                       </button>
                     </div>
                   </div>
