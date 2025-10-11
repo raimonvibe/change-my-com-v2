@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDropzone, FileRejection } from "react-dropzone";

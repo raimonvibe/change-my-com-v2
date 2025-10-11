@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Link from "next/link";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { Header } from "../components/Header";

@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   // Images configuration
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.googleusercontent.com',
+      },
+    ],
   },
 
   // Environment variables

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuthStore } from "../../store/useAuthStore";
 import { API_URL } from "../../env";
 
@@ -86,9 +87,11 @@ export default function AccountPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-3 sm:gap-4">
                 {session.user.image ? (
-                  <img
+                  <Image
                     src={session.user.image}
                     alt="Profile"
+                    width={80}
+                    height={80}
                     className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex-shrink-0"
                   />
                 ) : (
