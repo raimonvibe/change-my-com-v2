@@ -63,22 +63,11 @@ public class ImageService {
                     args.add("256");
                 }
 
-                // Apply sharpening if requested (0-200 scale)
+                // Apply advanced sharpening if requested (0-200 scale)
                 // Note: Sharpening is applied AFTER resize for best results
+                // Uses tiered approach: subtle → adaptive → professional → maximum
                 if (options.sharpness() != null && options.sharpness() > 0) {
-                    // Unsharp mask syntax: radiusxsigma+amount+threshold
-                    // - radius: size of sharpening effect (0.5-2.0 for most images)
-                    // - sigma: blur radius for mask (typically radius/2 to radius)
-                    // - amount: strength multiplier (0.5-5.0, higher = stronger)
-                    // - threshold: minimum brightness change to sharpen (0-0.1)
-
-                    double radius = 0.8;  // Smaller radius works better for all image sizes
-                    double sigma = 0.8;   // Equal to radius for balanced sharpening
-                    double amount = options.sharpness() / 50.0; // 0-4.0 range for visible effect
-                    double threshold = 0.05;
-
-                    args.add("-unsharp");
-                    args.add(String.format("%.1fx%.1f+%.2f+%.2f", radius, sigma, amount, threshold));
+                    applySharpeningStrategy(args, options.sharpness());
                 }
 
                 // Apply quality if specified
@@ -133,6 +122,104 @@ public class ImageService {
             throw (lastError != null ? lastError : new IOException("Unknown conversion error"));
         } finally {
             semaphore.release();
+        }
+    }
+
+    /**
+     * Advanced sharpening strategy using tiered approach based on sharpness level.
+     * Each tier uses progressively more sophisticated ImageMagick techniques.
+     *
+     * @param args Command arguments list to append sharpening parameters to
+     * @param sharpness Sharpness level from 0-200
+     */
+    private void applySharpeningStrategy(java.util.List<String> args, int sharpness) {
+        // Strategy 1: Subtle sharpening (1-50)
+        // Uses gentle unsharp mask for natural enhancement
+        if (sharpness <= 50) {
+            double amount = sharpness / 50.0; // 0.02 to 1.0
+            args.add("-unsharp");
+            args.add(String.format("0.5x0.5+%.2f+0.01", amount));
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Applying subtle sharpening: level={}, amount={}", sharpness, amount);
+            }
+        }
+
+        // Strategy 2: Standard adaptive sharpening (51-100)
+        // Uses adaptive-sharpen which adjusts based on local image features
+        // Sharpens edges more than flat areas (reduces noise amplification)
+        else if (sharpness <= 100) {
+            double strength = (sharpness - 50) / 25.0; // 0.04 to 2.0
+            args.add("-adaptive-sharpen");
+            args.add(String.format("0x%.2f", strength));
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Applying adaptive sharpening: level={}, strength={}", sharpness, strength);
+            }
+        }
+
+        // Strategy 3: Professional multi-pass sharpening (101-150)
+        // Uses LAB color space to sharpen only luminosity (prevents color artifacts)
+        // Two-pass approach: fine detail + edge enhancement
+        else if (sharpness <= 150) {
+            // Convert to LAB color space for cleaner sharpening
+            args.add("-colorspace");
+            args.add("Lab");
+            args.add("-channel");
+            args.add("L"); // Sharpen only Lightness channel
+
+            // First pass: Fine detail enhancement
+            args.add("-unsharp");
+            args.add("0.5x0.5+1.0+0.02");
+
+            // Second pass: Edge sharpening with strength based on level
+            double edgeStrength = (sharpness - 100) / 25.0; // 0.04 to 2.0
+            args.add("-unsharp");
+            args.add(String.format("2x1+%.2f+0.05", 0.8 + edgeStrength));
+
+            // Return to sRGB color space
+            args.add("+channel");
+            args.add("-colorspace");
+            args.add("sRGB");
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Applying professional LAB sharpening: level={}, edge_strength={}",
+                    sharpness, edgeStrength);
+            }
+        }
+
+        // Strategy 4: Maximum sharpening (151-200)
+        // Professional-grade with contrast enhancement + aggressive multi-pass
+        // Similar to Photoshop's high-pass filter technique
+        else {
+            // Step 1: Subtle contrast enhancement to make sharpening more effective
+            args.add("-contrast-stretch");
+            args.add("0.15x0.05%");
+
+            // Step 2: LAB color space for clean sharpening
+            args.add("-colorspace");
+            args.add("Lab");
+            args.add("-channel");
+            args.add("L");
+
+            // Step 3: Aggressive unsharp mask
+            double maxStrength = (sharpness - 150) / 50.0; // 0.02 to 1.0
+            args.add("-unsharp");
+            args.add(String.format("1x0.8+%.2f+0.05", 2.0 + maxStrength));
+
+            // Step 4: Final adaptive pass for edge refinement
+            args.add("-adaptive-sharpen");
+            args.add(String.format("0x%.2f", 1.5 + maxStrength));
+
+            // Return to sRGB
+            args.add("+channel");
+            args.add("-colorspace");
+            args.add("sRGB");
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Applying maximum sharpening: level={}, max_strength={}",
+                    sharpness, maxStrength);
+            }
         }
     }
 

@@ -382,7 +382,15 @@ export default function ConvertPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label htmlFor="sharpness-slider" className="block text-sm font-medium text-slate-700">Sharpness</label>
-                <span className="text-sm font-semibold text-sky-600" aria-live="polite">{sharpness}%</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">
+                    {sharpness <= 50 && 'Subtle'}
+                    {sharpness > 50 && sharpness <= 100 && 'Standard'}
+                    {sharpness > 100 && sharpness <= 150 && 'Professional'}
+                    {sharpness > 150 && 'Maximum'}
+                  </span>
+                  <span className="text-sm font-semibold text-sky-600" aria-live="polite">{sharpness}%</span>
+                </div>
               </div>
               <input
                 id="sharpness-slider"
@@ -399,9 +407,20 @@ export default function ConvertPage() {
                 className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
               />
               <div className="flex justify-between text-xs text-slate-500 mt-1" aria-hidden="true">
-                <span>No sharpening</span>
-                <span>Maximum sharpness</span>
+                <span>Off</span>
+                <span className="text-emerald-600">50 • Subtle</span>
+                <span className="text-sky-600">100 • Standard</span>
+                <span className="text-purple-600">150 • Pro</span>
+                <span className="text-orange-600">200 • Max</span>
               </div>
+              {sharpness > 0 && (
+                <div className="text-xs text-slate-600 bg-slate-50 rounded p-2 mt-2">
+                  {sharpness <= 50 && '🌱 Gentle unsharp mask for natural enhancement'}
+                  {sharpness > 50 && sharpness <= 100 && '✨ Adaptive sharpening - adjusts to image content'}
+                  {sharpness > 100 && sharpness <= 150 && '💎 Professional LAB color space sharpening - no color artifacts'}
+                  {sharpness > 150 && '🔥 Maximum multi-pass sharpening with contrast enhancement'}
+                </div>
+              )}
             </div>
 
             {/* Resize Toggle */}
