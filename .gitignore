@@ -75,12 +75,14 @@ hs_err_pid*
 *.cert
 
 # Environment files with secrets (CRITICAL - NEVER COMMIT)
+# Always use .env.example as a template and create your own .env locally
 env.local
 .env.local
 .env.production
 .env.development
 .env.staging
 .env.test
+!.env.example
 
 # Configuration files with sensitive information
 CONFIGURATION-GUIDE.md
