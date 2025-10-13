@@ -79,7 +79,7 @@ export default function ConvertPage() {
       });
 
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json() as { freeRemaining?: number; paidCredits?: number };
         setAuth({
           freeRemaining: data.freeRemaining,
           paidCredits: data.paidCredits,
@@ -247,11 +247,11 @@ export default function ConvertPage() {
           return;
         }
         if (res.status === 413) {
-          const errorData = await res.json().catch(() => ({}));
+          const errorData = await res.json().catch(() => ({})) as { error?: string };
           throw new Error(errorData.error || 'File is too large. Maximum allowed size is 8MB.');
         }
         if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
+          const errorData = await res.json().catch(() => ({})) as { error?: string };
           throw new Error(errorData.error || `Conversion failed: ${res.status}`);
         }
         const blob = await res.blob();

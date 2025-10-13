@@ -17,6 +17,7 @@ declare module "next-auth/jwt" {
     refreshToken?: string;
     accessTokenExpires?: number;
     error?: string;
+    user?: unknown;
   }
 }
 
@@ -95,11 +96,12 @@ const handler = NextAuth({
           idToken: account.id_token,
           refreshToken: account.refresh_token,
           accessTokenExpires: account.expires_at ? account.expires_at * 1000 : Date.now() + 3600 * 1000,
+          user,
         };
       }
 
       // Return previous token if the access token has not expired yet
-      if (Date.now() < (token.accessTokenExpires as number)) {
+      if (token.accessTokenExpires && Date.now() < token.accessTokenExpires) {
         return token;
       }
 
@@ -107,8 +109,12 @@ const handler = NextAuth({
       return refreshAccessToken(token);
     },
     async session({ session, token }) {
-      session.idToken = token.idToken as string;
-      session.error = token.error as string;
+      if (token.idToken) {
+        session.idToken = token.idToken;
+      }
+      if (token.error) {
+        session.error = token.error;
+      }
       return session;
     },
   },
