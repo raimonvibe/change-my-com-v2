@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -29,7 +30,11 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, RateLimitFilter rateLimitFilter, GoogleIdTokenAuthFilter googleAuthFilter) throws Exception {
         http
-            // Stateless API (geen cookies/sessies)
+            // Stateless API - explicitly configure session management
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // CSRF protection can be disabled for stateless APIs using token-based auth
+            // No cookies/sessions are used, only Bearer tokens in Authorization header
             .csrf(csrf -> csrf.disable())
             .cors(Customizer.withDefaults())
             .headers(h -> h
