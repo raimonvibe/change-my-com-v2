@@ -244,6 +244,18 @@ export default function ConvertPage() {
 
   const start = async () => {
     const pending = jobs.filter(j => j.status === 'queued');
+    
+    // Check if user has credits before starting conversion
+    if (pending.length > 0 && auth.freeRemaining === 0 && auth.paidCredits === 0) {
+      setShowLimitModal(true);
+      setJobs((prev) => prev.map(job => 
+        pending.some(p => p.id === job.id) 
+          ? { ...job, status: 'error', error: 'No conversions remaining. Please subscribe to continue.' }
+          : job
+      ));
+      return;
+    }
+    
     for (const j of pending) {
       const startTime = Date.now();
       setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'running', startTime, progress: 0 } : x));
@@ -289,7 +301,7 @@ export default function ConvertPage() {
         if (res.status === 401) throw new Error('Please sign in with Google to convert.');
         if (res.status === 402) {
           setShowLimitModal(true);
-          setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: 'Conversion limit reached' } : x));
+          setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: 'No conversions remaining. Please subscribe to continue.' } : x));
           return;
         }
         if (res.status === 413) {
@@ -319,7 +331,18 @@ export default function ConvertPage() {
         await refreshCredits();
       } catch (e: unknown) {
         clearInterval(progressInterval);
-        const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
+        let errorMessage = 'Unknown error occurred';
+        
+        if (e instanceof Error) {
+          if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+            errorMessage = 'Network error. Please check your connection and try again.';
+          } else if (e.message.includes('fetch')) {
+            errorMessage = 'Unable to connect to the server. Please try again later.';
+          } else {
+            errorMessage = e.message;
+          }
+        }
+        
         setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: errorMessage } : x));
       }
     }
