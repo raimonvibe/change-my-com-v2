@@ -70,6 +70,7 @@ export default function ConvertPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const setAuth = useAuthStore(s => s.setAuth);
+  const auth = useAuthStore(s => s);
   const [target, setTarget] = useState('webp');
   const [quality, setQuality] = useState(85);
   const [sharpness, setSharpness] = useState(0);

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import Image from "next/image";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { Header } from "../components/Header";
@@ -169,12 +170,11 @@ export default function RootLayout({
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <img 
+                  <Image 
                     src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026042&theme=light&t=1760427610015" 
                     alt="RaimonVibe Image Converter - Convert, sharpen & optimize jpg, png, webp | raimonvibe | Product Hunt" 
-                    style={{ width: '250px', height: '54px' }} 
-                    width="250" 
-                    height="54" 
+                    width={250} 
+                    height={54} 
                     className="rounded-lg shadow-sm hover:shadow-md transition-shadow"
                   />
                 </a>
