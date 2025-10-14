@@ -43,7 +43,7 @@ export default function AccountPage() {
           freeRemaining: data.freeRemaining,
           paidCredits: data.paidCredits,
           subscriptionStatus: data.subscriptionStatus,
-          autoRenewal: data.autoRenewal
+          autoRenewal: data.autoRenewal ?? false
         });
       } catch {
         // Silently fail - user can refresh page if needed
