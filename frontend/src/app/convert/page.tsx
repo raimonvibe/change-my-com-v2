@@ -111,9 +111,16 @@ export default function ConvertPage() {
     if (!session?.idToken) return;
 
     try {
+      // Add timeout for slow connections
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const res = await fetch(`${API_URL}/api/user/me`, {
         headers: { Authorization: `Bearer ${session.idToken}` },
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       if (res.ok) {
         const data = await res.json() as { freeRemaining?: number; paidCredits?: number };
@@ -285,11 +292,18 @@ export default function ConvertPage() {
       }
 
       try {
+        // Add timeout handling for slow connections (like Nigeria)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
         const res = await fetch(`${API_URL}/api/convert`, {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: form,
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
 
         clearInterval(progressInterval);
 
@@ -335,8 +349,12 @@ export default function ConvertPage() {
         let errorMessage = 'Unknown error occurred';
         
         if (e instanceof Error) {
-          if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+          if (e.name === 'AbortError') {
+            errorMessage = 'Request timed out. Please check your internet connection and try again.';
+          } else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
             errorMessage = 'Network error. Please check your connection and try again.';
+          } else if (e.message.includes('ERR_TIMED_OUT') || e.message.includes('ERR_CONNECTION_RESET')) {
+            errorMessage = 'Connection timeout. Please try again with a better internet connection.';
           } else if (e.message.includes('fetch')) {
             errorMessage = 'Unable to connect to the server. Please try again later.';
           } else {
