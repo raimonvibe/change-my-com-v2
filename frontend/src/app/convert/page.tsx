@@ -34,14 +34,15 @@ const validateFileExtension = (fileName: string): { valid: boolean; error?: stri
   }
   
   if (!VALID_EXTENSIONS.includes(extension)) {
-    // Check if it's a common web download issue (like :small, :thumb, etc.)
-    const commonSuffixes = [':small', ':thumb', ':medium', ':large', ':resized', ':compressed', ':1', ':2', ':3'];
+    // Check if it's a common web download issue (like :small, :thumb, _small, _thumb, etc.)
+    const commonSuffixes = [':small', ':thumb', ':medium', ':large', ':resized', ':compressed', ':1', ':2', ':3',
+                           '_small', '_thumb', '_medium', '_large', '_resized', '_compressed', '_1', '_2', '_3'];
     const hasCommonSuffix = commonSuffixes.some(suffix => fileName.toLowerCase().includes(suffix));
     
     if (hasCommonSuffix) {
       return { 
         valid: false, 
-        error: `Invalid file format detected. This appears to be a web download with a platform suffix (like :small, :thumb). Please rename the file to remove the suffix (e.g., "image.jpg:small" → "image.jpg") and try again.` 
+        error: `Invalid file format detected. This appears to be a web download with a platform suffix (like :small, _small, :thumb, _thumb). Please rename the file to remove the suffix (e.g., "image.jpg_small" → "image.jpg") and try again.` 
       };
     }
     
