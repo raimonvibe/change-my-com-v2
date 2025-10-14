@@ -87,4 +87,4 @@ app:
     secretKey: ${STRIPE_SECRET_KEY}
   auth:
     googleClientId: ${GOOGLE_CLIENT_ID}
-    allowedOrigins: ${ALLOWED_ORIGINS:http://localhost:3000,https://change-my-com-v2.vercel.app,https://www.change-my.com}
+    allowedOrigins: ${ALLOWED_ORIGINS:http://localhost:3000,https://www.change-my.com}
