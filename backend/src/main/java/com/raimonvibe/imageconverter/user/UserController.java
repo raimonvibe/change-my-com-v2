@@ -18,6 +18,19 @@ public class UserController {
     this.userService = userService;
   }
 
+  @GetMapping("/test")
+  public Map<String, Object> test(HttpServletRequest request) {
+    String clientIp = request.getRemoteAddr();
+    String userAgent = request.getHeader("User-Agent");
+    logger.info("TEST endpoint called from IP: {} User-Agent: {}", clientIp, userAgent);
+    return Map.of(
+        "status", "ok",
+        "timestamp", System.currentTimeMillis(),
+        "clientIp", clientIp,
+        "userAgent", userAgent != null ? userAgent : "unknown"
+    );
+  }
+
   @GetMapping("/me")
   public Map<String, Object> me(Principal principal) {
     logger.info("User /me endpoint called - principal: {}", principal != null ? principal.getName() : "null");
