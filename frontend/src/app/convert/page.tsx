@@ -1,4 +1,5 @@
 'use client';
+// Enhanced file validation v2 - force deployment
 import React, { useEffect, useState } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
