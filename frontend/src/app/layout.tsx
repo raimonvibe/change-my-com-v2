@@ -158,6 +158,25 @@ export default function RootLayout({
           <main className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
+          
+          {/* Product Hunt Card */}
+          <div className="max-w-5xl mx-auto px-4 py-8">
+            <div className="flex justify-center">
+              <div className="w-full max-w-[500px]">
+                <iframe 
+                  style={{ border: 'none' }} 
+                  src="https://cards.producthunt.com/cards/products/1116424" 
+                  width="100%" 
+                  height="405" 
+                  frameBorder="0" 
+                  scrolling="no" 
+                  allowFullScreen
+                  className="rounded-lg shadow-sm"
+                />
+              </div>
+            </div>
+          </div>
+          
           <footer className="border-t bg-white mt-12">
             <div className="max-w-5xl mx-auto px-4 py-6">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-base text-slate-600">
