@@ -125,7 +125,7 @@ export default function AccountPage() {
                   </div>
                   <div className="text-4xl md:text-5xl font-bold text-emerald-600 mb-1">{paidCredits}</div>
                   <div className="text-base text-emerald-700">conversions remaining this month</div>
-                  <div className="text-sm text-emerald-600 mt-2">You have 1000 conversions per month</div>
+                  <div className="text-sm text-emerald-600 mt-2">1 subscription gets you 1000 conversions per month</div>
                 </div>
 
                 {/* Auto-renewal toggle */}
