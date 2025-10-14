@@ -20,6 +20,29 @@ const FORMAT_GROUPS = {
 const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB in bytes
 const MAX_DIMENSION = 8000; // Maximum width or height in pixels
 
+// Valid file extensions for better error handling
+const VALID_EXTENSIONS = [
+  'jpg', 'jpeg', 'png', 'webp', 'avif', 'heic', 'tiff', 'bmp', 'gif', 'svg', 'ico'
+];
+
+// Function to validate file extension
+const validateFileExtension = (fileName: string): { valid: boolean; error?: string } => {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  
+  if (!extension) {
+    return { valid: false, error: 'File has no extension' };
+  }
+  
+  if (!VALID_EXTENSIONS.includes(extension)) {
+    return { 
+      valid: false, 
+      error: `Unsupported file format: .${extension}. Please use a standard image format like .jpg, .png, or .webp.` 
+    };
+  }
+  
+  return { valid: true };
+};
+
 type Job = {
   id: string;
   file: File;
@@ -128,6 +151,16 @@ export default function ConvertPage() {
       }
       if (rejectedFile.errors.some((e) => e.code === 'file-invalid-type')) {
         setErrorMessage(`File "${rejectedFile.file.name}" has an unsupported format. Only images are allowed.`);
+        setTimeout(() => setErrorMessage(null), 5000);
+        return;
+      }
+    }
+
+    // Validate file extensions first
+    for (const file of acceptedFiles) {
+      const extensionValidation = validateFileExtension(file.name);
+      if (!extensionValidation.valid) {
+        setErrorMessage(`File "${file.name}": ${extensionValidation.error}`);
         setTimeout(() => setErrorMessage(null), 5000);
         return;
       }
@@ -252,7 +285,18 @@ export default function ConvertPage() {
         }
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({})) as { error?: string };
-          throw new Error(errorData.error || `Conversion failed: ${res.status}`);
+          let errorMessage = errorData.error || `Conversion failed: ${res.status}`;
+          
+          // Provide more specific error messages for common issues
+          if (res.status === 400) {
+            errorMessage = 'Invalid file format or corrupted image. Please try a different file.';
+          } else if (res.status === 415) {
+            errorMessage = 'Unsupported file format. Please use standard image formats like .jpg, .png, or .webp.';
+          } else if (res.status === 422) {
+            errorMessage = 'File format not supported for conversion. Please try a different image format.';
+          }
+          
+          throw new Error(errorMessage);
         }
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
