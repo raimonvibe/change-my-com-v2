@@ -159,9 +159,28 @@ export default function RootLayout({
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
           
-          {/* Product Hunt Card */}
+          {/* Product Hunt Badge and Card */}
           <div className="max-w-5xl mx-auto px-4 py-8">
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-6">
+              {/* Product Hunt Badge */}
+              <div className="flex justify-center">
+                <a 
+                  href="https://www.producthunt.com/products/raimonvibe-image-converter?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-raimonvibe&#0045;image&#0045;converter" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img 
+                    src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026042&theme=light&t=1760427610015" 
+                    alt="RaimonVibe Image Converter - Convert, sharpen & optimize jpg, png, webp | raimonvibe | Product Hunt" 
+                    style={{ width: '250px', height: '54px' }} 
+                    width="250" 
+                    height="54" 
+                    className="rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                  />
+                </a>
+              </div>
+              
+              {/* Product Hunt Card */}
               <div className="w-full max-w-[500px]">
                 <iframe 
                   style={{ border: 'none' }} 
