@@ -20,9 +20,15 @@ public class UserController {
 
   @GetMapping("/me")
   public Map<String, Object> me(Principal principal) {
-    if (principal == null) return Map.of("authenticated", false);
+    logger.info("User /me endpoint called - principal: {}", principal != null ? principal.getName() : "null");
+    
+    if (principal == null) {
+      logger.info("No principal found - returning unauthenticated");
+      return Map.of("authenticated", false);
+    }
 
     try {
+      logger.info("Creating/updating user for email: {}", principal.getName());
       // Use ensureUserByEmail to create user if they don't exist
       var user = userService.ensureUserByEmail(principal.getName());
       boolean reset = !LocalDate.now().equals(user.getLastFreeReset());
