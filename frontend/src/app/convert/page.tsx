@@ -34,6 +34,17 @@ const validateFileExtension = (fileName: string): { valid: boolean; error?: stri
   }
   
   if (!VALID_EXTENSIONS.includes(extension)) {
+    // Check if it's a common web download issue (like :small, :thumb, etc.)
+    const commonSuffixes = [':small', ':thumb', ':medium', ':large', ':resized', ':compressed', ':1', ':2', ':3'];
+    const hasCommonSuffix = commonSuffixes.some(suffix => fileName.toLowerCase().includes(suffix));
+    
+    if (hasCommonSuffix) {
+      return { 
+        valid: false, 
+        error: `Invalid file format detected. This appears to be a web download with a platform suffix (like :small, :thumb). Please rename the file to remove the suffix (e.g., "image.jpg:small" → "image.jpg") and try again.` 
+      };
+    }
+    
     return { 
       valid: false, 
       error: `Unsupported file format: .${extension}. Please use a standard image format like .jpg, .png, or .webp.` 
