@@ -240,10 +240,7 @@ export default function RootLayout({
             </div>
           </footer>
         </Providers>
-        <Script 
-          src='https://www.noupe.com/embed/0199e88a388375d2b1949147461462dc3c08.js'
-          strategy="lazyOnload"
-        />
+        <script src='https://www.noupe.com/embed/0199e88a388375d2b1949147461462dc3c08.js'></script>
       </body>
     </html>
   );
