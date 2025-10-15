@@ -40,7 +40,7 @@ services:
       - key: GOOGLE_CLIENT_ID
         sync: false  # Set this manually in Render dashboard
       - key: ALLOWED_ORIGINS
-        value: https://imageconverter-frontend.onrender.com
+        value: https://www.change-my.com
 
   # Frontend Next.js Web Service
   - type: web
