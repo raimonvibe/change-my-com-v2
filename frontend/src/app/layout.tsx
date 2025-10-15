@@ -153,6 +153,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <script src='https://www.noupe.com/embed/0199e88a388375d2b1949147461462dc3c08.js'></script>
+        {/* Noupe integration script */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} bg-sky-50 text-slate-800 antialiased`}>
         <Providers>
