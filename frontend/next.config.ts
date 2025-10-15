@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
             value: 'http',
           },
         ],
-        destination: 'https://www.change-my.com/:path*',
+        destination: 'https://www.change-my.com/$1',
         permanent: true,
       },
     ];
