@@ -11,7 +11,7 @@
   "dependencies": {
     "@stripe/stripe-js": "^8.1.0",
     "axios": "^1.11.0",
-    "lucide-react": "^0.545.0",
+    "lucide-react": "^0.546.0",
     "next": "15.5.5",
     "next-auth": "^4.24.11",
     "react": "19.2.0",
