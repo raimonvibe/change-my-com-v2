@@ -57,7 +57,7 @@ public class GoogleIdTokenAuthFilter extends OncePerRequestFilter {
             var user = userService.ensureUserByEmail(email);
             var auth = new UsernamePasswordAuthenticationToken(user.getEmail(), null, Collections.singleton(new SimpleGrantedAuthority("USER")));
             SecurityContextHolder.getContext().setAuthentication(auth);
-            logger.info("Authentication successful for user: {}", email);
+            logger.info("Authentication successful for user ID: {}", user.getId());
           } else {
             logger.warn("Token validation succeeded but email is null");
           }

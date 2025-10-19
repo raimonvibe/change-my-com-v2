@@ -67,6 +67,9 @@ type Job = {
   isGif?: boolean;
 };
 
+// Note: We deliberately do NOT persist uploaded images or conversion results
+// for security and privacy reasons. Images are only kept in memory during the session.
+
 export default function ConvertPage() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -807,6 +810,29 @@ export default function ConvertPage() {
           </div>
         </div>
       </div>
+
+      {jobs.length > 0 && (
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-sm font-medium text-slate-700">
+            {jobs.length} {jobs.length === 1 ? 'file' : 'files'} uploaded
+          </h2>
+          <button
+            onClick={() => {
+              // Revoke all blob URLs
+              jobs.forEach(job => {
+                if (job.url) {
+                  URL.revokeObjectURL(job.url);
+                }
+              });
+              setJobs([]);
+            }}
+            className="text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+            aria-label="Clear all files"
+          >
+            Clear All
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-3" role="list" aria-label="Image conversion queue">
         {jobs.map((j) => (
