@@ -20,6 +20,9 @@ spring:
       hibernate:
         format_sql: false
         use_sql_comments: false
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
 
 # Production security settings
 server:

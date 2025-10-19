@@ -28,6 +28,9 @@ spring:
   mvc:
     async:
       request-timeout: 30s
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
 
 app:
   stripe:
