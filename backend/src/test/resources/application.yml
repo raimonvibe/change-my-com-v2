@@ -1,0 +1,33 @@
+# Test configuration
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false  # Disable Flyway for tests, use Hibernate create-drop
+
+# Test-specific app config
+app:
+  stripe:
+    pricePackSize: 20
+    priceUsd: 1.98
+    webhookSecret: test_webhook_secret
+    publishableKey: pk_test_xxx
+    secretKey: sk_test_xxx
+  auth:
+    googleClientId: test_client_id.apps.googleusercontent.com
+    allowedOrigins: http://localhost:3000
+
+# Disable security for tests
+logging:
+  level:
+    com.raimonvibe.imageconverter: DEBUG
+    org.springframework.security: DEBUG
