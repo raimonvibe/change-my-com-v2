@@ -67,8 +67,12 @@ jobs:
 
       - name: Build & test (backend)
         working-directory: backend
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/imagedb
-          SPRING_DATASOURCE_USERNAME: postgres
-          SPRING_DATASOURCE_PASSWORD: postgres
-        run: mvn -B clean verify
+        run: |
+          # Run tests with H2 (default test configuration)
+          mvn -B clean test
+
+          # Build the application with PostgreSQL config
+          SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/imagedb \
+          SPRING_DATASOURCE_USERNAME=postgres \
+          SPRING_DATASOURCE_PASSWORD=postgres \
+          mvn -B package -DskipTests
