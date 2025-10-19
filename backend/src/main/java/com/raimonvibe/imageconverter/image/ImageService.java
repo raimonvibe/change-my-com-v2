@@ -5,12 +5,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class ImageService {
@@ -221,6 +227,159 @@ public class ImageService {
                     sharpness, maxStrength);
             }
         }
+    }
+
+    /**
+     * Converts a GIF file to multiple formats and bundles them in a ZIP file.
+     * Extracts each frame from the GIF and converts to the requested formats.
+     *
+     * @param input GIF file to convert
+     * @param formats List of target formats (e.g., ["png", "jpg", "webp"])
+     * @param options Conversion options (quality, sharpness, width)
+     * @return ZIP file containing all converted frames in all requested formats
+     */
+    public File convertGifToZip(File input, List<String> formats, ConversionOptions options)
+            throws IOException, InterruptedException {
+        // Security: Limit number of formats to prevent resource exhaustion
+        if (formats.size() > 4) {
+            throw new IllegalArgumentException("Maximum 4 output formats allowed");
+        }
+
+        // Security: Validate all formats are supported
+        List<String> supportedFormats = List.of("jpeg", "jpg", "png", "webp", "heic", "heif");
+        for (String format : formats) {
+            if (!supportedFormats.contains(format.toLowerCase())) {
+                throw new IllegalArgumentException("Unsupported format: " + format);
+            }
+        }
+
+        if (!semaphore.tryAcquire(30, TimeUnit.SECONDS)) {
+            throw new IOException("Server busy: too many concurrent conversions");
+        }
+
+        List<File> tempFiles = new ArrayList<>();
+        try {
+            // Create temp directory for extracted frames
+            Path tempDir = Files.createTempDirectory("gif-frames-" + UUID.randomUUID());
+            File tempDirFile = tempDir.toFile();
+            tempFiles.add(tempDirFile);
+
+            // Extract GIF frames using ImageMagick coalesce
+            // This splits animated GIF into individual frames
+            logger.debug("Extracting GIF frames from: {}", input.getName());
+            String framePattern = tempDir.resolve("frame-%03d.png").toString();
+
+            ProcessBuilder extractPb = new ProcessBuilder(
+                "magick", input.getAbsolutePath(),
+                "-coalesce",  // Properly handle GIF animation layers
+                framePattern
+            );
+            extractPb.redirectErrorStream(true);
+
+            Process extractProcess = extractPb.start();
+            boolean extractFinished = extractProcess.waitFor(30, TimeUnit.SECONDS);
+            if (!extractFinished) {
+                extractProcess.destroyForcibly();
+                throw new IOException("GIF frame extraction timeout");
+            }
+
+            if (extractProcess.exitValue() != 0) {
+                String error = new String(extractProcess.getInputStream().readAllBytes());
+                logger.error("GIF extraction failed: {}", error);
+                throw new IOException("Failed to extract GIF frames");
+            }
+
+            // Get list of extracted frames
+            File[] frames = tempDirFile.listFiles((dir, name) -> name.startsWith("frame-") && name.endsWith(".png"));
+            if (frames == null || frames.length == 0) {
+                throw new IOException("No frames extracted from GIF");
+            }
+
+            // Security: Limit frame count to prevent ZIP bombs and resource exhaustion
+            // 100 frames * 4 formats * ~500KB avg = ~200MB max ZIP size
+            if (frames.length > 100) {
+                throw new IOException("GIF has too many frames (max 100). Found: " + frames.length);
+            }
+
+            logger.info("Extracted {} frames from GIF", frames.length);
+
+            // Create ZIP file
+            File zipFile = Files.createTempFile("gif-converted-" + UUID.randomUUID(), ".zip").toFile();
+            tempFiles.add(zipFile);
+
+            try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
+                // Convert each frame to each requested format
+                for (int i = 0; i < frames.length; i++) {
+                    File frame = frames[i];
+
+                    for (String format : formats) {
+                        String normalizedFormat = format.toLowerCase();
+                        if ("jpg".equals(normalizedFormat)) {
+                            normalizedFormat = "jpeg";
+                        }
+
+                        // Create options for this conversion
+                        ConversionOptions frameOptions = new ConversionOptions(
+                            normalizedFormat,
+                            options.quality(),
+                            options.sharpness(),
+                            options.width()
+                        );
+
+                        // Convert frame
+                        File converted = convert(frame, frameOptions);
+                        tempFiles.add(converted);
+
+                        // Add to ZIP with proper naming: frame-001.png, frame-001.jpg, etc.
+                        String zipEntryName = String.format("frame-%03d.%s", i, normalizedFormat);
+                        ZipEntry entry = new ZipEntry(zipEntryName);
+                        zos.putNextEntry(entry);
+
+                        try (FileInputStream fis = new FileInputStream(converted)) {
+                            fis.transferTo(zos);
+                        }
+                        zos.closeEntry();
+
+                        logger.debug("Added {} to ZIP", zipEntryName);
+                    }
+                }
+            }
+
+            logger.info("Created ZIP with {} frames in {} formats", frames.length, formats.size());
+
+            // Remove zipFile from tempFiles list since it's being returned
+            tempFiles.remove(zipFile);
+
+            // Clean up all temp files except the final ZIP
+            for (File tempFile : tempFiles) {
+                safeDelete(tempFile);
+            }
+
+            return zipFile;
+
+        } catch (Exception e) {
+            // On error, clean up everything including the ZIP
+            for (File tempFile : tempFiles) {
+                safeDelete(tempFile);
+            }
+            throw e;
+        } finally {
+            semaphore.release();
+        }
+    }
+
+    private void safeDelete(File f) {
+        if (f == null || !f.exists()) return;
+
+        if (f.isDirectory()) {
+            File[] children = f.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    safeDelete(child);
+                }
+            }
+        }
+        f.delete();
     }
 
     /**

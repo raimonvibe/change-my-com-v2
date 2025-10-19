@@ -77,6 +77,7 @@ public class SecurityConfig {
                 // Convert endpoints open (credits/limits in controller)
                 .requestMatchers(HttpMethod.GET, "/api/convert/formats").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/convert").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/convert/gif").permitAll()
                 // Debug endpoints: allow in dev, deny in prod
                 .requestMatchers("/api/debug/**").access((authentication, context) -> 
                     new AuthorizationDecision("dev".equals(activeProfile) 

@@ -20,17 +20,17 @@ public class UserController {
 
   @GetMapping("/me")
   public Map<String, Object> me(Principal principal) {
-    logger.info("User /me endpoint called - principal: {}", principal != null ? principal.getName() : "null");
-    
+    logger.info("User /me endpoint called - principal present: {}", principal != null);
+
     if (principal == null) {
       logger.info("No principal found - returning unauthenticated");
       return Map.of("authenticated", false);
     }
 
     try {
-      logger.info("Creating/updating user for email: {}", principal.getName());
       // Use ensureUserByEmail to create user if they don't exist
       var user = userService.ensureUserByEmail(principal.getName());
+      logger.info("Processing /me request for user ID: {}", user.getId());
       boolean reset = !LocalDate.now().equals(user.getLastFreeReset());
       int freeRemaining = (reset ? 20 : Math.max(0, 20 - user.getFreeUsedToday()));
       return Map.of(
@@ -42,7 +42,7 @@ public class UserController {
           "autoRenewal", user.getAutoRenewal() != null ? user.getAutoRenewal() : false
       );
     } catch (Exception e) {
-      logger.error("Error in /api/user/me for user {}: {}", principal.getName(), e.getMessage(), e);
+      logger.error("Error in /api/user/me: {}", e.getMessage(), e);
       return Map.of("authenticated", false, "error", "Failed to fetch user data");
     }
   }
@@ -69,7 +69,7 @@ public class UserController {
       user.setAutoRenewal(newValue);
       userService.saveUser(user);
 
-      logger.info("Auto-renewal toggled for {}: {} -> {}", user.getEmail(), currentValue, newValue);
+      logger.info("Auto-renewal toggled for user ID: {}: {} -> {}", user.getId(), currentValue, newValue);
 
       return Map.of(
           "success", true,
@@ -77,7 +77,7 @@ public class UserController {
           "message", newValue ? "Auto-renewal enabled" : "Auto-renewal disabled"
       );
     } catch (Exception e) {
-      logger.error("Error toggling auto-renewal for {}: {}", principal.getName(), e.getMessage(), e);
+      logger.error("Error toggling auto-renewal: {}", e.getMessage(), e);
       return Map.of("success", false, "error", "Failed to toggle auto-renewal");
     }
   }

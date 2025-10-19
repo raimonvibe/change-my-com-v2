@@ -28,8 +28,11 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/convert")
@@ -67,6 +70,162 @@ public class ConvertController {
     @GetMapping("/formats")
     public Object formats() {
         return ImageService.supportedFormats();
+    }
+
+    /**
+     * Converts a GIF file to multiple formats and returns a ZIP file.
+     * Allows selection of multiple target formats at once.
+     */
+    @PostMapping(value = "/gif", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<StreamingResponseBody> convertGif(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("formats") String formatsParam,
+            @RequestParam(value = "quality", required = false) @Min(1) @Max(100) Integer quality,
+            @RequestParam(value = "sharpness", required = false) @Min(0) @Max(200) Integer sharpness,
+            @RequestParam(value = "width", required = false) @Min(16) @Max(8000) Integer width,
+            Principal principal,
+            HttpServletRequest request
+    ) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("GIF conversion request - formats: {}, size: {} bytes, authenticated: {}",
+                formatsParam, file.getSize(), principal != null);
+        }
+
+        // ---- 1) Parse and validate output formats
+        java.util.List<String> formats;
+        try {
+            formats = Arrays.stream(formatsParam.split(","))
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .map(fmt -> "jpg".equals(fmt) ? "jpeg" : fmt)
+                .filter(fmt -> ALLOWED_OUT.contains(fmt))
+                .collect(Collectors.toList());
+
+            if (formats.isEmpty()) {
+                logger.warn("No valid formats requested: {}", formatsParam);
+                return badRequest("No valid target formats");
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to parse formats: {}", formatsParam);
+            return badRequest("Invalid formats parameter");
+        }
+
+        // ---- 2) Validate it's actually a GIF file
+        try {
+            FileValidator.validate(file);
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.equals("image/gif")) {
+                logger.warn("Non-GIF file submitted to GIF endpoint: {}", contentType);
+                return badRequest("Only GIF files are supported for this endpoint");
+            }
+        } catch (IllegalArgumentException iae) {
+            logger.warn("File validation failed: {}", iae.getMessage());
+            return badRequest(iae.getMessage());
+        } catch (IOException ioe) {
+            logger.error("File read error during validation: {}", ioe.getMessage());
+            return unprocessable("Failed to read upload");
+        }
+
+        // ---- 3) Credits check (same as regular conversion)
+        boolean allowed;
+        try {
+            if (principal != null) {
+                final String email = principal.getName();
+                final User user = userService.ensureUserByEmail(email);
+                allowed = userService.consumeOneConversion(user, packSize);
+                if (!allowed) {
+                    logger.info("GIF conversion denied for user {} - insufficient credits", email);
+                }
+            } else {
+                final String clientIp = getClientIpAddress(request);
+                allowed = anonymousUserService.consumeOneConversion(clientIp, 20);
+                if (!allowed) {
+                    logger.info("GIF conversion denied for IP {} - limit reached", clientIp);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Credit check failed: {}", e.getMessage());
+            return serverError("Credit check failed");
+        }
+
+        if (!allowed) {
+            return ResponseEntity.status(402)
+                    .header("Cache-Control", "no-store")
+                    .build();
+        }
+
+        // ---- 4) Convert GIF to ZIP
+        File tmp = null;
+        File zipOut = null;
+        long startTime = System.currentTimeMillis();
+        try {
+            tmp = File.createTempFile("upload-gif-", ".gif");
+            file.transferTo(tmp);
+
+            final Integer q = (quality != null) ? quality : null;
+            final Integer s = (sharpness != null) ? sharpness : 0;
+            final Integer w = (width != null) ? width : null;
+
+            ImageService.ConversionOptions options = new ImageService.ConversionOptions(
+                "zip", q, s, w
+            );
+
+            zipOut = imageService.convertGifToZip(tmp, formats, options);
+
+            // Record cost metrics
+            long processingTime = System.currentTimeMillis() - startTime;
+            String userEmail = principal != null ? principal.getName() : null;
+            costMonitor.recordConversion(file.getSize(), processingTime, userEmail, "gif-to-zip");
+
+            logger.info("GIF conversion successful - {} frames, {} formats, time: {}ms",
+                "N/A", formats.size(), processingTime);
+
+            // ---- 5) Stream ZIP response
+            final File zipFile = zipOut;
+            final File tmpFile = tmp;
+            final long length = zipFile.length();
+
+            StreamingResponseBody body = output -> {
+                try (var in = new FileInputStream(zipFile)) {
+                    in.transferTo(output);
+                } finally {
+                    safeDelete(tmpFile);
+                    safeDelete(zipFile);
+                }
+            };
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CACHE_CONTROL, "no-store");
+            headers.add(HttpHeaders.CONTENT_DISPOSITION,
+                contentDispositionAttachment("converted-gif-frames.zip"));
+            headers.add("X-Content-Type-Options", "nosniff");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .contentType(MediaType.parseMediaType("application/zip"))
+                    .contentLength(length)
+                    .body(body);
+
+        } catch (InterruptedException ie) {
+            logger.error("GIF conversion interrupted: {}", ie.getMessage());
+            Thread.currentThread().interrupt();
+            safeDelete(tmp);
+            safeDelete(zipOut);
+            return unprocessable("Conversion interrupted");
+        } catch (IOException ioe) {
+            logger.error("GIF conversion I/O error: {}", ioe.getMessage());
+            safeDelete(tmp);
+            safeDelete(zipOut);
+            return unprocessable("Conversion failed");
+        } catch (Exception e) {
+            logger.error("Unexpected GIF conversion error: {}", e.getMessage());
+            if (logger.isDebugEnabled()) {
+                logger.debug("GIF conversion error details", e);
+            }
+            safeDelete(tmp);
+            safeDelete(zipOut);
+            return unprocessable("Conversion failed");
+        }
     }
 
     /**

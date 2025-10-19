@@ -14,16 +14,12 @@ spring:
         sslmode: require
   jpa:
     hibernate:
-      ddl-auto: update  # Auto-update schema for new columns
+      ddl-auto: validate  # PRODUCTION: Only validate schema, never modify automatically
     show-sql: false
     properties:
       hibernate:
         format_sql: false
         use_sql_comments: false
-  security:
-    user:
-      name: ${SPRING_SECURITY_USER_NAME}
-      password: ${SPRING_SECURITY_USER_PASSWORD}
 
 # Production security settings
 server:
@@ -66,7 +62,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info
       base-path: /actuator
   endpoint:
     health:

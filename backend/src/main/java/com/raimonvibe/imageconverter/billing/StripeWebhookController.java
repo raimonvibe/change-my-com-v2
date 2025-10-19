@@ -52,7 +52,6 @@ public class StripeWebhookController {
       event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
     } catch (SignatureVerificationException e) {
       logger.error("Stripe webhook signature verification failed: {}", e.getMessage());
-      logger.error("Webhook secret configured: {}", webhookSecret != null && !webhookSecret.isEmpty());
       return ResponseEntity.status(400).body("Invalid signature");
     }
 
@@ -123,8 +122,8 @@ public class StripeWebhookController {
         }
       }
 
-      logger.info("Session details - email: {}, subscriptionId: {}, metadata: {}",
-                  email, subscriptionId, metadata);
+      logger.info("Session details - subscriptionId: {}, metadata: {}",
+                  subscriptionId, metadata);
 
       if (metadata.containsKey("subscription") && "monthly_1000".equals(metadata.get("subscription"))) {
         if (email != null && subscriptionId != null) {
@@ -133,7 +132,7 @@ public class StripeWebhookController {
           user.setSubscriptionStatus("active");
           user.setAutoRenewal(true);
           userService.activateSubscription(user, 1000);
-          logger.info("✓ Activated subscription for user: {}, subscriptionId: {}, credits: 1000", email, subscriptionId);
+          logger.info("✓ Activated subscription for user ID: {}, subscriptionId: {}, credits: 1000", user.getId(), subscriptionId);
         } else {
           logger.warn("Missing email or subscriptionId - email: {}, subscriptionId: {}", email, subscriptionId);
         }
@@ -168,14 +167,14 @@ public class StripeWebhookController {
             user.setLastPaidReset(today);
             user.setSubscriptionStatus("active");
             userRepository.save(user);
-            logger.info("Monthly renewal: Added 1000 credits (from {} to {}) for user: {} (lastReset was: {})",
-                       previousCredits, previousCredits + 1000, user.getEmail(), lastReset);
+            logger.info("Monthly renewal: Added 1000 credits (from {} to {}) for user ID: {} (lastReset was: {})",
+                       previousCredits, previousCredits + 1000, user.getId(), lastReset);
           } else {
-            logger.info("Skipping credit addition for user {} - already added today ({})",
-                       user.getEmail(), today);
+            logger.info("Skipping credit addition for user ID: {} - already added today ({})",
+                       user.getId(), today);
           }
         } else if (user != null) {
-          logger.info("User {} has auto-renewal disabled, not adding credits", user.getEmail());
+          logger.info("User ID: {} has auto-renewal disabled, not adding credits", user.getId());
         } else {
           logger.warn("No user found for subscription ID: {}", subscriptionId);
         }
@@ -202,10 +201,10 @@ public class StripeWebhookController {
           // If user canceled subscription, disable auto-renewal
           if (cancelAtPeriodEnd) {
             user.setAutoRenewal(false);
-            logger.info("Auto-renewal disabled for user: {} (subscription set to cancel at period end)", user.getEmail());
+            logger.info("Auto-renewal disabled for user ID: {} (subscription set to cancel at period end)", user.getId());
           }
           userRepository.save(user);
-          logger.info("Updated subscription status for user: {} to {}", user.getEmail(), status);
+          logger.info("Updated subscription status for user ID: {} to {}", user.getId(), status);
         }
       }
     } catch (Exception e) {
@@ -227,7 +226,7 @@ public class StripeWebhookController {
           user.setAutoRenewal(false);
           // Don't remove credits immediately - let them use remaining credits
           userRepository.save(user);
-          logger.info("Canceled subscription for user: {}, auto-renewal disabled", user.getEmail());
+          logger.info("Canceled subscription for user ID: {}, auto-renewal disabled", user.getId());
         }
       }
     } catch (Exception e) {

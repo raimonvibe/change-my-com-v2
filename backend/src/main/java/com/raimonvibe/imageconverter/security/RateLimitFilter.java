@@ -65,9 +65,10 @@ public class RateLimitFilter implements Filter {
                 ? "u:" + request.getUserPrincipal().getName()
                 : "ip:" + normalizeIp(request.getRemoteAddr());
 
-        // Separate rate limiting for convert endpoint
+        // Separate rate limiting for convert endpoints (both regular and GIF) and webhook
         String requestPath = request.getRequestURI();
-        boolean isConvertRequest = "/api/convert".equals(requestPath) && "POST".equals(request.getMethod());
+        boolean isConvertRequest = ("POST".equals(request.getMethod()) &&
+            (requestPath.equals("/api/convert") || requestPath.equals("/api/convert/gif") || requestPath.equals("/stripe/webhook")));
         
         String bucketKey = isConvertRequest ? baseKey + ":convert" : baseKey;
         Bucket bucket = buckets.computeIfAbsent(bucketKey, k -> 

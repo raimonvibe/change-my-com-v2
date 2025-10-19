@@ -17,7 +17,7 @@ spring:
     password: ${DATABASE_PASSWORD:postgres}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate  # Only validate schema, don't modify in production
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -28,10 +28,6 @@ spring:
   mvc:
     async:
       request-timeout: 30s
-  security:
-    user:
-      name: ${SPRING_SECURITY_USER_NAME:admin}
-      password: ${SPRING_SECURITY_USER_PASSWORD:change-me-in-production}
 
 app:
   stripe:

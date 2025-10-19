@@ -64,6 +64,7 @@ type Job = {
   error?: string;
   progress?: number;
   startTime?: number;
+  isGif?: boolean;
 };
 
 export default function ConvertPage() {
@@ -81,6 +82,7 @@ export default function ConvertPage() {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [rateLimitRemaining, setRateLimitRemaining] = useState<number | null>(null);
+  const [gifFormats, setGifFormats] = useState<string[]>(['png', 'jpg']);
   const token = session?.idToken as string | undefined;
 
   // Cleanup blob URLs on unmount to prevent memory leaks
@@ -211,10 +213,13 @@ export default function ConvertPage() {
         largestWidth = validation.width;
       }
 
+      const isGif = file.type === 'image/gif';
+
       validatedJobs.push({
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         file,
-        status: 'queued'
+        status: 'queued',
+        isGif
       });
     }
 
@@ -250,21 +255,118 @@ export default function ConvertPage() {
     });
   };
 
+  const convertGif = async (j: Job) => {
+    const startTime = Date.now();
+    setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'running', startTime, progress: 0 } : x));
+
+    const progressInterval = setInterval(() => {
+      setJobs((prev) => prev.map(x => {
+        if (x.id === j.id && x.status === 'running' && x.progress !== undefined) {
+          const elapsed = Date.now() - (x.startTime || Date.now());
+          const estimatedTime = (x.file.size / 1024 / 1024) * 3000; // ~3s per MB for GIF
+          const newProgress = Math.min(90, Math.floor((elapsed / estimatedTime) * 100));
+          return { ...x, progress: newProgress };
+        }
+        return x;
+      }));
+    }, 200);
+
+    const form = new FormData();
+    form.append('file', j.file);
+    form.append('formats', gifFormats.join(','));
+    form.append('quality', String(quality));
+    form.append('sharpness', String(sharpness));
+    if (resizeEnabled && maxWidth) {
+      form.append('width', String(maxWidth));
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for GIFs
+
+      const res = await fetch(`${API_URL}/api/convert/gif`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      clearInterval(progressInterval);
+
+      const remaining = res.headers.get('X-RateLimit-Remaining');
+      if (remaining) {
+        setRateLimitRemaining(parseInt(remaining));
+      }
+
+      if (res.status === 401) throw new Error('Please sign in with Google to convert.');
+      if (res.status === 402) {
+        setShowLimitModal(true);
+        setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: 'No conversions remaining. Please subscribe to continue.' } : x));
+        return;
+      }
+      if (res.status === 413) {
+        const errorData = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(errorData.error || 'File is too large. Maximum allowed size is 8MB.');
+      }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({})) as { error?: string };
+        let errorMessage = errorData.error || `Conversion failed: ${res.status}`;
+
+        if (res.status === 400) {
+          errorMessage = 'Invalid GIF file or corrupted. Please try a different file.';
+        } else if (res.status === 415) {
+          errorMessage = 'Only GIF files are supported for frame extraction.';
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setJobs((prev) => prev.map(job => job.id === j.id ? { ...job, status: 'done' as const, url, progress: 100 } : job));
+
+      await refreshCredits();
+    } catch (e: unknown) {
+      clearInterval(progressInterval);
+      let errorMessage = 'Unknown error occurred';
+
+      if (e instanceof Error) {
+        if (e.name === 'AbortError') {
+          errorMessage = 'Request timed out. GIF conversion may take longer for large files.';
+        } else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else {
+          errorMessage = e.message;
+        }
+      }
+
+      setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: errorMessage } : x));
+    }
+  };
+
   const start = async () => {
     const pending = jobs.filter(j => j.status === 'queued');
-    
+
     // Check if user has credits before starting conversion
     if (pending.length > 0 && auth.freeRemaining === 0 && auth.paidCredits === 0) {
       setShowLimitModal(true);
-      setJobs((prev) => prev.map(job => 
-        pending.some(p => p.id === job.id) 
+      setJobs((prev) => prev.map(job =>
+        pending.some(p => p.id === job.id)
           ? { ...job, status: 'error', error: 'No conversions remaining. Please subscribe to continue.' }
           : job
       ));
       return;
     }
-    
+
     for (const j of pending) {
+      // Handle GIF conversions differently
+      if (j.isGif) {
+        await convertGif(j);
+        continue;
+      }
+
+      // Regular image conversion
       const startTime = Date.now();
       setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'running', startTime, progress: 0 } : x));
 
@@ -446,6 +548,47 @@ export default function ConvertPage() {
               ))}
             </div>
           </div>
+
+          {/* GIF Multi-Format Selection */}
+          {jobs.some(j => j.isGif && j.status === 'queued') && (
+            <div className="border-t pt-4" role="group" aria-labelledby="gif-formats-label">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="text-sm font-medium text-slate-700">GIF Frame Extraction</div>
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Multiple Formats</span>
+              </div>
+              <p className="text-xs text-slate-600 mb-3">
+                Select multiple formats to extract GIF frames. All frames will be converted and bundled in a ZIP file.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                {['png', 'jpg', 'webp', 'heic'].map(fmt => (
+                  <button
+                    key={fmt}
+                    onClick={() => {
+                      setGifFormats(prev =>
+                        prev.includes(fmt)
+                          ? prev.filter(f => f !== fmt)
+                          : [...prev, fmt]
+                      );
+                    }}
+                    aria-pressed={gifFormats.includes(fmt)}
+                    aria-label={`${gifFormats.includes(fmt) ? 'Remove' : 'Add'} ${fmt.toUpperCase()} format for GIF extraction`}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                      gifFormats.includes(fmt)
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    {fmt.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              {gifFormats.length === 0 && (
+                <div className="text-xs text-amber-600 bg-amber-50 rounded p-2 mt-2">
+                  ⚠️ Please select at least one format for GIF conversion
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Image Settings */}
           <div className="border-t pt-4 space-y-4">
@@ -685,7 +828,7 @@ export default function ConvertPage() {
                         {j.file.size > 1024 * 1024
                           ? `${Math.round(j.file.size / 1024 / 1024)} MB`
                           : `${Math.round(j.file.size / 1024)} KB`
-                        } → {target.toUpperCase()}
+                        } → {j.isGif ? `${gifFormats.map(f => f.toUpperCase()).join(', ')} (ZIP)` : target.toUpperCase()}
                       </div>
                     </div>
                   </div>
@@ -736,11 +879,11 @@ export default function ConvertPage() {
                     </button>
                     <a
                       href={j.url}
-                      download={`${j.file.name.split('.')[0]}_converted.${target}`}
+                      download={j.isGif ? `${j.file.name.split('.')[0]}_frames.zip` : `${j.file.name.split('.')[0]}_converted.${target}`}
                       aria-label={`Download converted ${j.file.name}`}
                       className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 sm:px-3 py-2.5 sm:py-1.5 text-white hover:bg-emerald-700 text-xs sm:text-sm min-h-[44px] sm:min-h-0"
                     >
-                      <Download size={16} className="sm:size-3" aria-hidden="true" /> <span className="hidden sm:inline">Download</span><span className="sm:hidden sr-only">Download</span>
+                      <Download size={16} className="sm:size-3" aria-hidden="true" /> <span className="hidden sm:inline">{j.isGif ? 'Download ZIP' : 'Download'}</span><span className="sm:hidden sr-only">Download</span>
                     </a>
                   </>
                 )}

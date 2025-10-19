@@ -27,12 +27,13 @@ public class GoogleIdTokenAuthFilter extends OncePerRequestFilter {
   private static final Logger logger = LoggerFactory.getLogger(GoogleIdTokenAuthFilter.class);
 
   private final UserService userService;
+  private final GoogleIdTokenVerifier googleIdTokenVerifier;
 
-  @Value("${app.auth.googleClientId:}")
-  private String googleClientId;
-
-  public GoogleIdTokenAuthFilter(UserService userService) {
+  public GoogleIdTokenAuthFilter(
+      UserService userService,
+      GoogleIdTokenVerifier googleIdTokenVerifier) {
     this.userService = userService;
+    this.googleIdTokenVerifier = googleIdTokenVerifier;
   }
 
   @Override
@@ -47,11 +48,8 @@ public class GoogleIdTokenAuthFilter extends OncePerRequestFilter {
       }
 
       try {
-        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
-            .setAudience(Collections.singletonList(googleClientId))
-            .build();
-
-        GoogleIdToken idToken = verifier.verify(token);
+        // Use singleton verifier bean (improves performance)
+        GoogleIdToken idToken = googleIdTokenVerifier.verify(token);
 
         if (idToken != null) {
           String email = Optional.ofNullable(idToken.getPayload().getEmail()).orElse(null);

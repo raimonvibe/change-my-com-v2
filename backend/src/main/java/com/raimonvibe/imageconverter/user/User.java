@@ -1,15 +1,13 @@
 package com.raimonvibe.imageconverter.user;
-import com.raimonvibe.imageconverter.user.UserRepository;
-import com.raimonvibe.imageconverter.user.UserService;
-import com.raimonvibe.imageconverter.user.AnonymousUserService;
-import com.raimonvibe.imageconverter.user.User;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import lombok.Data;
 
 @Entity
-@Table(name = "app_user")
+@Table(name = "app_user", indexes = {
+    @Index(name = "idx_user_email", columnList = "email")
+})
 @Data
 public class User {
   @Id
