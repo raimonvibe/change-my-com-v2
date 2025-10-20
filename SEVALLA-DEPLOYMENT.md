@@ -288,6 +288,8 @@ LOGGING_LEVEL_COM_RAIMONVIBE=DEBUG
 - [ ] **No security warnings** in logs
 - [ ] **Custom domain** configured (if needed)
 
+**📚 Complete Security Guide:** [SECURITY-GUIDE.md](SECURITY-GUIDE.md)
+
 ## 🎉 You're Ready to Deploy on Sevala!
 
 ### **Quick Start Commands:**

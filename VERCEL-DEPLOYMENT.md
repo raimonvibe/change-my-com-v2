@@ -151,6 +151,10 @@ const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 - [ ] **Test image conversion** flow
 - [ ] **Test Stripe checkout** flow
 
+**📚 See also:**
+- [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md) - Complete deployment overview
+- [SECURITY-GUIDE.md](SECURITY-GUIDE.md) - Production security guide
+
 ## **🚀 Quick Deploy Commands**
 
 ```bash

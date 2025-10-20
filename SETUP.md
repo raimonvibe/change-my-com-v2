@@ -13,22 +13,13 @@ Prerequisites:
   - Ubuntu: sudo apt-get update && sudo apt-get install -y imagemagick
 
 Environment variables you need:
-Backend (Spring Boot reads from environment):
-- DATABASE_URL=jdbc:postgresql://localhost:5432/imageconverter
-- DATABASE_USERNAME=postgres
-- DATABASE_PASSWORD=postgres
-- GOOGLE_CLIENT_ID=your-google-oauth-client-id
-- STRIPE_SECRET_KEY=sk_test_xxx
-- STRIPE_PUBLISHABLE_KEY=pk_test_xxx
-- STRIPE_WEBHOOK_SECRET=whsec_xxx
-- PORT=8080 (optional)
 
-Frontend (.env.local):
-- NEXT_PUBLIC_API_URL=http://localhost:8080
-- NEXTAUTH_URL=http://localhost:3000
-- NEXTAUTH_SECRET=generate-a-random-secret
-- GOOGLE_CLIENT_ID=your-google-oauth-client-id
-- GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
+**📚 Complete environment variable guide:** [SECRETS-MANAGEMENT.md](SECRETS-MANAGEMENT.md)
+
+Quick reference for local development:
+- See SECRETS-MANAGEMENT.md for complete setup instructions
+- Backend: Environment variables (DATABASE_URL, GOOGLE_CLIENT_ID, STRIPE_SECRET_KEY, etc.)
+- Frontend: .env.local file (NEXT_PUBLIC_API_URL, NEXTAUTH_SECRET, etc.)
 
 How to run locally:
 

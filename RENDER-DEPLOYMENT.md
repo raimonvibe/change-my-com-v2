@@ -258,6 +258,8 @@ const nextConfig = {
 - ✅ Production profile active
 - ✅ Error messages sanitized
 
+**📚 Complete Security Guide:** [SECURITY-GUIDE.md](SECURITY-GUIDE.md)
+
 ### 14. **Backup & Recovery**
 
 #### Database Backup:

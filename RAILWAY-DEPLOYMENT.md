@@ -457,6 +457,8 @@ railway open
 - ✅ **Production profile** active
 - ✅ **Error messages** sanitized
 
+**📚 Complete Security Guide:** [SECURITY-GUIDE.md](SECURITY-GUIDE.md)
+
 ### **17. Backup & Recovery**
 
 #### Database Backup:

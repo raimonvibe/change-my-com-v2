@@ -189,12 +189,14 @@ export DATABASE_URL='jdbc:postgresql://host:5432/db'
 
 ## 📚 Additional Documentation
 
-- Full security details: `SECURITY-IMPROVEMENTS.md`
-- Security checklist: `SECURITY-CHECKLIST.md`
-- Deployment guides:
-  - `VERCEL-DEPLOYMENT.md` (Frontend)
-  - `RAILWAY-DEPLOYMENT.md` (Backend)
-  - `RENDER-DEPLOYMENT.md` (Full stack)
+- Security guide: [SECURITY-GUIDE.md](SECURITY-GUIDE.md)
+- Deployment overview: [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md)
+- Secrets management: [SECRETS-MANAGEMENT.md](SECRETS-MANAGEMENT.md)
+- Platform-specific guides:
+  - [RAILWAY-DEPLOYMENT.md](RAILWAY-DEPLOYMENT.md)
+  - [RENDER-DEPLOYMENT.md](RENDER-DEPLOYMENT.md)
+  - [VERCEL-DEPLOYMENT.md](VERCEL-DEPLOYMENT.md)
+  - [SEVALLA-DEPLOYMENT.md](SEVALLA-DEPLOYMENT.md)
 
 ---
 
