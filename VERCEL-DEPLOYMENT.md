@@ -244,6 +244,9 @@ export default function App() {
 
 **Perfect setup**: Vercel for frontend, Render for backend + database! 🚀
 
+---
+*Last updated: October 2025*
+
 
 
 
