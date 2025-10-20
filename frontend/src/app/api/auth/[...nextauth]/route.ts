@@ -62,7 +62,7 @@ async function refreshAccessToken(token: {
       accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
       refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
     };
-  } catch (error) {
+  } catch {
     // Token refresh failed - return error state without logging sensitive details
     return {
       ...token,

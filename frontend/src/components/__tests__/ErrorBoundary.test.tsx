@@ -62,7 +62,7 @@ describe('ErrorBoundary Component', () => {
   })
 
   it('should not crash the entire app when a child component errors', () => {
-    const { container } = render(
+    render(
       <div>
         <ErrorBoundary>
           <ThrowError shouldThrow={true} />
