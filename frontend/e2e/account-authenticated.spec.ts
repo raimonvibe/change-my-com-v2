@@ -12,18 +12,40 @@ import { test, expect } from '@playwright/test';
  */
 
 /**
- * Helper function to authenticate user (placeholder)
- * In production, this would use Playwright's storageState feature
+ * Helper function to authenticate user
+ * Uses mocked session for testing
  */
 async function authenticateUser(page: any) {
-  // Placeholder for authentication
-  // In real implementation, you would:
-  // 1. Use storageState to load saved auth cookies
-  // 2. Or programmatically sign in via API
-  // 3. Or use OAuth test credentials
+  // Mock the NextAuth session endpoint
+  await page.route('**/api/auth/session', async (route: any) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        user: {
+          email: 'test@example.com',
+          name: 'Test User',
+          image: null,
+        },
+        expires: '2099-12-31T23:59:59.999Z',
+      }),
+    });
+  });
 
-  // For now, we'll skip these tests
-  test.skip(true, 'Authentication setup required');
+  // Mock user API endpoint (if exists)
+  await page.route('**/api/user/me', async (route: any) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        email: 'test@example.com',
+        paidCredits: 500,
+        freeUsedToday: 5,
+        subscriptionStatus: 'active',
+        autoRenewal: true,
+      }),
+    });
+  });
 }
 
 test.describe('Account Page - Authenticated User', () => {
