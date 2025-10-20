@@ -75,12 +75,12 @@ export const metadata: Metadata = {
     ],
   },
   alternates: {
-    canonical: 'https://www.change-my.com',
+    canonical: 'https://www.change-my.com/convert',
   },
   openGraph: {
     title: "Free Online Image Converter - Convert, Sharpen & Optimize Images",
     description: "Free online image converter with quality control and sharpening. Convert images between JPG, PNG, WebP, GIF, and more. Adjust quality and apply sharpening filters. 20 free conversions daily.",
-    url: "https://www.change-my.com",
+    url: "https://www.change-my.com/convert",
     siteName: "RaimonVibe Image Converter",
     images: [
       {
