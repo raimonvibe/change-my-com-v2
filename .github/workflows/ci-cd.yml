@@ -15,7 +15,7 @@ jobs:
     # Start Postgres als service in de job
     services:
       postgres:
-        image: postgres:15
+        image: ghcr.io/baosystems/postgres:15  # Use GitHub Container Registry mirror
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -59,7 +59,7 @@ jobs:
       - name: Wacht tot Postgres ready
         run: |
           for i in {1..30}; do
-            if docker run --network host --rm postgres:15 pg_isready -h 127.0.0.1 -p 5432 -U postgres -d imagedb; then
+            if docker run --network host --rm ghcr.io/baosystems/postgres:15 pg_isready -h 127.0.0.1 -p 5432 -U postgres -d imagedb; then
               echo "Postgres is ready"; break
             fi
             echo "Waiting for Postgres... ($i)"; sleep 2
