@@ -117,7 +117,7 @@ See [SECURITY-GUIDE.md](SECURITY-GUIDE.md) for details.
 ## 💰 Pricing
 
 - 💎 **Free Tier** - 20 conversions/month
-- 🚀 **Pro Plan** - Unlimited conversions
+- 🚀 **Pro Plan** - 1000 conversions per subscription
 - 💳 **Secure Payments** - Stripe integration
 
 ## 🤝 Contributing
