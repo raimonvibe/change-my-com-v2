@@ -30,7 +30,7 @@ jobs:
 
       - name: Test (frontend)
         working-directory: frontend
-        run: npm test --if-present
+        run: npm run test:ci
 
       # -------- Backend --------
       - name: Set up Java 17 (Temurin) + Maven cache
