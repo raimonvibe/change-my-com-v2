@@ -1,51 +1,5 @@
-import { renderHook, act } from '@testing-library/react'
-import { useState, useCallback } from 'react'
-
-/**
- * useFileUpload Hook
- * Custom hook for managing file upload state
- */
-export function useFileUpload() {
-  const [files, setFiles] = useState<File[]>([])
-  const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const addFiles = useCallback((newFiles: File[]) => {
-    setFiles(prev => [...prev, ...newFiles])
-    setError(null)
-  }, [])
-
-  const removeFile = useCallback((index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index))
-  }, [])
-
-  const clearFiles = useCallback(() => {
-    setFiles([])
-    setError(null)
-  }, [])
-
-  const uploadFiles = useCallback(async (uploadFn: (files: File[]) => Promise<void>) => {
-    setUploading(true)
-    setError(null)
-    try {
-      await uploadFn(files)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
-    } finally {
-      setUploading(false)
-    }
-  }, [files])
-
-  return {
-    files,
-    uploading,
-    error,
-    addFiles,
-    removeFile,
-    clearFiles,
-    uploadFiles,
-  }
-}
+import { renderHook, act, waitFor } from '@testing-library/react'
+import { useFileUpload } from '../useFileUpload'
 
 describe('useFileUpload Hook', () => {
   it('should initialize with empty files array', () => {
@@ -175,17 +129,20 @@ describe('useFileUpload Hook', () => {
       result.current.addFiles([file])
     })
 
-    const uploadPromise = act(async () => {
-      await result.current.uploadFiles(mockUpload)
+    // Start upload without awaiting
+    act(() => {
+      result.current.uploadFiles(mockUpload)
     })
 
-    // Should be uploading
-    expect(result.current.uploading).toBe(true)
+    // Wait for uploading state to be true
+    await waitFor(() => {
+      expect(result.current.uploading).toBe(true)
+    })
 
     // Resolve upload
     await act(async () => {
       resolveUpload!()
-      await uploadPromise
+      await new Promise(resolve => setTimeout(resolve, 0))
     })
 
     // Should no longer be uploading
@@ -198,7 +155,7 @@ describe('useFileUpload Hook', () => {
     const file = new File(['content'], 'test.jpg', { type: 'image/jpeg' })
     const mockUpload = jest.fn().mockRejectedValue('String error')
 
-    act(() => {
+    await act(async () => {
       result.current.addFiles([file])
     })
 
@@ -209,16 +166,22 @@ describe('useFileUpload Hook', () => {
     expect(result.current.error).toBe('Upload failed')
   })
 
-  it('should maintain file order', () => {
+  it('should maintain file order', async () => {
     const { result } = renderHook(() => useFileUpload())
 
     const file1 = new File(['1'], 'test1.jpg', { type: 'image/jpeg' })
     const file2 = new File(['2'], 'test2.jpg', { type: 'image/jpeg' })
     const file3 = new File(['3'], 'test3.jpg', { type: 'image/jpeg' })
 
-    act(() => {
+    await act(async () => {
       result.current.addFiles([file1])
+    })
+
+    await act(async () => {
       result.current.addFiles([file2])
+    })
+
+    await act(async () => {
       result.current.addFiles([file3])
     })
 

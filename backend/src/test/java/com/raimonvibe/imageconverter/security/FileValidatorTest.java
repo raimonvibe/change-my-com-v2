@@ -197,16 +197,16 @@ public class FileValidatorTest {
     }
 
     @Test
-    @DisplayName("SECURITY NOTE: Limited suspicious content detection (first 12 bytes only)")
+    @DisplayName("SECURITY LIMITATION: Only first 12 bytes scanned for suspicious content")
     void testImageWithJavascriptProtocol() throws IOException {
-        // SECURITY NOTE: Current implementation only checks first 12 bytes for suspicious content
+        // SECURITY LIMITATION DOCUMENTED:
+        // Current implementation only checks first 12 bytes for suspicious content (line 50)
         // This means malicious scripts embedded after byte 12 won't be detected
         //
-        // RECOMMENDATION for future improvement:
-        // - Change line 50 in FileValidator.java from readNBytes(12) to readNBytes(1024)
-        // - This would detect scripts in EXIF metadata and other image headers
+        // RECOMMENDATION: Change line 50 from readNBytes(12) to readNBytes(1024)
+        // This would detect scripts in EXIF metadata and other image headers
         //
-        // Current behavior documented below:
+        // Current behavior: Scripts after byte 12 are NOT detected
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         // JPEG starts at byte 0-1
@@ -225,7 +225,7 @@ public class FileValidatorTest {
             baos.toByteArray()
         );
 
-        // Current behavior: PASSES (not ideal, but documented)
+        // Current behavior: PASSES (not ideal, but documented as known limitation)
         // Suspicious content after byte 12 is not detected
         assertDoesNotThrow(() -> FileValidator.validate(file));
     }

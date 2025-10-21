@@ -3,84 +3,17 @@
  * Tests client-side validation functions for file uploads and forms
  */
 
-// File validation utilities
-export const MAX_FILE_SIZE = 8 * 1024 * 1024 // 8MB
-export const ALLOWED_IMAGE_TYPES = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/webp',
-  'image/avif',
-  'image/gif',
-  'image/heic',
-  'image/bmp',
-  'image/tiff',
-  'image/x-icon',
-]
-
-export function validateFileSize(file: File): { valid: boolean; error?: string } {
-  if (file.size > MAX_FILE_SIZE) {
-    return {
-      valid: false,
-      error: `File size exceeds 8MB limit. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB`,
-    }
-  }
-  return { valid: true }
-}
-
-export function validateFileType(file: File): { valid: boolean; error?: string } {
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    return {
-      valid: false,
-      error: `Invalid file type. Allowed types: JPG, PNG, WebP, AVIF, GIF, HEIC, BMP, TIFF, ICO`,
-    }
-  }
-  return { valid: true }
-}
-
-export function validateFile(file: File): { valid: boolean; errors: string[] } {
-  const errors: string[] = []
-
-  const sizeValidation = validateFileSize(file)
-  if (!sizeValidation.valid && sizeValidation.error) {
-    errors.push(sizeValidation.error)
-  }
-
-  const typeValidation = validateFileType(file)
-  if (!typeValidation.valid && typeValidation.error) {
-    errors.push(typeValidation.error)
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  }
-}
-
-export function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
-
-export function validateQuality(quality: number): boolean {
-  return quality >= 1 && quality <= 100
-}
-
-export function validateSharpness(sharpness: number): boolean {
-  return sharpness >= 0 && sharpness <= 200
-}
-
-export function validateDimensions(width?: number, height?: number): { valid: boolean; error?: string } {
-  if (width !== undefined && (width < 16 || width > 8000)) {
-    return { valid: false, error: 'Width must be between 16 and 8000 pixels' }
-  }
-  if (height !== undefined && (height < 16 || height > 8000)) {
-    return { valid: false, error: 'Height must be between 16 and 8000 pixels' }
-  }
-  return { valid: true }
-}
-
-// Tests
+import {
+  MAX_FILE_SIZE,
+  ALLOWED_IMAGE_TYPES,
+  validateFileSize,
+  validateFileType,
+  validateFile,
+  validateEmail,
+  validateQuality,
+  validateSharpness,
+  validateDimensions,
+} from '../validation'
 describe('Validation Utilities', () => {
   describe('File Size Validation', () => {
     it('should accept files within size limit', () => {

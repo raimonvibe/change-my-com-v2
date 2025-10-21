@@ -29,7 +29,8 @@ describe('Header Component', () => {
 
     it('should render auth buttons', () => {
       render(<Header />)
-      expect(screen.getByTestId('auth-buttons')).toBeInTheDocument()
+      const authButtons = screen.getAllByTestId('auth-buttons')
+      expect(authButtons.length).toBeGreaterThanOrEqual(1)
     })
 
     it('should have correct href for all links', () => {
@@ -61,15 +62,16 @@ describe('Header Component', () => {
       render(<Header />)
       const menuButton = screen.getByLabelText('Toggle menu')
 
-      // Initially menu should be closed
-      expect(screen.queryByRole('navigation')).not.toBeVisible()
+      // Get initial count of nav links (desktop nav is always present in test)
+      const initialLinks = screen.getAllByRole('link', { name: /Home|Convert|Pricing|Account|Contact/i })
+      const initialCount = initialLinks.length
 
       // Click to open menu
       fireEvent.click(menuButton)
 
-      // Menu should be visible
-      const navLinks = screen.getAllByRole('link', { name: /Home|Convert|Pricing|Account|Contact/i })
-      expect(navLinks.length).toBeGreaterThan(0)
+      // Should have more links now (mobile menu added)
+      const linksAfterOpen = screen.getAllByRole('link', { name: /Home|Convert|Pricing|Account|Contact/i })
+      expect(linksAfterOpen.length).toBeGreaterThan(initialCount)
     })
 
     it('should close mobile menu when a link is clicked', () => {
