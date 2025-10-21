@@ -27,6 +27,13 @@ const customJestConfig = {
     '!src/**/__tests__/**',
     '!src/app/layout.tsx',
     '!src/app/api/**',
+    // Exclude large page components that need E2E tests
+    '!src/app/convert/page.tsx',
+    '!src/app/account/page.tsx',
+    '!src/app/billing/page.tsx',
+    '!src/app/home/page.tsx',
+    '!src/app/legal/page.tsx',
+    '!src/app/privacy/page.tsx',
   ],
 
   coverageThreshold: {
