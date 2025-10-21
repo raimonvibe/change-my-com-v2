@@ -99,9 +99,9 @@ public class ImageService {
 
                     Process p = pb.start();
 
-                    // Capture error output for debugging
-                    String errorOutput = new String(p.getErrorStream().readAllBytes());
-                    String standardOutput = new String(p.getInputStream().readAllBytes());
+                    // Capture output for debugging
+                    // Note: redirectErrorStream(true) merges stderr into stdout, so we read from InputStream
+                    String processOutput = new String(p.getInputStream().readAllBytes());
 
                     boolean finished = p.waitFor(15, TimeUnit.SECONDS);
                     if (!finished) {
@@ -117,7 +117,7 @@ public class ImageService {
                         return out;
                     }
 
-                    logger.warn("ImageMagick failed with exit code {}: {}", code, errorOutput);
+                    logger.warn("ImageMagick failed with exit code {}: {}", code, processOutput);
                     lastError = new IOException("Conversion failed with '" + cmd + "', exit code=" + code);
                 } catch (IOException ioe) {
                     logger.error("IOException during ImageMagick execution: {}", ioe.getMessage());

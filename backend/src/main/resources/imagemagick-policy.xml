@@ -68,6 +68,10 @@
   <!-- Disable indirect reads (coders that can read other files) -->
   <policy domain="path" rights="none" pattern="@*"/>
 
-  <!-- Disable label substitution -->
-  <policy domain="delegate" rights="none" pattern="*" />
+  <!-- Block only dangerous delegates that can fetch remote resources -->
+  <!-- Note: We allow safe delegates needed for JPEG/PNG/WEBP processing -->
+  <policy domain="delegate" rights="none" pattern="URL" />
+  <policy domain="delegate" rights="none" pattern="HTTPS" />
+  <policy domain="delegate" rights="none" pattern="HTTP" />
+  <policy domain="delegate" rights="none" pattern="FTP" />
 </policymap>
