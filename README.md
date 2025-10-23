@@ -48,7 +48,7 @@ Change-My is a powerful, blazing-fast image conversion tool that transforms your
 ## 🛠️ Getting Started
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20.9.0+ (required for Next.js 16)
 - Java 17+
 - PostgreSQL 14+
 - Maven
@@ -65,6 +65,8 @@ Change-My is a powerful, blazing-fast image conversion tool that transforms your
    ```bash
    cd frontend
    npm install
+   # Note: .npmrc is configured to use --legacy-peer-deps automatically
+   # This is required for Next.js 16 compatibility with next-auth v4
    cp .env.example .env.local
    # Configure your environment variables
    npm run dev
