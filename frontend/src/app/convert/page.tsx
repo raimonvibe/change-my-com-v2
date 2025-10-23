@@ -397,9 +397,11 @@ export default function ConvertPage() {
       }
 
       try {
-        // Add timeout handling for slow connections (like Nigeria)
+        // Add timeout handling for slow connections
+        // GIF conversions need more time due to complexity
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        const timeoutMs = target === 'gif' ? 60000 : 30000; // 60s for GIF, 30s for others
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         
         const res = await fetch(`${API_URL}/api/convert`, {
           method: 'POST',
