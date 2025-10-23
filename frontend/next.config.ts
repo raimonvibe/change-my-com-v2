@@ -23,10 +23,8 @@ const nextConfig: NextConfig = {
     // optimizeCss: true, // Disabled - causes critters module errors
   },
 
-  // ESLint configuration
-  eslint: {
-    ignoreDuringBuilds: false,
-  },
+  // Note: Next.js 16 removed the eslint config option
+  // Use ESLint CLI directly or configure in package.json scripts
 
   // HTTPS Redirects and Security Headers
   async redirects() {
