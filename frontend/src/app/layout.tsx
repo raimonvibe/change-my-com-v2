@@ -245,7 +245,7 @@ export default async function RootLayout({
             </div>
           </footer>
         </Providers>
-        <script src='https://www.noupe.com/embed/0199e88a388375d2b1949147461462dc3c08.js'></script>
+        <script src='https://www.noupe.com/embed/0199e88a388375d2b1949147461462dc3c08.js' async></script>
       </body>
     </html>
   );
