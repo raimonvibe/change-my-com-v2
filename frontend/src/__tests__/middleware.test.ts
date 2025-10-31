@@ -103,7 +103,7 @@ describe('CSP Middleware', () => {
       const response = middleware(request);
       const csp = response.headers.get('Content-Security-Policy');
 
-      expect(csp).toContain("img-src 'self' data:");
+      expect(csp).toContain("img-src 'self' data: blob:");
       expect(csp).toContain('https://*.googleusercontent.com');
       expect(csp).toContain('https://api.producthunt.com');
     });
