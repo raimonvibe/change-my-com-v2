@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
   // Build the strict CSP with nonce
   const cspHeader = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://accounts.google.com https://js.stripe.com`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://accounts.google.com https://js.stripe.com https://www.noupe.com`,
     `style-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://accounts.google.com`,
     "img-src 'self' data: blob: https://www.change-my.com https://*.googleusercontent.com https://api.producthunt.com https://www.google-analytics.com",
     "font-src 'self' data: https://fonts.gstatic.com",
