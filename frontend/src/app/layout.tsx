@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import Image from "next/image";
-import Script from "next/script";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { Header } from "../components/Header";
@@ -246,10 +245,6 @@ export default async function RootLayout({
             </div>
           </footer>
         </Providers>
-        <Script
-          src='https://www.noupe.com/embed/0199e88a388375d2b1949147461462dc3c08.js'
-          strategy="lazyOnload"
-        />
       </body>
     </html>
   );
