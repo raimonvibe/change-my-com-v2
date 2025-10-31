@@ -44,35 +44,8 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=31536000; includeSubDomains; preload',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: *.googleusercontent.com; font-src 'self' data:; connect-src 'self' https://www.change-my.com https://accounts.google.com; frame-src https://accounts.google.com https://js.stripe.com https://cards.producthunt.com https://www.producthunt.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;",
-          },
-        ],
-      },
-    ];
-  },
+  // Security headers are now handled by middleware.ts for nonce-based CSP
+  // This provides better security by generating unique nonces per request
 };
 
 export default nextConfig;

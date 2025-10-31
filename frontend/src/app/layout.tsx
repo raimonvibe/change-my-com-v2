@@ -7,6 +7,7 @@ import Script from "next/script";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { Header } from "../components/Header";
+import { headers } from "next/headers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -107,11 +108,15 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Get the nonce from the request headers set by middleware
+  const headersList = await headers();
+  const nonce = headersList.get('x-nonce') || '';
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
@@ -152,6 +157,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          nonce={nonce}
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} bg-sky-50 text-slate-800 antialiased`}>
@@ -240,9 +246,10 @@ export default function RootLayout({
             </div>
           </footer>
         </Providers>
-        <Script 
+        <Script
           src='https://www.noupe.com/embed/0199e88a388375d2b1949147461462dc3c08.js'
           strategy="lazyOnload"
+          nonce={nonce}
         />
       </body>
     </html>
