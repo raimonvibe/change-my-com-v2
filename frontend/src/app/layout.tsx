@@ -245,12 +245,7 @@ export default async function RootLayout({
             </div>
           </footer>
         </Providers>
-        {/* Noupe AI Bot - Using regular script tag with nonce for CSP compatibility */}
-        <script
-          src='https://www.noupe.com/embed/0199e88a388375d2b1949147461462dc3c08.js'
-          nonce={nonce}
-          defer
-        />
+        <script src='https://www.noupe.com/embed/0199e88a388375d2b1949147461462dc3c08.js'></script>
       </body>
     </html>
   );
