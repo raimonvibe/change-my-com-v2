@@ -23,7 +23,7 @@ export function middleware(request: NextRequest) {
     `style-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://accounts.google.com`,
     "img-src 'self' data: blob: https://www.change-my.com https://*.googleusercontent.com https://api.producthunt.com https://www.google-analytics.com",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://www.change-my.com https://accounts.google.com https://www.google-analytics.com https://api.stripe.com https://www.noupe.com",
+    "connect-src 'self' https://www.change-my.com https://imageconverter-backend.onrender.com https://accounts.google.com https://www.google-analytics.com https://api.stripe.com https://www.noupe.com",
     "frame-src https://accounts.google.com https://js.stripe.com https://hooks.stripe.com https://cards.producthunt.com https://www.producthunt.com",
     "media-src 'self' blob:",
     "object-src 'none'",
