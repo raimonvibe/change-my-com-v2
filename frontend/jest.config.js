@@ -29,7 +29,8 @@ const customJestConfig = {
     '!src/app/api/**',
     // Exclude complex page components - these are covered by E2E tests (Playwright)
     // See e2e/ directory for comprehensive integration tests
-    '!src/app/convert/page.tsx',  // Covered by e2e/convert-anonymous.spec.ts
+    '!src/app/page.tsx',          // Root page (converter) - Covered by e2e/convert-anonymous.spec.ts
+    '!src/app/convert/page.tsx',  // Redirect page - simple redirect, no complex logic
     '!src/app/account/page.tsx',  // Covered by e2e/account-authenticated.spec.ts
     '!src/app/billing/page.tsx',  // Covered by e2e/pricing.spec.ts
   ],
