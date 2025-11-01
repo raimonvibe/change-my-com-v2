@@ -124,6 +124,7 @@ describe('CSP Middleware', () => {
       expect(csp).toContain('https://www.change-my.com');
       expect(csp).toContain('https://imageconverter-backend.onrender.com');
       expect(csp).toContain('https://api.stripe.com');
+      expect(csp).toContain('https://formspree.io');
     });
 
     it('should allow iframes from trusted domains', () => {
@@ -149,11 +150,11 @@ describe('CSP Middleware', () => {
       expect(csp).toContain("base-uri 'self'");
     });
 
-    it('should restrict form-action to self', () => {
+    it('should allow form submissions to self and Formspree', () => {
       const response = middleware(request);
       const csp = response.headers.get('Content-Security-Policy');
 
-      expect(csp).toContain("form-action 'self'");
+      expect(csp).toContain("form-action 'self' https://formspree.io");
     });
 
     it('should prevent framing with frame-ancestors none', () => {
