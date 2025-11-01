@@ -24,7 +24,7 @@ public class CostMonitor {
         double estimatedCost = estimateCost(fileSizeBytes, processingTimeMs);
 
         logger.info("Cost metrics - User: {}, Size: {}, Time: {}ms, Format: {}, Est. cost: ${}, Total conversions: {}, Total data: {}, Total time: {}s",
-                userEmail != null ? userEmail : "anonymous",
+                maskEmail(userEmail),
                 formatBytes(fileSizeBytes),
                 processingTimeMs,
                 format,
@@ -33,6 +33,27 @@ public class CostMonitor {
                 formatBytes(totalBytesProcessed.get()),
                 totalProcessingTimeMs.get() / 1000
         );
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || email.isEmpty()) {
+            return "anonymous";
+        }
+
+        int atIndex = email.indexOf('@');
+        if (atIndex <= 0) {
+            return "***";
+        }
+
+        String localPart = email.substring(0, atIndex);
+        String domain = email.substring(atIndex);
+
+        // Show first character + *** for privacy
+        if (localPart.length() <= 1) {
+            return localPart.charAt(0) + "***" + domain;
+        }
+
+        return localPart.charAt(0) + "***" + domain;
     }
     
     private double estimateCost(long fileSizeBytes, long processingTimeMs) {
