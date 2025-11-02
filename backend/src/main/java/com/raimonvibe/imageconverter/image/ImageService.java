@@ -49,6 +49,20 @@ public class ImageService {
                 // Build command arguments
                 java.util.List<String> args = new java.util.ArrayList<>();
                 args.add(cmd);
+
+                // Set resource limits as command-line options (more reliable than env vars)
+                // These override both environment variables and policy.xml settings
+                int magickTimeLimit = options.sharpness() != null && options.sharpness() > 100 ? 120 : 60;
+                args.add("-limit");
+                args.add("time");
+                args.add(String.valueOf(magickTimeLimit));
+                args.add("-limit");
+                args.add("memory");
+                args.add("256MiB");
+                args.add("-limit");
+                args.add("map");
+                args.add("512MiB");
+
                 args.add(input.getAbsolutePath());
 
                 // Apply width resize if specified (before format-specific handling)
@@ -98,15 +112,15 @@ public class ImageService {
                 int magickTimeLimit = options.sharpness() != null && options.sharpness() > 100 ? 120 : 60;
                 pb.environment().put("MAGICK_TIME_LIMIT", String.valueOf(magickTimeLimit));
 
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Setting MAGICK_TIME_LIMIT={} for sharpness={}", magickTimeLimit, options.sharpness());
-                }
-
                 pb.redirectErrorStream(true);
 
                 try {
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Executing ImageMagick: {}", String.join(" ", pb.command()));
+                        logger.debug("Executing ImageMagick with time limit {}s, sharpness={}: {}",
+                            magickTimeLimit, options.sharpness(), String.join(" ", pb.command()));
+                    } else {
+                        logger.info("Converting with time limit: {}s, sharpness: {}, format: {}",
+                            magickTimeLimit, options.sharpness(), options.format());
                     }
 
                     Process p = pb.start();
@@ -287,14 +301,20 @@ public class ImageService {
             String framePattern = tempDir.resolve("frame-%03d.png").toString();
 
             ProcessBuilder extractPb = new ProcessBuilder(
-                "magick", input.getAbsolutePath(),
+                "magick",
+                "-limit", "time", "120",
+                "-limit", "memory", "256MiB",
+                "-limit", "map", "512MiB",
+                input.getAbsolutePath(),
                 "-coalesce",  // Properly handle GIF animation layers
                 framePattern
             );
-            // Set ImageMagick resource limits for GIF extraction
+            // Also set environment variables as fallback
             extractPb.environment().put("MAGICK_TIME_LIMIT", "120");
             extractPb.environment().put("MAGICK_MEMORY_LIMIT", "256MB");
             extractPb.redirectErrorStream(true);
+
+            logger.info("Extracting GIF frames with 120s time limit");
 
             Process extractProcess = extractPb.start();
             boolean extractFinished = extractProcess.waitFor(150, TimeUnit.SECONDS);
