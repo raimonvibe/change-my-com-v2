@@ -91,6 +91,12 @@ public class ImageService {
                 pb.environment().put("MAGICK_MAP_LIMIT", "512MB");
                 pb.environment().put("MAGICK_DISK_LIMIT", "1GB");
 
+                // Set ImageMagick's internal time limit (separate from process timeout)
+                // This controls ImageMagick's own resource manager time limit
+                // Higher values needed for complex sharpening operations (100-200%)
+                int magickTimeLimit = options.sharpness() != null && options.sharpness() > 100 ? 60 : 30;
+                pb.environment().put("MAGICK_TIME_LIMIT", String.valueOf(magickTimeLimit));
+
                 pb.redirectErrorStream(true);
 
                 try {
@@ -106,7 +112,8 @@ public class ImageService {
 
                     // Increased timeout for complex sharpening operations (especially 100-200% sharpness)
                     // High sharpness uses LAB colorspace conversion and multiple passes
-                    int timeoutSeconds = options.sharpness() != null && options.sharpness() > 100 ? 30 : 15;
+                    // Process timeout should be longer than MAGICK_TIME_LIMIT to allow ImageMagick to finish
+                    int timeoutSeconds = options.sharpness() != null && options.sharpness() > 100 ? 75 : 45;
                     boolean finished = p.waitFor(timeoutSeconds, TimeUnit.SECONDS);
                     if (!finished) {
                         p.destroyForcibly();
@@ -278,6 +285,9 @@ public class ImageService {
                 "-coalesce",  // Properly handle GIF animation layers
                 framePattern
             );
+            // Set ImageMagick resource limits for GIF extraction
+            extractPb.environment().put("MAGICK_TIME_LIMIT", "60");
+            extractPb.environment().put("MAGICK_MEMORY_LIMIT", "256MB");
             extractPb.redirectErrorStream(true);
 
             Process extractProcess = extractPb.start();
