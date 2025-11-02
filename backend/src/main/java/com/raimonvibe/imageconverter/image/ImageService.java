@@ -94,8 +94,13 @@ public class ImageService {
                 // Set ImageMagick's internal time limit (separate from process timeout)
                 // This controls ImageMagick's own resource manager time limit
                 // Higher values needed for complex sharpening operations (100-200%)
-                int magickTimeLimit = options.sharpness() != null && options.sharpness() > 100 ? 60 : 30;
+                // Increased limits for cloud/shared hosting environments with limited CPU
+                int magickTimeLimit = options.sharpness() != null && options.sharpness() > 100 ? 120 : 60;
                 pb.environment().put("MAGICK_TIME_LIMIT", String.valueOf(magickTimeLimit));
+
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Setting MAGICK_TIME_LIMIT={} for sharpness={}", magickTimeLimit, options.sharpness());
+                }
 
                 pb.redirectErrorStream(true);
 
@@ -113,7 +118,8 @@ public class ImageService {
                     // Increased timeout for complex sharpening operations (especially 100-200% sharpness)
                     // High sharpness uses LAB colorspace conversion and multiple passes
                     // Process timeout should be longer than MAGICK_TIME_LIMIT to allow ImageMagick to finish
-                    int timeoutSeconds = options.sharpness() != null && options.sharpness() > 100 ? 75 : 45;
+                    // Extra time for cloud/shared hosting environments with limited CPU resources
+                    int timeoutSeconds = options.sharpness() != null && options.sharpness() > 100 ? 150 : 90;
                     boolean finished = p.waitFor(timeoutSeconds, TimeUnit.SECONDS);
                     if (!finished) {
                         p.destroyForcibly();
@@ -286,12 +292,12 @@ public class ImageService {
                 framePattern
             );
             // Set ImageMagick resource limits for GIF extraction
-            extractPb.environment().put("MAGICK_TIME_LIMIT", "60");
+            extractPb.environment().put("MAGICK_TIME_LIMIT", "120");
             extractPb.environment().put("MAGICK_MEMORY_LIMIT", "256MB");
             extractPb.redirectErrorStream(true);
 
             Process extractProcess = extractPb.start();
-            boolean extractFinished = extractProcess.waitFor(30, TimeUnit.SECONDS);
+            boolean extractFinished = extractProcess.waitFor(150, TimeUnit.SECONDS);
             if (!extractFinished) {
                 extractProcess.destroyForcibly();
                 throw new IOException("GIF frame extraction timeout");
