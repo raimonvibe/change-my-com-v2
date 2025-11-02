@@ -45,6 +45,20 @@ public class ImageService {
             // Detect image dimensions and cap sharpness to respect 10s policy time limit
             int[] dimensions = getImageDimensions(input);
             int maxDimension = Math.max(dimensions[0], dimensions[1]);
+
+            // Block PNG conversion for large images (>2000px) - takes 60-80s which exceeds 10s policy
+            // PNG uses expensive lossless compression that's slow for large photos
+            if ("png".equals(outExt) && maxDimension > 2000) {
+                String message = String.format(
+                    "PNG conversion not supported for large images (%dx%d). " +
+                    "PNG compression takes 60+ seconds for photos >2000px, exceeding the 10s time limit. " +
+                    "Use WebP (recommended), JPEG, or AVIF instead for faster conversions.",
+                    dimensions[0], dimensions[1]
+                );
+                logger.warn(message);
+                throw new IOException(message);
+            }
+
             int originalSharpness = options.sharpness() != null ? options.sharpness() : 0;
             int cappedSharpness = capSharpnessForDimensions(maxDimension, originalSharpness);
 

@@ -561,6 +561,33 @@ export default function ConvertPage() {
                 </div>
               ))}
             </div>
+
+            {/* PNG warning for large images */}
+            {(() => {
+              if (target !== 'png') return null;
+
+              const queuedJobs = jobs.filter(j => j.status === 'queued' && !j.isGif);
+              if (queuedJobs.length === 0) return null;
+
+              const maxDimension = Math.max(...queuedJobs.map(j => Math.max(j.width || 0, j.height || 0)));
+
+              if (maxDimension > 2000) {
+                return (
+                  <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded p-3 mt-3">
+                    <div className="font-semibold mb-1">⚠️ PNG not supported for large images</div>
+                    <div className="mb-2">
+                      Your image is {maxDimension}px. PNG compression takes 60+ seconds for large photos,
+                      exceeding server time limits.
+                    </div>
+                    <div className="font-medium">
+                      Recommended alternatives: <span className="text-emerald-600">WebP</span> (best quality/size),
+                      JPEG (universal), or AVIF (modern)
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           {/* GIF Multi-Format Selection */}
