@@ -510,16 +510,17 @@ export default function ConvertPage() {
 
       <div className="rounded-lg border bg-white p-3 sm:p-4">
         {/* Drop Zone - Now at the top and bigger */}
-        <div {...getRootProps()} className={"mb-6 border-2 border-dashed rounded-lg p-8 sm:p-16 text-center " + dropClass} role="button" aria-label="Upload images - drag and drop or click to select. Maximum 8MB, 8000x8000 pixels. Supported formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO" tabIndex={0}>
-          <input {...getInputProps()} aria-label="File upload input" />
-          <div className="flex flex-col items-center justify-center gap-3 text-slate-600">
-            <Upload size={48} className="text-sky-500" aria-hidden="true" />
-            <div className="text-base sm:text-lg font-medium">
+        <div {...getRootProps()} className={"mb-6 border-2 border-dashed rounded-lg p-6 sm:p-16 text-center cursor-pointer " + dropClass} role="button" aria-label="Upload images - drag and drop or click to select. Maximum 8MB, 8000x8000 pixels. Supported formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO" tabIndex={0}>
+          <input {...getInputProps()} aria-label="File upload input" className="hidden" />
+          <div className="flex flex-col items-center justify-center gap-2 sm:gap-3 text-slate-600">
+            <Upload size={40} className="sm:w-12 sm:h-12 text-sky-500" aria-hidden="true" />
+            <div className="text-sm sm:text-lg font-medium px-2">
               <span className="hidden sm:inline">Drag & drop images here, or click to select</span>
               <span className="sm:hidden">Tap to select images</span>
             </div>
-            <div className="text-sm text-slate-500 mt-1">
-              Max: 8MB, {MAX_DIMENSION}x{MAX_DIMENSION}px • Formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO
+            <div className="text-xs sm:text-sm text-slate-500 mt-1 px-2">
+              <div className="hidden sm:block">Max: 8MB, {MAX_DIMENSION}x{MAX_DIMENSION}px • Formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO</div>
+              <div className="sm:hidden">Max: 8MB • JPG, PNG, WebP, AVIF, GIF, HEIC, ICO</div>
             </div>
           </div>
         </div>
