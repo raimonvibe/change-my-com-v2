@@ -38,6 +38,11 @@ public class ImageService {
         if (!semaphore.tryAcquire(30, TimeUnit.SECONDS)) {
             throw new IOException("Server busy: too many concurrent conversions");
         }
+
+        // Declare these outside try block so they're accessible in catch/finally
+        File processedInput = input;
+        boolean wasAutoResized = false;
+
         try {
             String outExt = options.format().toLowerCase();
             File out = Files.createTempFile("conv-" + UUID.randomUUID(), "." + outExt).toFile();
@@ -46,21 +51,35 @@ public class ImageService {
             int[] dimensions = getImageDimensions(input);
             int maxDimension = Math.max(dimensions[0], dimensions[1]);
 
-            // Block PNG conversion for large images (>2000px) - takes 60-80s which exceeds 10s policy
+            // Auto-resize large images (>2000px) to respect 10s policy time limit
+            // Large images take 50-60s even with 0% sharpness, exceeding both policy and frontend timeout
+            if (maxDimension > 2000) {
+                logger.info("Auto-resizing {}x{} image to 2000px to complete within 10s time limit",
+                    dimensions[0], dimensions[1]);
+                processedInput = autoResizeImage(input, 2000);
+                wasAutoResized = true;
+            }
+
+            // Block PNG conversion for very large images (>4000px) - even after resize, PNG is slow
             // PNG uses expensive lossless compression that's slow for large photos
-            if ("png".equals(outExt) && maxDimension > 2000) {
+            if ("png".equals(outExt) && maxDimension > 4000) {
                 String message = String.format(
-                    "PNG conversion not supported for large images (%dx%d). " +
-                    "PNG compression takes 60+ seconds for photos >2000px, exceeding the 10s time limit. " +
+                    "PNG conversion not supported for very large images (%dx%d). " +
+                    "Even after auto-resize, PNG compression is too slow for photos >4000px. " +
                     "Use WebP (recommended), JPEG, or AVIF instead for faster conversions.",
                     dimensions[0], dimensions[1]
                 );
                 logger.warn(message);
+                if (wasAutoResized && processedInput != input) {
+                    safeDelete(processedInput);
+                }
                 throw new IOException(message);
             }
 
             int originalSharpness = options.sharpness() != null ? options.sharpness() : 0;
-            int cappedSharpness = capSharpnessForDimensions(maxDimension, originalSharpness);
+            // Use resized dimensions for sharpness capping if auto-resized
+            int sharpnessCheckDimension = wasAutoResized ? 2000 : maxDimension;
+            int cappedSharpness = capSharpnessForDimensions(sharpnessCheckDimension, originalSharpness);
 
             if (cappedSharpness < originalSharpness) {
                 logger.warn("Sharpness reduced from {}% to {}% for {}x{} image to respect 10s time limit policy",
@@ -86,7 +105,7 @@ public class ImageService {
 
                 // Set resource limits as command-line options (more reliable than env vars)
                 // Note: -limit can only DECREASE values, not increase them beyond policy.xml
-                // We respect the 10s policy limit by capping sharpness based on image dimensions
+                // We respect the 10s policy limit by auto-resizing large images and capping sharpness
                 int magickTimeLimit = adjustedOptions.sharpness() != null && adjustedOptions.sharpness() > 100 ? 120 : 60;
                 args.add("-limit");
                 args.add("time");
@@ -98,7 +117,7 @@ public class ImageService {
                 args.add("map");
                 args.add("512MiB");
 
-                args.add(input.getAbsolutePath());
+                args.add(processedInput.getAbsolutePath());
 
                 // Apply width resize if specified (before format-specific handling)
                 if (adjustedOptions.width() != null && adjustedOptions.width() > 0 && !"ico".equals(outExt)) {
@@ -189,8 +208,18 @@ public class ImageService {
             }
 
             throw (lastError != null ? lastError : new IOException("Unknown conversion error"));
+        } catch (Exception e) {
+            // Clean up auto-resized temp file on error
+            if (wasAutoResized && processedInput != input) {
+                safeDelete(processedInput);
+            }
+            throw e;
         } finally {
             semaphore.release();
+            // Clean up auto-resized temp file after successful conversion
+            if (wasAutoResized && processedInput != input) {
+                safeDelete(processedInput);
+            }
         }
     }
 
@@ -536,5 +565,59 @@ public class ImageService {
         }
         // Small/medium images (≤2000px): no limit
         return requestedSharpness;
+    }
+
+    /**
+     * Auto-resize large image to specified max dimension to reduce processing time.
+     * This is a fast, simple resize operation that dramatically reduces conversion time
+     * for large phone photos (12MP+) from 50-60s to 5-10s.
+     *
+     * @param input Original image file
+     * @param maxDimension Maximum width or height (maintains aspect ratio)
+     * @return Resized temp file (caller must delete)
+     * @throws IOException if resize fails
+     */
+    private File autoResizeImage(File input, int maxDimension) throws IOException, InterruptedException {
+        File resized = Files.createTempFile("resized-" + UUID.randomUUID(), ".jpg").toFile();
+
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                "magick",
+                "-limit", "time", "30",  // Quick resize shouldn't take long
+                "-limit", "memory", "256MiB",
+                input.getAbsolutePath(),
+                "-resize", maxDimension + "x" + maxDimension + ">",  // Only shrink, don't enlarge
+                "-quality", "90",  // Good quality for intermediate resize
+                resized.getAbsolutePath()
+            );
+            pb.redirectErrorStream(true);
+
+            Process p = pb.start();
+            String output = new String(p.getInputStream().readAllBytes());
+
+            if (!p.waitFor(30, TimeUnit.SECONDS)) {
+                p.destroyForcibly();
+                safeDelete(resized);
+                throw new IOException("Auto-resize timeout");
+            }
+
+            if (p.exitValue() != 0) {
+                logger.error("Auto-resize failed: {}", output);
+                safeDelete(resized);
+                throw new IOException("Auto-resize failed: " + output);
+            }
+
+            if (!resized.exists() || resized.length() == 0) {
+                safeDelete(resized);
+                throw new IOException("Auto-resize produced empty file");
+            }
+
+            logger.debug("Auto-resize successful, output size: {} bytes", resized.length());
+            return resized;
+
+        } catch (Exception e) {
+            safeDelete(resized);
+            throw e;
+        }
     }
 }
