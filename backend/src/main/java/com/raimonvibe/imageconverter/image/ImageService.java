@@ -86,9 +86,10 @@ public class ImageService {
                 pb = new ProcessBuilder(args);
 
                 // Set memory limit for ImageMagick to prevent OOM on low-resource servers
-                pb.environment().put("MAGICK_MEMORY_LIMIT", "128MB");
-                pb.environment().put("MAGICK_MAP_LIMIT", "256MB");
-                pb.environment().put("MAGICK_DISK_LIMIT", "512MB");
+                // Increased limits to handle high sharpness conversions (100-200%)
+                pb.environment().put("MAGICK_MEMORY_LIMIT", "256MB");
+                pb.environment().put("MAGICK_MAP_LIMIT", "512MB");
+                pb.environment().put("MAGICK_DISK_LIMIT", "1GB");
 
                 pb.redirectErrorStream(true);
 
@@ -103,11 +104,14 @@ public class ImageService {
                     // Note: redirectErrorStream(true) merges stderr into stdout, so we read from InputStream
                     String processOutput = new String(p.getInputStream().readAllBytes());
 
-                    boolean finished = p.waitFor(15, TimeUnit.SECONDS);
+                    // Increased timeout for complex sharpening operations (especially 100-200% sharpness)
+                    // High sharpness uses LAB colorspace conversion and multiple passes
+                    int timeoutSeconds = options.sharpness() != null && options.sharpness() > 100 ? 30 : 15;
+                    boolean finished = p.waitFor(timeoutSeconds, TimeUnit.SECONDS);
                     if (!finished) {
                         p.destroyForcibly();
-                        logger.warn("ImageMagick process timeout for command: {}", cmd);
-                        lastError = new IOException("ImageMagick process timeout");
+                        logger.warn("ImageMagick process timeout after {}s for command: {}", timeoutSeconds, cmd);
+                        lastError = new IOException("ImageMagick process timeout - try reducing sharpness level");
                         continue;
                     }
 

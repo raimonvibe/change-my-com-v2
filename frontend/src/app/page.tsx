@@ -313,12 +313,14 @@ export default function ConvertPage() {
         throw new Error(errorData.error || 'File is too large. Maximum allowed size is 8MB.');
       }
       if (!res.ok) {
+        // Try to get error message from response header first (more reliable)
+        const headerError = res.headers.get('X-Error-Message');
         const errorData = await res.json().catch(() => ({})) as { error?: string };
-        let errorMessage = errorData.error || `Conversion failed: ${res.status}`;
+        let errorMessage = headerError || errorData.error || `Conversion failed: ${res.status}`;
 
-        if (res.status === 400) {
+        if (res.status === 400 && !headerError) {
           errorMessage = 'Invalid GIF file or corrupted. Please try a different file.';
-        } else if (res.status === 415) {
+        } else if (res.status === 415 && !headerError) {
           errorMessage = 'Only GIF files are supported for frame extraction.';
         }
 
@@ -431,15 +433,17 @@ export default function ConvertPage() {
           throw new Error(errorData.error || 'File is too large. Maximum allowed size is 8MB.');
         }
         if (!res.ok) {
+          // Try to get error message from response header first (more reliable)
+          const headerError = res.headers.get('X-Error-Message');
           const errorData = await res.json().catch(() => ({})) as { error?: string };
-          let errorMessage = errorData.error || `Conversion failed: ${res.status}`;
+          let errorMessage = headerError || errorData.error || `Conversion failed: ${res.status}`;
 
           // Provide more specific error messages for common issues
-          if (res.status === 400) {
+          if (res.status === 400 && !headerError) {
             errorMessage = 'Invalid file format or corrupted image. Please try a different file.';
-          } else if (res.status === 415) {
+          } else if (res.status === 415 && !headerError) {
             errorMessage = 'Unsupported file format. Please use standard image formats like .jpg, .png, or .webp.';
-          } else if (res.status === 422) {
+          } else if (res.status === 422 && !headerError) {
             errorMessage = 'File format not supported for conversion. Please try a different image format.';
           }
 

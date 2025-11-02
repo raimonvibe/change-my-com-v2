@@ -372,20 +372,26 @@ public class ConvertController {
     // ===== Helpers =====
 
     private static ResponseEntity<StreamingResponseBody> badRequest(String msg) {
+        logger.warn("Bad request: {}", msg);
         return ResponseEntity.badRequest()
                 .header("Cache-Control", "no-store")
+                .header("X-Error-Message", msg)
                 .build();
     }
 
     private static ResponseEntity<StreamingResponseBody> unprocessable(String msg) {
+        logger.warn("Unprocessable entity: {}", msg);
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .header("Cache-Control", "no-store")
+                .header("X-Error-Message", msg)
                 .build();
     }
 
     private static ResponseEntity<StreamingResponseBody> serverError(String msg) {
+        logger.error("Server error: {}", msg);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .header("Cache-Control", "no-store")
+                .header("X-Error-Message", msg)
                 .build();
     }
 
