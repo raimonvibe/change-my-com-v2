@@ -41,6 +41,26 @@ public class ImageService {
         try {
             String outExt = options.format().toLowerCase();
             File out = Files.createTempFile("conv-" + UUID.randomUUID(), "." + outExt).toFile();
+
+            // Detect image dimensions and cap sharpness to respect 10s policy time limit
+            int[] dimensions = getImageDimensions(input);
+            int maxDimension = Math.max(dimensions[0], dimensions[1]);
+            int originalSharpness = options.sharpness() != null ? options.sharpness() : 0;
+            int cappedSharpness = capSharpnessForDimensions(maxDimension, originalSharpness);
+
+            if (cappedSharpness < originalSharpness) {
+                logger.warn("Sharpness reduced from {}% to {}% for {}x{} image to respect 10s time limit policy",
+                    originalSharpness, cappedSharpness, dimensions[0], dimensions[1]);
+            }
+
+            // Create new options with capped sharpness
+            ConversionOptions adjustedOptions = new ConversionOptions(
+                options.format(),
+                options.quality(),
+                cappedSharpness,
+                options.width()
+            );
+
             IOException lastError = null;
 
             for (String cmd : List.of("magick", "convert")) {
@@ -51,8 +71,9 @@ public class ImageService {
                 args.add(cmd);
 
                 // Set resource limits as command-line options (more reliable than env vars)
-                // These override both environment variables and policy.xml settings
-                int magickTimeLimit = options.sharpness() != null && options.sharpness() > 100 ? 120 : 60;
+                // Note: -limit can only DECREASE values, not increase them beyond policy.xml
+                // We respect the 10s policy limit by capping sharpness based on image dimensions
+                int magickTimeLimit = adjustedOptions.sharpness() != null && adjustedOptions.sharpness() > 100 ? 120 : 60;
                 args.add("-limit");
                 args.add("time");
                 args.add(String.valueOf(magickTimeLimit));
@@ -66,10 +87,10 @@ public class ImageService {
                 args.add(input.getAbsolutePath());
 
                 // Apply width resize if specified (before format-specific handling)
-                if (options.width() != null && options.width() > 0 && !"ico".equals(outExt)) {
+                if (adjustedOptions.width() != null && adjustedOptions.width() > 0 && !"ico".equals(outExt)) {
                     // Resize maintaining aspect ratio, only if larger than specified width
                     args.add("-resize");
-                    args.add(options.width() + "x>");
+                    args.add(adjustedOptions.width() + "x>");
                 }
 
                 // Special handling for ICO format
@@ -86,14 +107,15 @@ public class ImageService {
                 // Apply advanced sharpening if requested (0-200 scale)
                 // Note: Sharpening is applied AFTER resize for best results
                 // Uses tiered approach: subtle → adaptive → professional → maximum
-                if (options.sharpness() != null && options.sharpness() > 0) {
-                    applySharpeningStrategy(args, options.sharpness());
+                // Sharpness is capped based on image dimensions to respect 10s policy
+                if (adjustedOptions.sharpness() != null && adjustedOptions.sharpness() > 0) {
+                    applySharpeningStrategy(args, adjustedOptions.sharpness());
                 }
 
                 // Apply quality if specified
-                if (options.quality() != null) {
+                if (adjustedOptions.quality() != null) {
                     args.add("-quality");
-                    args.add(String.valueOf(options.quality()));
+                    args.add(String.valueOf(adjustedOptions.quality()));
                 }
 
                 args.add(out.getAbsolutePath());
@@ -113,10 +135,10 @@ public class ImageService {
                 try {
                     if (logger.isDebugEnabled()) {
                         logger.debug("Executing ImageMagick with time limit {}s, sharpness={}: {}",
-                            magickTimeLimit, options.sharpness(), String.join(" ", pb.command()));
+                            magickTimeLimit, adjustedOptions.sharpness(), String.join(" ", pb.command()));
                     } else {
-                        logger.info("Converting with time limit: {}s, sharpness: {}, format: {}",
-                            magickTimeLimit, options.sharpness(), options.format());
+                        logger.info("Converting {}x{} image - sharpness: {}%, format: {}",
+                            dimensions[0], dimensions[1], adjustedOptions.sharpness(), adjustedOptions.format());
                     }
 
                     Process p = pb.start();
@@ -429,5 +451,76 @@ public class ImageService {
             "jpg", "jpeg", "png", "webp", "avif",
             "gif", "heic", "heif", "ico"
         );
+    }
+
+    /**
+     * Get image dimensions using ImageMagick identify command.
+     * Fast operation that doesn't load the full image into memory.
+     *
+     * @param input Image file to analyze
+     * @return Array with [width, height]
+     * @throws IOException if dimensions cannot be determined
+     */
+    private int[] getImageDimensions(File input) throws IOException {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                "magick", "identify",
+                "-format", "%w %h",
+                input.getAbsolutePath()
+            );
+            pb.redirectErrorStream(true);
+
+            Process p = pb.start();
+            String output = new String(p.getInputStream().readAllBytes()).trim();
+
+            if (!p.waitFor(5, TimeUnit.SECONDS)) {
+                p.destroyForcibly();
+                throw new IOException("Timeout getting image dimensions");
+            }
+
+            if (p.exitValue() != 0) {
+                throw new IOException("Failed to get image dimensions: " + output);
+            }
+
+            String[] parts = output.split("\\s+");
+            if (parts.length >= 2) {
+                return new int[]{Integer.parseInt(parts[0]), Integer.parseInt(parts[1])};
+            }
+
+            throw new IOException("Invalid dimension output: " + output);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted getting dimensions");
+        } catch (NumberFormatException e) {
+            throw new IOException("Invalid dimension values");
+        }
+    }
+
+    /**
+     * Cap sharpness based on image dimensions to respect 10s policy time limit.
+     * Large images with high sharpness exceed the time limit due to complex operations.
+     *
+     * Limits:
+     * - Images > 4000px: max 50% sharpness (simple unsharp mask only)
+     * - Images > 2000px: max 100% sharpness (no LAB colorspace conversion)
+     * - Images ≤ 2000px: no limit (all sharpness levels allowed)
+     *
+     * @param maxDimension Maximum of width or height
+     * @param requestedSharpness User's requested sharpness level (0-200)
+     * @return Capped sharpness level that will complete within 10s
+     */
+    private int capSharpnessForDimensions(int maxDimension, int requestedSharpness) {
+        if (maxDimension > 4000) {
+            // Very large images (>4000px): limit to 50% (subtle sharpening only)
+            // 50% uses simple unsharp mask without LAB conversion
+            return Math.min(requestedSharpness, 50);
+        } else if (maxDimension > 2000) {
+            // Large images (>2000px): limit to 100% (no professional sharpening)
+            // 100% uses adaptive sharpening without LAB conversion
+            return Math.min(requestedSharpness, 100);
+        }
+        // Small/medium images (≤2000px): no limit
+        return requestedSharpness;
     }
 }

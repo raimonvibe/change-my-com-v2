@@ -65,6 +65,8 @@ type Job = {
   progress?: number;
   startTime?: number;
   isGif?: boolean;
+  width?: number;
+  height?: number;
 };
 
 // Note: We deliberately do NOT persist uploaded images or conversion results
@@ -222,7 +224,9 @@ export default function ConvertPage() {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         file,
         status: 'queued',
-        isGif
+        isGif,
+        width: validation.width,
+        height: validation.height
       });
     }
 
@@ -673,6 +677,29 @@ export default function ConvertPage() {
                   {sharpness > 150 && '🔥 Maximum multi-pass sharpening with contrast enhancement'}
                 </div>
               )}
+
+              {/* Sharpness capping warning for large images */}
+              {(() => {
+                const queuedJobs = jobs.filter(j => j.status === 'queued');
+                if (queuedJobs.length === 0) return null;
+
+                const maxDimension = Math.max(...queuedJobs.map(j => Math.max(j.width || 0, j.height || 0)));
+
+                if (maxDimension > 4000 && sharpness > 50) {
+                  return (
+                    <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mt-2">
+                      ⚠️ Large image detected ({maxDimension}px). Sharpness will be limited to 50% to respect server time limits. For higher sharpness, resize your image to ≤4000px first.
+                    </div>
+                  );
+                } else if (maxDimension > 2000 && sharpness > 100) {
+                  return (
+                    <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mt-2">
+                      ⚠️ Large image detected ({maxDimension}px). Sharpness will be limited to 100% to respect server time limits. For higher sharpness, resize your image to ≤2000px first.
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* Resize Toggle */}
