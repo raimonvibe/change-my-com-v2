@@ -105,11 +105,7 @@ public class ImageService {
                 pb.environment().put("MAGICK_MAP_LIMIT", "512MB");
                 pb.environment().put("MAGICK_DISK_LIMIT", "1GB");
 
-                // Set ImageMagick's internal time limit (separate from process timeout)
-                // This controls ImageMagick's own resource manager time limit
-                // Higher values needed for complex sharpening operations (100-200%)
-                // Increased limits for cloud/shared hosting environments with limited CPU
-                int magickTimeLimit = options.sharpness() != null && options.sharpness() > 100 ? 120 : 60;
+                // Also set environment variables as fallback for older ImageMagick versions
                 pb.environment().put("MAGICK_TIME_LIMIT", String.valueOf(magickTimeLimit));
 
                 pb.redirectErrorStream(true);
