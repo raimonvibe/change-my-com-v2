@@ -1,10 +1,13 @@
 package com.raimonvibe.imageconverter.user;
 
+import com.stripe.Stripe;
+import com.stripe.model.Subscription;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -13,6 +16,9 @@ public class UserController {
 
   private static final Logger logger = LoggerFactory.getLogger(UserController.class);
   private final UserService userService;
+
+  @Value("${app.stripe.secretKey:}")
+  private String stripeSecretKey;
 
   public UserController(UserService userService) {
     this.userService = userService;
@@ -52,6 +58,7 @@ public class UserController {
     if (principal == null) return Map.of("success", false, "error", "Not authenticated");
 
     try {
+      Stripe.apiKey = stripeSecretKey;
       var user = userService.ensureUserByEmail(principal.getName());
 
       // Only allow toggling if user has an active subscription
@@ -66,6 +73,20 @@ public class UserController {
       }
 
       boolean newValue = !currentValue;
+
+      // CRITICAL: Actually cancel/resume the Stripe subscription
+      if (!newValue) {
+        // Toggling OFF - cancel subscription at period end
+        logger.info("Canceling Stripe subscription {} at period end for user ID: {}", user.getStripeSubscriptionId(), user.getId());
+        Subscription subscription = Subscription.retrieve(user.getStripeSubscriptionId());
+        subscription.cancel();
+        logger.info("Successfully cancelled Stripe subscription {} for user ID: {}", user.getStripeSubscriptionId(), user.getId());
+      } else {
+        // Toggling ON - this should not be allowed (user must subscribe via checkout)
+        logger.warn("User ID: {} attempted to re-enable auto-renewal, but this is not supported", user.getId());
+        return Map.of("success", false, "error", "Please subscribe again via the pricing page to re-enable auto-renewal");
+      }
+
       user.setAutoRenewal(newValue);
       userService.saveUser(user);
 
@@ -74,11 +95,11 @@ public class UserController {
       return Map.of(
           "success", true,
           "autoRenewal", newValue,
-          "message", newValue ? "Auto-renewal enabled" : "Auto-renewal disabled"
+          "message", newValue ? "Auto-renewal enabled" : "Auto-renewal disabled. Your subscription will not renew next month."
       );
     } catch (Exception e) {
       logger.error("Error toggling auto-renewal: {}", e.getMessage(), e);
-      return Map.of("success", false, "error", "Failed to toggle auto-renewal");
+      return Map.of("success", false, "error", "Failed to toggle auto-renewal: " + e.getMessage());
     }
   }
 }
