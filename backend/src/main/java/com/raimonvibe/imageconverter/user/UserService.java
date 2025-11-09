@@ -38,8 +38,11 @@ public class UserService {
 
   @Transactional
   public void addCredits(User user, int credits, String reason) {
-    user.setPaidCredits(user.getPaidCredits() + credits);
-    userRepository.save(user);
+    // Use atomic database update to prevent race conditions
+    userRepository.atomicAddCredits(user.getId(), credits);
+    // Refresh user entity to get updated credits
+    userRepository.flush();
+    // Log the credit change
     CreditLedger ledger = new CreditLedger();
     ledger.setUser(user);
     ledger.setDelta(credits);
@@ -49,11 +52,12 @@ public class UserService {
 
   @Transactional
   public void activateSubscription(User user, int credits) {
-    // Add credits to existing balance instead of replacing
-    int previousCredits = user.getPaidCredits();
-    user.setPaidCredits(previousCredits + credits);
-    user.setLastPaidReset(LocalDate.now());
-    userRepository.save(user);
+    // Use atomic database update to prevent race conditions
+    LocalDate today = LocalDate.now();
+    userRepository.atomicAddCreditsAndUpdateReset(user.getId(), credits, today);
+    // Refresh user entity to get updated values
+    userRepository.flush();
+    // Log the credit addition
     CreditLedger ledger = new CreditLedger();
     ledger.setUser(user);
     ledger.setDelta(credits);
@@ -72,25 +76,31 @@ public class UserService {
     if (!today.equals(user.getLastFreeReset())) {
       user.setLastFreeReset(today);
       user.setFreeUsedToday(0);
+      userRepository.save(user);
+      // Refresh to ensure we have latest state
+      userRepository.flush();
     }
 
     // If user has paid credits (subscriber), use those FIRST
     // Credits are only added via Stripe webhooks when subscription is renewed
     if (user.getPaidCredits() > 0) {
-      user.setPaidCredits(user.getPaidCredits() - 1);
-      userRepository.save(user);
-      CreditLedger ledger = new CreditLedger();
-      ledger.setUser(user);
-      ledger.setDelta(-1);
-      ledger.setReason("conversion_paid");
-      creditLedgerRepository.save(ledger);
-      return true;
+      // Atomic decrement - only decrements if credits > 0
+      int rowsAffected = userRepository.atomicDecrementCredits(user.getId());
+      if (rowsAffected > 0) {
+        userRepository.flush();
+        CreditLedger ledger = new CreditLedger();
+        ledger.setUser(user);
+        ledger.setDelta(-1);
+        ledger.setReason("conversion_paid");
+        creditLedgerRepository.save(ledger);
+        return true;
+      }
     }
 
     // Otherwise, use free daily conversions
     if (user.getFreeUsedToday() < freeDailyLimit) {
-      user.setFreeUsedToday(user.getFreeUsedToday() + 1);
-      userRepository.save(user);
+      userRepository.atomicIncrementFreeUsage(user.getId(), today);
+      userRepository.flush();
       CreditLedger ledger = new CreditLedger();
       ledger.setUser(user);
       ledger.setDelta(0);

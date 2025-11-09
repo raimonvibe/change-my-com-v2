@@ -18,7 +18,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -41,6 +43,7 @@ public class StripeWebhookController {
   private String webhookSecret;
 
   @PostMapping("/webhook")
+  @Transactional
   public ResponseEntity<String> webhook(HttpServletRequest request, @RequestBody byte[] payloadBytes, @RequestHeader("Stripe-Signature") String sigHeader) throws IOException {
     logger.info("=== WEBHOOK RECEIVED === Signature present: {}", sigHeader != null);
 
@@ -57,36 +60,44 @@ public class StripeWebhookController {
 
     logger.info("=== Received Stripe webhook event: {} (id: {}) ===", event.getType(), event.getId());
 
-    // Idempotency check: prevent duplicate processing
-    if (webhookEventRepository.existsByStripeEventId(event.getId())) {
-      logger.warn("Webhook event {} already processed, skipping", event.getId());
-      return ResponseEntity.ok("already_processed");
-    }
-
-    // Process the event
-    switch (event.getType()) {
-      case "checkout.session.completed":
-        handleCheckoutCompleted(event);
-        break;
-      case "invoice.paid":
-        handleInvoicePaid(event);
-        break;
-      case "customer.subscription.updated":
-        handleSubscriptionUpdated(event);
-        break;
-      case "customer.subscription.deleted":
-        handleSubscriptionDeleted(event);
-        break;
-      default:
-        logger.info("Unhandled event type: {}", event.getType());
-    }
-
-    // Record this event as processed
+    // ATOMIC idempotency check: Try to save the event FIRST
+    // The database UNIQUE constraint on stripeEventId prevents race conditions
     try {
       webhookEventRepository.save(new WebhookEvent(event.getId(), event.getType()));
-      logger.info("Recorded webhook event {} as processed", event.getId());
+      logger.info("Recorded webhook event {} for processing", event.getId());
+    } catch (DataIntegrityViolationException e) {
+      // Event already exists in database - this is a duplicate webhook
+      logger.warn("Webhook event {} already processed (caught by DB constraint), skipping", event.getId());
+      return ResponseEntity.ok("already_processed");
     } catch (Exception e) {
-      logger.error("Failed to record webhook event: {}", e.getMessage());
+      logger.error("Failed to record webhook event {}: {}", event.getId(), e.getMessage());
+      // Return 500 so Stripe will retry later
+      return ResponseEntity.status(500).body("Failed to record event");
+    }
+
+    // Now process the event - this will only happen once per event ID
+    try {
+      switch (event.getType()) {
+        case "checkout.session.completed":
+          handleCheckoutCompleted(event);
+          break;
+        case "invoice.paid":
+          handleInvoicePaid(event);
+          break;
+        case "customer.subscription.updated":
+          handleSubscriptionUpdated(event);
+          break;
+        case "customer.subscription.deleted":
+          handleSubscriptionDeleted(event);
+          break;
+        default:
+          logger.info("Unhandled event type: {}", event.getType());
+      }
+    } catch (Exception e) {
+      logger.error("Error processing webhook event {}: {}", event.getId(), e.getMessage(), e);
+      // Event is already recorded as processed, but processing failed
+      // We return 200 to prevent Stripe from retrying (which would be ignored anyway)
+      return ResponseEntity.ok("processing_failed");
     }
 
     return ResponseEntity.ok("ok");
@@ -157,18 +168,14 @@ public class StripeWebhookController {
         User user = userRepository.findByStripeSubscriptionId(subscriptionId).orElse(null);
         if (user != null && user.getAutoRenewal()) {
           LocalDate today = LocalDate.now();
-          LocalDate lastReset = user.getLastPaidReset();
 
-          // Only add credits if this is a NEW billing period (monthly renewal)
-          // Prevent duplicate additions within the same day
-          if (lastReset == null || !lastReset.equals(today)) {
-            int previousCredits = user.getPaidCredits();
-            user.setPaidCredits(previousCredits + 1000);
-            user.setLastPaidReset(today);
-            user.setSubscriptionStatus("active");
-            userRepository.save(user);
-            logger.info("Monthly renewal: Added 1000 credits (from {} to {}) for user ID: {} (lastReset was: {})",
-                       previousCredits, previousCredits + 1000, user.getId(), lastReset);
+          // Atomic update: only adds credits if this is a NEW billing period (monthly renewal)
+          // The WHERE clause prevents duplicate additions within the same day
+          int rowsAffected = userRepository.atomicAddCreditsForRenewal(user.getId(), 1000, today, "active");
+
+          if (rowsAffected > 0) {
+            logger.info("Monthly renewal: Added 1000 credits for user ID: {} (previous lastReset: {})",
+                       user.getId(), user.getLastPaidReset());
           } else {
             logger.info("Skipping credit addition for user ID: {} - already added today ({})",
                        user.getId(), today);
