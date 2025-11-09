@@ -1,7 +1,10 @@
 package com.raimonvibe.imageconverter.billing;
 
 import com.stripe.Stripe;
+import com.stripe.model.Customer;
+import com.stripe.model.CustomerCollection;
 import com.stripe.model.checkout.Session;
+import com.stripe.param.CustomerListParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -78,6 +81,27 @@ public class BillingController {
         }
     }
 
+    /**
+     * Finds existing Stripe customer by email or returns null.
+     * Prevents duplicate customer creation.
+     */
+    private String findExistingCustomer(String email) throws Exception {
+        CustomerListParams params = CustomerListParams.builder()
+                .setEmail(email)
+                .setLimit(1L)
+                .build();
+
+        CustomerCollection customers = Customer.list(params);
+        if (customers.getData().isEmpty()) {
+            logger.info("No existing Stripe customer found for email: {}", email);
+            return null;
+        }
+
+        Customer existingCustomer = customers.getData().get(0);
+        logger.info("Found existing Stripe customer: {} for email: {}", existingCustomer.getId(), email);
+        return existingCustomer.getId();
+    }
+
     @PostMapping("/checkout")
     public ResponseEntity<Map<String, Object>> createCheckout(
             @RequestParam("successUrl") String successUrl,
@@ -100,14 +124,18 @@ public class BillingController {
 
         Stripe.apiKey = stripeSecretKey;
 
+        String userEmail = principal.getName();
         long priceCents = Math.round(priceUsd * 100); // Convert $1.98 to cents (198 cents)
 
-        SessionCreateParams params = SessionCreateParams.builder()
+        // Check for existing customer to prevent duplicates
+        String existingCustomerId = findExistingCustomer(userEmail);
+
+        // Build session params
+        SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
                 .setSuccessUrl(successUrl)
                 .setCancelUrl(cancelUrl)
                 .putMetadata("subscription", "monthly_1000")
-                .setCustomerEmail(principal.getName()) // Always set email from authenticated user
                 .addLineItem(
                         SessionCreateParams.LineItem.builder()
                                 .setQuantity(1L)
@@ -124,10 +152,18 @@ public class BillingController {
                                                                 .setName("1000 Conversions per Month")
                                                                 .build())
                                                 .build())
-                                .build())
-                .build();
+                                .build());
 
-        Session session = Session.create(params);
+        // Use existing customer if found, otherwise create new one
+        if (existingCustomerId != null) {
+            paramsBuilder.setCustomer(existingCustomerId);
+            logger.info("Creating checkout session with existing customer: {}", existingCustomerId);
+        } else {
+            paramsBuilder.setCustomerEmail(userEmail);
+            logger.info("Creating checkout session with new customer for email: {}", userEmail);
+        }
+
+        Session session = Session.create(paramsBuilder.build());
         return ResponseEntity.ok(Map.of("id", session.getId(), "url", session.getUrl()));
     }
 }
