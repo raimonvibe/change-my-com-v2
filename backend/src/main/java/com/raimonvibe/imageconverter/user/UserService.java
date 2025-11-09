@@ -1,6 +1,5 @@
 package com.raimonvibe.imageconverter.user;
 
-import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,12 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
   private final UserRepository userRepository;
   private final CreditLedgerRepository creditLedgerRepository;
-  private final EntityManager entityManager;
 
-  public UserService(UserRepository userRepository, CreditLedgerRepository creditLedgerRepository, EntityManager entityManager) {
+  public UserService(UserRepository userRepository, CreditLedgerRepository creditLedgerRepository) {
     this.userRepository = userRepository;
     this.creditLedgerRepository = creditLedgerRepository;
-    this.entityManager = entityManager;
   }
 
   @Transactional
@@ -42,12 +39,9 @@ public class UserService {
   @Transactional
   public void addCredits(User user, int credits, String reason) {
     // Use atomic database update to prevent race conditions
+    // clearAutomatically = true on @Modifying ensures persistence context is cleared
     userRepository.atomicAddCredits(user.getId(), credits);
     userRepository.flush();
-    // Refresh user entity to get updated credits from database (if entityManager available)
-    if (entityManager != null) {
-      entityManager.refresh(user);
-    }
     // Log the credit change
     CreditLedger ledger = new CreditLedger();
     ledger.setUser(user);
@@ -59,13 +53,10 @@ public class UserService {
   @Transactional
   public void activateSubscription(User user, int credits) {
     // Use atomic database update to prevent race conditions
+    // clearAutomatically = true on @Modifying ensures persistence context is cleared
     LocalDate today = LocalDate.now();
     userRepository.atomicAddCreditsAndUpdateReset(user.getId(), credits, today);
     userRepository.flush();
-    // Refresh user entity to get updated values from database (if entityManager available)
-    if (entityManager != null) {
-      entityManager.refresh(user);
-    }
     // Log the credit addition
     CreditLedger ledger = new CreditLedger();
     ledger.setUser(user);
@@ -87,23 +78,16 @@ public class UserService {
       user.setFreeUsedToday(0);
       userRepository.save(user);
       userRepository.flush();
-      // Refresh to ensure we have latest state (if entityManager available)
-      if (entityManager != null) {
-        entityManager.refresh(user);
-      }
     }
 
     // If user has paid credits (subscriber), use those FIRST
     // Credits are only added via Stripe webhooks when subscription is renewed
     if (user.getPaidCredits() > 0) {
       // Atomic decrement - only decrements if credits > 0
+      // clearAutomatically = true on @Modifying ensures persistence context is cleared
       int rowsAffected = userRepository.atomicDecrementCredits(user.getId());
       if (rowsAffected > 0) {
         userRepository.flush();
-        // Refresh user entity to get updated credits from database (if entityManager available)
-        if (entityManager != null) {
-          entityManager.refresh(user);
-        }
         CreditLedger ledger = new CreditLedger();
         ledger.setUser(user);
         ledger.setDelta(-1);
@@ -115,12 +99,9 @@ public class UserService {
 
     // Otherwise, use free daily conversions
     if (user.getFreeUsedToday() < freeDailyLimit) {
+      // clearAutomatically = true on @Modifying ensures persistence context is cleared
       userRepository.atomicIncrementFreeUsage(user.getId(), today);
       userRepository.flush();
-      // Refresh user entity to get updated free usage from database (if entityManager available)
-      if (entityManager != null) {
-        entityManager.refresh(user);
-      }
       CreditLedger ledger = new CreditLedger();
       ledger.setUser(user);
       ledger.setDelta(0);
