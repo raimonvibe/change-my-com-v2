@@ -44,8 +44,10 @@ public class UserService {
     // Use atomic database update to prevent race conditions
     userRepository.atomicAddCredits(user.getId(), credits);
     userRepository.flush();
-    // Refresh user entity to get updated credits from database
-    entityManager.refresh(user);
+    // Refresh user entity to get updated credits from database (if entityManager available)
+    if (entityManager != null) {
+      entityManager.refresh(user);
+    }
     // Log the credit change
     CreditLedger ledger = new CreditLedger();
     ledger.setUser(user);
@@ -60,8 +62,10 @@ public class UserService {
     LocalDate today = LocalDate.now();
     userRepository.atomicAddCreditsAndUpdateReset(user.getId(), credits, today);
     userRepository.flush();
-    // Refresh user entity to get updated values from database
-    entityManager.refresh(user);
+    // Refresh user entity to get updated values from database (if entityManager available)
+    if (entityManager != null) {
+      entityManager.refresh(user);
+    }
     // Log the credit addition
     CreditLedger ledger = new CreditLedger();
     ledger.setUser(user);
@@ -83,8 +87,10 @@ public class UserService {
       user.setFreeUsedToday(0);
       userRepository.save(user);
       userRepository.flush();
-      // Refresh to ensure we have latest state
-      entityManager.refresh(user);
+      // Refresh to ensure we have latest state (if entityManager available)
+      if (entityManager != null) {
+        entityManager.refresh(user);
+      }
     }
 
     // If user has paid credits (subscriber), use those FIRST
@@ -94,8 +100,10 @@ public class UserService {
       int rowsAffected = userRepository.atomicDecrementCredits(user.getId());
       if (rowsAffected > 0) {
         userRepository.flush();
-        // Refresh user entity to get updated credits from database
-        entityManager.refresh(user);
+        // Refresh user entity to get updated credits from database (if entityManager available)
+        if (entityManager != null) {
+          entityManager.refresh(user);
+        }
         CreditLedger ledger = new CreditLedger();
         ledger.setUser(user);
         ledger.setDelta(-1);
@@ -109,8 +117,10 @@ public class UserService {
     if (user.getFreeUsedToday() < freeDailyLimit) {
       userRepository.atomicIncrementFreeUsage(user.getId(), today);
       userRepository.flush();
-      // Refresh user entity to get updated free usage from database
-      entityManager.refresh(user);
+      // Refresh user entity to get updated free usage from database (if entityManager available)
+      if (entityManager != null) {
+        entityManager.refresh(user);
+      }
       CreditLedger ledger = new CreditLedger();
       ledger.setUser(user);
       ledger.setDelta(0);

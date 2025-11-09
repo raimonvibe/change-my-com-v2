@@ -45,6 +45,49 @@ public class UserServiceTest {
         testUser.setLastFreeReset(LocalDate.now());
         testUser.setPaidCredits(0);
         testUser.setAutoRenewal(false);
+
+        // Mock atomic credit operations to update the testUser object
+        when(userRepository.atomicDecrementCredits(anyLong())).thenAnswer(invocation -> {
+            if (testUser.getPaidCredits() > 0) {
+                testUser.setPaidCredits(testUser.getPaidCredits() - 1);
+                return 1; // 1 row affected
+            }
+            return 0; // 0 rows affected
+        });
+
+        when(userRepository.atomicIncrementFreeUsage(anyLong(), any(LocalDate.class))).thenAnswer(invocation -> {
+            testUser.setFreeUsedToday(testUser.getFreeUsedToday() + 1);
+            testUser.setLastFreeReset(invocation.getArgument(1));
+            return 1;
+        });
+
+        when(userRepository.atomicAddCredits(anyLong(), anyInt())).thenAnswer(invocation -> {
+            int credits = invocation.getArgument(1);
+            testUser.setPaidCredits(testUser.getPaidCredits() + credits);
+            return 1;
+        });
+
+        when(userRepository.atomicAddCreditsAndUpdateReset(anyLong(), anyInt(), any(LocalDate.class))).thenAnswer(invocation -> {
+            int credits = invocation.getArgument(1);
+            LocalDate resetDate = invocation.getArgument(2);
+            testUser.setPaidCredits(testUser.getPaidCredits() + credits);
+            testUser.setLastPaidReset(resetDate);
+            return 1;
+        });
+
+        when(userRepository.atomicAddCreditsForRenewal(anyLong(), anyInt(), any(LocalDate.class), anyString())).thenAnswer(invocation -> {
+            LocalDate today = invocation.getArgument(2);
+            // Only add if not already added today
+            if (testUser.getLastPaidReset() == null || !testUser.getLastPaidReset().equals(today)) {
+                int credits = invocation.getArgument(1);
+                String status = invocation.getArgument(3);
+                testUser.setPaidCredits(testUser.getPaidCredits() + credits);
+                testUser.setLastPaidReset(today);
+                testUser.setSubscriptionStatus(status);
+                return 1;
+            }
+            return 0;
+        });
     }
 
     // ==================== CREDIT CONSUMPTION TESTS ====================
@@ -65,7 +108,7 @@ public class UserServiceTest {
         assertTrue(result);
         assertEquals(99, testUser.getPaidCredits());
         assertEquals(0, testUser.getFreeUsedToday());
-        verify(userRepository, times(1)).save(testUser);
+        verify(userRepository, times(1)).atomicDecrementCredits(testUser.getId());
 
         // Verify ledger entry
         ArgumentCaptor<CreditLedger> ledgerCaptor = ArgumentCaptor.forClass(CreditLedger.class);
@@ -91,7 +134,7 @@ public class UserServiceTest {
         assertTrue(result);
         assertEquals(0, testUser.getPaidCredits());
         assertEquals(6, testUser.getFreeUsedToday());
-        verify(userRepository, times(1)).save(testUser);
+        verify(userRepository, times(1)).atomicIncrementFreeUsage(testUser.getId(), LocalDate.now());
 
         // Verify ledger entry
         ArgumentCaptor<CreditLedger> ledgerCaptor = ArgumentCaptor.forClass(CreditLedger.class);
@@ -174,7 +217,7 @@ public class UserServiceTest {
         // Then: Credits should stack (not replace)
         assertEquals(1200, testUser.getPaidCredits());
         assertEquals(LocalDate.now(), testUser.getLastPaidReset());
-        verify(userRepository, times(1)).save(testUser);
+        verify(userRepository, times(1)).atomicAddCreditsAndUpdateReset(testUser.getId(), 1000, LocalDate.now());
 
         // Verify ledger entry
         ArgumentCaptor<CreditLedger> ledgerCaptor = ArgumentCaptor.forClass(CreditLedger.class);
@@ -295,7 +338,7 @@ public class UserServiceTest {
 
         // Then: Credits should be added
         assertEquals(600, testUser.getPaidCredits());
-        verify(userRepository, times(1)).save(testUser);
+        verify(userRepository, times(1)).atomicAddCredits(testUser.getId(), 500);
 
         // Verify ledger entry
         ArgumentCaptor<CreditLedger> ledgerCaptor = ArgumentCaptor.forClass(CreditLedger.class);
