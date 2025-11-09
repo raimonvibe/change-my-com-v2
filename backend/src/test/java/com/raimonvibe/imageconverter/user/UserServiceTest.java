@@ -100,8 +100,8 @@ public class UserServiceTest {
         // Given: User has paid credits
         testUser.setPaidCredits(100);
         testUser.setFreeUsedToday(0);
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
+        lenient().when(userRepository.save(any(User.class))).thenReturn(testUser);
+        lenient().when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
 
         // When: Consume one conversion
         boolean result = userService.consumeOneConversion(testUser, FREE_DAILY_LIMIT);
@@ -126,8 +126,8 @@ public class UserServiceTest {
         // Given: User has no paid credits
         testUser.setPaidCredits(0);
         testUser.setFreeUsedToday(5);
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
+        lenient().when(userRepository.save(any(User.class))).thenReturn(testUser);
+        lenient().when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
 
         // When: Consume one conversion
         boolean result = userService.consumeOneConversion(testUser, FREE_DAILY_LIMIT);
@@ -172,8 +172,8 @@ public class UserServiceTest {
         testUser.setPaidCredits(0);
         testUser.setFreeUsedToday(20); // Was at limit
         testUser.setLastFreeReset(LocalDate.now().minusDays(1)); // Yesterday
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
+        lenient().when(userRepository.save(any(User.class))).thenReturn(testUser);
+        lenient().when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
 
         // When: Consume one conversion today
         boolean result = userService.consumeOneConversion(testUser, FREE_DAILY_LIMIT);
@@ -191,8 +191,8 @@ public class UserServiceTest {
         testUser.setPaidCredits(500);
         testUser.setFreeUsedToday(20);
         testUser.setLastFreeReset(LocalDate.now().minusDays(1)); // Yesterday
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
+        lenient().when(userRepository.save(any(User.class))).thenReturn(testUser);
+        lenient().when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
 
         // When: Consume one conversion
         boolean result = userService.consumeOneConversion(testUser, FREE_DAILY_LIMIT);
@@ -210,8 +210,8 @@ public class UserServiceTest {
     void testActivateSubscription_StackCredits() {
         // Given: User already has 200 credits
         testUser.setPaidCredits(200);
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
+        lenient().when(userRepository.save(any(User.class))).thenReturn(testUser);
+        lenient().when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
 
         // When: Activate subscription with 1000 credits
         userService.activateSubscription(testUser, 1000);
@@ -234,8 +234,8 @@ public class UserServiceTest {
     void testActivateSubscription_FromZero() {
         // Given: User has no credits
         testUser.setPaidCredits(0);
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
+        lenient().when(userRepository.save(any(User.class))).thenReturn(testUser);
+        lenient().when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
 
         // When: Activate subscription
         userService.activateSubscription(testUser, 1000);
@@ -252,7 +252,7 @@ public class UserServiceTest {
         // Given: User doesn't exist
         String email = "newuser@example.com";
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+        lenient().when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User saved = invocation.getArgument(0);
             saved.setId(2L);
             return saved;
@@ -296,7 +296,7 @@ public class UserServiceTest {
         testUser.setAutoRenewal(null);
         testUser.setStripeSubscriptionId(null);
         when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
+        lenient().when(userRepository.save(any(User.class))).thenReturn(testUser);
 
         // When: Ensure user
         User result = userService.ensureUserByEmail(testUser.getEmail());
@@ -314,7 +314,7 @@ public class UserServiceTest {
         testUser.setAutoRenewal(null);
         testUser.setStripeSubscriptionId("sub_123456");
         when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
+        lenient().when(userRepository.save(any(User.class))).thenReturn(testUser);
 
         // When: Ensure user
         User result = userService.ensureUserByEmail(testUser.getEmail());
@@ -332,8 +332,8 @@ public class UserServiceTest {
     void testAddCredits() {
         // Given: User has 100 credits
         testUser.setPaidCredits(100);
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
+        lenient().when(userRepository.save(any(User.class))).thenReturn(testUser);
+        lenient().when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
 
         // When: Add 500 credits
         userService.addCredits(testUser, 500, "manual_adjustment");
@@ -358,8 +358,8 @@ public class UserServiceTest {
     void testConsumeOneConversion_LastPaidCredit() {
         // Given: User has exactly 1 paid credit
         testUser.setPaidCredits(1);
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
+        lenient().when(userRepository.save(any(User.class))).thenReturn(testUser);
+        lenient().when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
 
         // When: Consume one conversion
         boolean result = userService.consumeOneConversion(testUser, FREE_DAILY_LIMIT);
@@ -375,8 +375,8 @@ public class UserServiceTest {
         // Given: User has used 19 free credits (1 remaining)
         testUser.setPaidCredits(0);
         testUser.setFreeUsedToday(19);
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
+        lenient().when(userRepository.save(any(User.class))).thenReturn(testUser);
+        lenient().when(creditLedgerRepository.save(any(CreditLedger.class))).thenReturn(null);
 
         // When: Consume one conversion
         boolean result = userService.consumeOneConversion(testUser, FREE_DAILY_LIMIT);
