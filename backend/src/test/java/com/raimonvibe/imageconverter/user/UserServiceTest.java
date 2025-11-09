@@ -15,6 +15,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Unit tests for UserService
@@ -47,7 +48,8 @@ public class UserServiceTest {
         testUser.setAutoRenewal(false);
 
         // Mock atomic credit operations to update the testUser object
-        when(userRepository.atomicDecrementCredits(anyLong())).thenAnswer(invocation -> {
+        // Use lenient() as not all tests use all atomic methods
+        lenient().when(userRepository.atomicDecrementCredits(anyLong())).thenAnswer(invocation -> {
             if (testUser.getPaidCredits() > 0) {
                 testUser.setPaidCredits(testUser.getPaidCredits() - 1);
                 return 1; // 1 row affected
@@ -55,19 +57,19 @@ public class UserServiceTest {
             return 0; // 0 rows affected
         });
 
-        when(userRepository.atomicIncrementFreeUsage(anyLong(), any(LocalDate.class))).thenAnswer(invocation -> {
+        lenient().when(userRepository.atomicIncrementFreeUsage(anyLong(), any(LocalDate.class))).thenAnswer(invocation -> {
             testUser.setFreeUsedToday(testUser.getFreeUsedToday() + 1);
             testUser.setLastFreeReset(invocation.getArgument(1));
             return 1;
         });
 
-        when(userRepository.atomicAddCredits(anyLong(), anyInt())).thenAnswer(invocation -> {
+        lenient().when(userRepository.atomicAddCredits(anyLong(), anyInt())).thenAnswer(invocation -> {
             int credits = invocation.getArgument(1);
             testUser.setPaidCredits(testUser.getPaidCredits() + credits);
             return 1;
         });
 
-        when(userRepository.atomicAddCreditsAndUpdateReset(anyLong(), anyInt(), any(LocalDate.class))).thenAnswer(invocation -> {
+        lenient().when(userRepository.atomicAddCreditsAndUpdateReset(anyLong(), anyInt(), any(LocalDate.class))).thenAnswer(invocation -> {
             int credits = invocation.getArgument(1);
             LocalDate resetDate = invocation.getArgument(2);
             testUser.setPaidCredits(testUser.getPaidCredits() + credits);
@@ -75,7 +77,7 @@ public class UserServiceTest {
             return 1;
         });
 
-        when(userRepository.atomicAddCreditsForRenewal(anyLong(), anyInt(), any(LocalDate.class), anyString())).thenAnswer(invocation -> {
+        lenient().when(userRepository.atomicAddCreditsForRenewal(anyLong(), anyInt(), any(LocalDate.class), anyString())).thenAnswer(invocation -> {
             LocalDate today = invocation.getArgument(2);
             // Only add if not already added today
             if (testUser.getLastPaidReset() == null || !testUser.getLastPaidReset().equals(today)) {
