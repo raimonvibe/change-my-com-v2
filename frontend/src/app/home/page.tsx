@@ -20,7 +20,7 @@ export default function HomePage() {
       <p className="text-slate-600 text-lg">Convert and optimize images for faster websites instantly</p>
       <div className="grid md:grid-cols-3 gap-4">
         {[
-          "Batch convert up to 20 images at once",
+          "Batch convert up to 10 images per minute",
           "WebP for 30% smaller file sizes",
           "Quality control and image sharpening"
         ].map((t) => (

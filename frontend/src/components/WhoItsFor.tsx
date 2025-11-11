@@ -8,7 +8,7 @@ export function WhoItsFor() {
       title: "Web Developers & Designers",
       description: "Optimize images for web performance without sacrificing quality. Batch convert to WebP for faster page loads.",
       benefits: [
-        "Batch process up to 20 images",
+        "Batch process up to 10 images/min",
         "WebP for modern browsers",
         "Quality control & compression"
       ]
