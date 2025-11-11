@@ -5,8 +5,10 @@ import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDropzone, FileRejection } from "react-dropzone";
 import { API_URL } from "../env";
-import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle, X, Trash2 } from "lucide-react";
+import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle, X, Trash2, Lightbulb } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
+
+// Note: Metadata is set in layout.tsx since this is a client component
 
 // Organized format groups for better UX
 // Only safe raster formats - SVG/PDF excluded for security
@@ -1089,6 +1091,32 @@ export default function ConvertPage() {
           </div>
         </div>
       )}
+
+      {/* Contextual Messaging for Target Audiences */}
+      <div className="mt-8 grid md:grid-cols-2 gap-4">
+        <div className="rounded-lg border bg-sky-50 border-sky-200 p-4">
+          <div className="flex items-start gap-3">
+            <Lightbulb className="text-sky-600 mt-0.5 flex-shrink-0" size={20} />
+            <div>
+              <h3 className="font-semibold text-sky-900 mb-1">💡 For Developers</h3>
+              <p className="text-sm text-sky-800">
+                Convert to WebP for up to 30% smaller file sizes with the same visual quality
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-lg border bg-emerald-50 border-emerald-200 p-4">
+          <div className="flex items-start gap-3">
+            <Lightbulb className="text-emerald-600 mt-0.5 flex-shrink-0" size={20} />
+            <div>
+              <h3 className="font-semibold text-emerald-900 mb-1">💡 For Bloggers</h3>
+              <p className="text-sm text-emerald-800">
+                Use sharpening to enhance image clarity after compression
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

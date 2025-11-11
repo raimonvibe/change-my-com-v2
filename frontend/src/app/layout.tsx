@@ -21,10 +21,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.change-my.com'),
   title: {
-    default: "Free Online Image Converter - Convert, Sharpen & Optimize JPG, PNG, WebP | RaimonVibe",
+    default: "Convert Images Online | Free Image Format Converter",
     template: "%s | RaimonVibe Image Converter"
   },
-  description: "Free online image converter with quality control and sharpening. Convert images between JPG, PNG, WebP, GIF, and more. Adjust quality, apply sharpening filters. 20 free conversions daily, or subscribe for 1000 monthly conversions at $1.98/month.",
+  description: "Convert and optimize images instantly. Support for JPG, PNG, WebP, GIF with quality control and sharpening. Free tool for developers and creators.",
   keywords: [
     "image converter",
     "convert images online",
