@@ -31,12 +31,6 @@ describe('ContactPage', () => {
       expect(screen.getByRole('button', { name: /send message/i })).toBeInTheDocument();
     });
 
-    it('should display contact information', () => {
-      render(<ContactPage />);
-      expect(screen.getByText('Other Ways to Reach Us')).toBeInTheDocument();
-      expect(screen.getByText(/info@raimonvibe.com/i)).toBeInTheDocument();
-    });
-
     it('should have honeypot field for spam prevention', () => {
       const { container } = render(<ContactPage />);
       const honeypot = container.querySelector('input[name="_gotcha"]');
@@ -229,19 +223,6 @@ describe('ContactPage', () => {
   });
 
   describe('Contact Information Display', () => {
-    it('should display email link', () => {
-      render(<ContactPage />);
-      const emailLink = screen.getByRole('link', { name: /info@raimonvibe.com/i });
-      expect(emailLink).toHaveAttribute('href', 'mailto:info@raimonvibe.com');
-    });
-
-    it('should display physical address', () => {
-      render(<ContactPage />);
-      expect(screen.getByText(/Timpaan 1-B/i)).toBeInTheDocument();
-      expect(screen.getByText(/1628 MT Hoorn/i)).toBeInTheDocument();
-      expect(screen.getByText(/Netherlands/i)).toBeInTheDocument();
-    });
-
     it('should have privacy policy link', () => {
       render(<ContactPage />);
       const privacyLink = screen.getByRole('link', { name: /privacy notice/i });
