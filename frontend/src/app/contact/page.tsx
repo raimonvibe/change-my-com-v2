@@ -130,30 +130,7 @@ export default function ContactPage() {
         </form>
       </div>
 
-      <div className="bg-slate-50 rounded-lg border border-slate-200 p-6">
-        <h2 className="text-xl md:text-2xl font-semibold mb-4">Other Ways to Reach Us</h2>
-        <div className="space-y-3 text-slate-700 text-base">
-          <div>
-            <span className="font-medium">Email:</span>{' '}
-            <a href="mailto:info@raimonvibe.com" className="text-sky-600 hover:text-sky-700">
-              info@raimonvibe.com
-            </a>
-          </div>
-          <div>
-            <span className="font-medium">Address:</span>
-            <br />
-            RaimonVibe
-            <br />
-            Timpaan 1-B
-            <br />
-            1628 MT Hoorn
-            <br />
-            Netherlands
-          </div>
-        </div>
-      </div>
-
-      <p className="text-base text-slate-600 mt-6">
+      <p className="text-base text-slate-600 mt-8">
         By submitting this form, you agree to our{' '}
         <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-700">
           Privacy Notice
