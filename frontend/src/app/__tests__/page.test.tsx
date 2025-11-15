@@ -25,7 +25,9 @@ jest.mock('../../store/useAuthStore', () => ({
     const state = {
       freeRemaining: 20,
       paidCredits: 0,
+      subscriptionStatus: 'none',
       setAuth: jest.fn(),
+      reset: jest.fn(),
     };
     return selector ? selector(state) : state;
   }),

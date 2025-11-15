@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAuthStore } from '../store/useAuthStore';
 import { API_URL } from '../env';
@@ -26,7 +26,7 @@ export function useUserData() {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch user data from backend
-  const fetchUserData = async (idToken: string) => {
+  const fetchUserData = useCallback(async (idToken: string) => {
     setLoading(true);
     setError(null);
 
@@ -70,7 +70,7 @@ export function useUserData() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setAuth]);
 
   // Watch for session changes
   useEffect(() => {
@@ -89,7 +89,7 @@ export function useUserData() {
       // User logged in - fetch fresh user data
       fetchUserData(session.idToken as string);
     }
-  }, [status, session?.idToken]);
+  }, [status, session?.idToken, reset, fetchUserData]);
 
   // Manual refetch function for explicit updates (e.g., after conversion)
   const refetch = async () => {
