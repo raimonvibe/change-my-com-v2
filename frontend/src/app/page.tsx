@@ -7,6 +7,7 @@ import { useDropzone, FileRejection } from "react-dropzone";
 import { API_URL } from "../env";
 import { Download, Upload, Wand2, AlertTriangle, Eye, CheckCircle, X, Trash2, Lightbulb } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
+import { useUserData } from "../hooks/useUserData";
 
 // Note: Metadata is set in layout.tsx since this is a client component
 
@@ -77,8 +78,8 @@ type Job = {
 export default function ConvertPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const setAuth = useAuthStore(s => s.setAuth);
   const auth = useAuthStore(s => s);
+  const { refetch: refetchUserData } = useUserData(); // Handles session sync automatically
   const [target, setTarget] = useState('webp');
   const [quality, setQuality] = useState(85);
   const [sharpness, setSharpness] = useState(0);
@@ -122,34 +123,6 @@ export default function ConvertPage() {
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, []);
-
-  // Function to refresh user credits after conversion
-  const refreshCredits = async () => {
-    if (!session?.idToken) return;
-
-    try {
-      // Add timeout for slow connections
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-      const res = await fetch(`${API_URL}/api/user/me`, {
-        headers: { Authorization: `Bearer ${session.idToken}` },
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json() as { freeRemaining?: number; paidCredits?: number };
-        setAuth({
-          freeRemaining: data.freeRemaining,
-          paidCredits: data.paidCredits,
-        });
-      }
-    } catch {
-      // Silently fail - not critical
-    }
-  };
 
   // Validate image dimensions and return dimensions
   const validateImageDimensions = (file: File): Promise<{ valid: boolean; error?: string; width?: number; height?: number }> => {
@@ -348,7 +321,7 @@ export default function ConvertPage() {
       const url = URL.createObjectURL(blob);
       setJobs((prev) => prev.map(job => job.id === j.id ? { ...job, status: 'done' as const, url, progress: 100 } : job));
 
-      await refreshCredits();
+      await refetchUserData();
     } catch (e: unknown) {
       clearInterval(progressInterval);
       let errorMessage = 'Unknown error occurred';
@@ -478,7 +451,7 @@ export default function ConvertPage() {
         setJobs((prev) => prev.map(job => job.id === j.id ? { ...job, status: 'done' as const, url, progress: 100 } : job));
 
         // Refresh user credits after successful conversion
-        await refreshCredits();
+        await refetchUserData();
       } catch (e: unknown) {
         clearInterval(progressInterval);
         let errorMessage = 'Unknown error occurred';

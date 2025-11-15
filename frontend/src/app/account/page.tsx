@@ -1,10 +1,11 @@
 'use client';
 // Trigger new deployment - TypeScript fixes applied - v2
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useUserData } from "../../hooks/useUserData";
 import { API_URL } from "../../env";
 
 export default function AccountPage() {
@@ -17,40 +18,8 @@ export default function AccountPage() {
   const autoRenewal = useAuthStore(s => s.autoRenewal);
   const [toggleLoading, setToggleLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchMe = async (): Promise<void> => {
-      if (!session?.idToken) return;
-
-      try {
-        const res = await fetch(`${API_URL}/api/user/me`, {
-          headers: { Authorization: `Bearer ${session.idToken}` },
-        });
-
-        if (!res.ok) return;
-
-        const data = await res.json() as {
-          authenticated: boolean;
-          email: string;
-          freeRemaining: number;
-          paidCredits: number;
-          subscriptionStatus: string;
-          autoRenewal: boolean;
-        };
-
-        setAuth({
-          authenticated: data.authenticated,
-          email: data.email,
-          freeRemaining: data.freeRemaining,
-          paidCredits: data.paidCredits,
-          subscriptionStatus: data.subscriptionStatus,
-          autoRenewal: data.autoRenewal ?? false
-        });
-      } catch {
-        // Silently fail - user can refresh page if needed
-      }
-    };
-    fetchMe();
-  }, [session, setAuth]);
+  // Use shared hook for auth state synchronization
+  useUserData();
 
   const toggleAutoRenewal = async () => {
     if (!session?.idToken) return;

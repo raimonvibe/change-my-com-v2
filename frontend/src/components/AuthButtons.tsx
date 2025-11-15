@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { LogOut } from "lucide-react";
+import { useAuthStore } from "../store/useAuthStore";
 
 export function AuthButtons() {
   const { data } = useSession();
+  const reset = useAuthStore(s => s.reset);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -30,10 +32,16 @@ export function AuthButtons() {
     );
   }
 
+  const handleSignOut = () => {
+    // Clear auth store to prevent stale subscription data
+    reset();
+    signOut();
+  };
+
   return (
     <div className="flex items-center gap-2">
       {data?.user ? (
-        <button onClick={() => signOut()} className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-3 sm:px-4 py-2 text-white hover:bg-sky-700 text-sm">
+        <button onClick={handleSignOut} className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-3 sm:px-4 py-2 text-white hover:bg-sky-700 text-sm">
           <LogOut size={16} /> <span className="hidden sm:inline">Sign out</span>
         </button>
       ) : (
