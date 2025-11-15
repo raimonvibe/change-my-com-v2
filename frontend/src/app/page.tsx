@@ -92,6 +92,14 @@ export default function ConvertPage() {
   const [gifFormats, setGifFormats] = useState<string[]>(['png', 'jpg']);
   const token = session?.idToken as string | undefined;
 
+  // Helper to detect if user has subscription but isn't logged in
+  // Used purely for UX messaging - backend still validates JWT for all authenticated requests
+  const hasStaleSubscription = (): boolean => {
+    if (session) return false; // Already logged in
+    // Check if localStorage indicates user previously had an active subscription
+    return auth.subscriptionStatus === 'active' || auth.paidCredits > 0;
+  };
+
   // Cleanup blob URLs on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
@@ -311,7 +319,10 @@ export default function ConvertPage() {
       if (res.status === 401) throw new Error('Please sign in with Google to convert.');
       if (res.status === 402) {
         setShowLimitModal(true);
-        setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: 'No conversions remaining. Please subscribe to continue.' } : x));
+        const errorMsg = hasStaleSubscription()
+          ? 'Your session has expired. Please sign in to use your subscription.'
+          : 'No conversions remaining. Please subscribe to continue.';
+        setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: errorMsg } : x));
         return;
       }
       if (res.status === 413) {
@@ -362,9 +373,13 @@ export default function ConvertPage() {
     // Check if user has credits before starting conversion
     if (pending.length > 0 && auth.freeRemaining === 0 && auth.paidCredits === 0) {
       setShowLimitModal(true);
+      // Show context-aware error message
+      const errorMsg = hasStaleSubscription()
+        ? 'Your session has expired. Please sign in to use your subscription.'
+        : 'No conversions remaining. Please subscribe to continue.';
       setJobs((prev) => prev.map(job =>
         pending.some(p => p.id === job.id)
-          ? { ...job, status: 'error', error: 'No conversions remaining. Please subscribe to continue.' }
+          ? { ...job, status: 'error', error: errorMsg }
           : job
       ));
       return;
@@ -431,7 +446,10 @@ export default function ConvertPage() {
         if (res.status === 401) throw new Error('Please sign in with Google to convert.');
         if (res.status === 402) {
           setShowLimitModal(true);
-          setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: 'No conversions remaining. Please subscribe to continue.' } : x));
+          const errorMsg = hasStaleSubscription()
+            ? 'Your session has expired. Please sign in to use your subscription.'
+            : 'No conversions remaining. Please subscribe to continue.';
+          setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: errorMsg } : x));
           return;
         }
         if (res.status === 413) {
@@ -1052,10 +1070,12 @@ export default function ConvertPage() {
               </div>
               <div className="flex-1">
                 <h3 id="limit-modal-title" className="text-lg font-semibold text-slate-900 mb-2">
-                  Conversion Limit Reached
+                  {hasStaleSubscription() ? 'Session Expired' : 'Conversion Limit Reached'}
                 </h3>
                 <p id="limit-modal-description" className="text-slate-600 mb-4">
-                  {session ? (
+                  {hasStaleSubscription() ? (
+                    <>You have an active subscription, but your session has expired. Please sign in to access your conversions.</>
+                  ) : session ? (
                     <>You&apos;ve used all your conversions for today. Subscribe to get 1000 conversions per month for just $1.98/month.</>
                   ) : (
                     <>You&apos;ve used all 20 free conversions for today. Sign in to continue, or subscribe for 1000 conversions per month at $1.98/month.</>
@@ -1066,18 +1086,24 @@ export default function ConvertPage() {
                     <button
                       onClick={() => signIn('google')}
                       aria-label="Sign in with Google"
-                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-sky-600 px-4 py-2.5 text-white hover:bg-sky-700 text-sm font-medium"
+                      className={`flex-1 inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-white text-sm font-medium ${
+                        hasStaleSubscription()
+                          ? 'bg-emerald-600 hover:bg-emerald-700'
+                          : 'bg-sky-600 hover:bg-sky-700'
+                      }`}
                     >
                       Sign In
                     </button>
                   )}
-                  <button
-                    onClick={() => router.push('/billing')}
-                    aria-label="Go to billing page to subscribe"
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-white hover:bg-emerald-700 text-sm font-medium"
-                  >
-                    Subscribe Now
-                  </button>
+                  {!hasStaleSubscription() && (
+                    <button
+                      onClick={() => router.push('/billing')}
+                      aria-label="Go to billing page to subscribe"
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-white hover:bg-emerald-700 text-sm font-medium"
+                    >
+                      Subscribe Now
+                    </button>
+                  )}
                   <button
                     onClick={() => setShowLimitModal(false)}
                     aria-label="Close limit modal"
