@@ -5,6 +5,15 @@ import { AuthButtons } from '../AuthButtons'
 // Mock next-auth
 jest.mock('next-auth/react')
 
+// Mock useAuthStore
+const mockReset = jest.fn()
+jest.mock('../../store/useAuthStore', () => ({
+  useAuthStore: jest.fn((selector) => {
+    const store = { reset: mockReset }
+    return selector ? selector(store) : store
+  }),
+}))
+
 const mockUseSession = useSession as jest.MockedFunction<typeof useSession>
 const mockSignIn = signIn as jest.MockedFunction<typeof signIn>
 const mockSignOut = signOut as jest.MockedFunction<typeof signOut>
@@ -94,7 +103,7 @@ describe('AuthButtons Component', () => {
       })
     })
 
-    it('should call signOut when sign out button is clicked', async () => {
+    it('should call reset and signOut when sign out button is clicked', async () => {
       render(<AuthButtons />)
 
       await waitFor(() => {
@@ -102,6 +111,7 @@ describe('AuthButtons Component', () => {
         fireEvent.click(signOutButton)
       })
 
+      expect(mockReset).toHaveBeenCalled()
       expect(mockSignOut).toHaveBeenCalled()
     })
 
