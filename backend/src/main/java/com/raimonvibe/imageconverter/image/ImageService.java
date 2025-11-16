@@ -497,6 +497,18 @@ public class ImageService {
     }
 
     /**
+     * Validate image dimensions (public wrapper for dimension checking).
+     * This is used by the controller to validate images before conversion.
+     *
+     * @param input Image file to analyze
+     * @return Array with [width, height]
+     * @throws IOException if dimensions cannot be determined
+     */
+    public int[] validateImageDimensions(File input) throws IOException {
+        return getImageDimensions(input);
+    }
+
+    /**
      * Get image dimensions using ImageMagick identify command.
      * Fast operation that doesn't load the full image into memory.
      *

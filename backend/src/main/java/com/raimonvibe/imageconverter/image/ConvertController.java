@@ -216,7 +216,10 @@ public class ConvertController {
             logger.error("GIF conversion I/O error: {}", ioe.getMessage());
             safeDelete(tmp);
             safeDelete(zipOut);
-            return unprocessable("Conversion failed");
+
+            // Sanitize error message before sending to user (security: prevent info disclosure)
+            String errorMessage = sanitizeErrorMessage(ioe.getMessage());
+            return unprocessable(errorMessage);
         } catch (Exception e) {
             logger.error("Unexpected GIF conversion error: {}", e.getMessage());
             if (logger.isDebugEnabled()) {
@@ -308,6 +311,28 @@ public class ConvertController {
             tmp = File.createTempFile("upload-", ".bin");
             file.transferTo(tmp);
 
+            // Validate image dimensions before attempting conversion
+            // This provides early feedback for oversized images
+            try {
+                int[] dimensions = imageService.validateImageDimensions(tmp);
+                int maxDim = Math.max(dimensions[0], dimensions[1]);
+                final int MAX_DIMENSION = 8000;
+
+                if (maxDim > MAX_DIMENSION) {
+                    safeDelete(tmp);
+                    String message = String.format(
+                        "Image dimensions (%dx%d pixels) exceed maximum allowed (%dx%d pixels). " +
+                        "Please resize your image before uploading.",
+                        dimensions[0], dimensions[1], MAX_DIMENSION, MAX_DIMENSION
+                    );
+                    logger.warn("Image too large: {}x{}", dimensions[0], dimensions[1]);
+                    return unprocessable(message);
+                }
+            } catch (IOException dimError) {
+                // If we can't read dimensions, let the conversion attempt handle it
+                logger.warn("Could not validate dimensions, proceeding with conversion: {}", dimError.getMessage());
+            }
+
             final Integer q = (quality != null) ? quality : null;
             final Integer s = (sharpness != null) ? sharpness : 0;
             final Integer w = (width != null) ? width : null;
@@ -357,7 +382,10 @@ public class ConvertController {
             logger.error("Conversion I/O error: {}", ioe.getMessage());
             safeDelete(tmp);
             safeDelete(out);
-            return unprocessable("Conversion failed");
+
+            // Sanitize error message before sending to user (security: prevent info disclosure)
+            String errorMessage = sanitizeErrorMessage(ioe.getMessage());
+            return unprocessable(errorMessage);
         } catch (Exception e) {
             logger.error("Unexpected conversion error: {}", e.getMessage());
             if (logger.isDebugEnabled()) {
@@ -412,6 +440,71 @@ public class ConvertController {
         String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8)
                                    .replace("+", "%20");
         return "attachment; filename=\"" + filename + "\"; filename*=UTF-8''" + encoded;
+    }
+
+    /**
+     * Sanitize error messages before sending to users to prevent information disclosure.
+     * Uses a whitelist approach to only pass through safe, known error patterns.
+     * Detailed errors are logged server-side for debugging.
+     *
+     * @param errorMessage Raw error message from exception
+     * @return Safe, sanitized error message for user
+     */
+    private static String sanitizeErrorMessage(String errorMessage) {
+        if (errorMessage == null || errorMessage.isEmpty()) {
+            return "Image conversion failed. Please try a different image.";
+        }
+
+        // Whitelist: Known safe error messages that are helpful to users
+        // These are constructed in our code and don't leak system information
+
+        // Dimension validation errors (from our validation code)
+        if (errorMessage.startsWith("Image dimensions (") &&
+            errorMessage.contains("exceed maximum allowed")) {
+            // Extract just the dimension info, no file paths
+            return errorMessage.replaceAll("/[^\\s]+", "[file]"); // Remove any paths
+        }
+
+        // PNG conversion restriction (from ImageService.java:66-76)
+        if (errorMessage.contains("PNG conversion not supported for very large images")) {
+            return "PNG conversion not supported for very large images. Use WebP, JPEG, or AVIF instead for faster conversions.";
+        }
+
+        // GIF frame limit (from ImageService.java:402)
+        if (errorMessage.contains("GIF has too many frames")) {
+            // Extract just the frame count, sanitize the message
+            if (errorMessage.matches(".*\\(max \\d+\\)\\..*Found: \\d+.*")) {
+                return "GIF has too many frames (maximum 100 allowed). Please use a shorter GIF.";
+            }
+        }
+
+        // Timeout errors - provide helpful message without system details
+        if (errorMessage.toLowerCase().contains("timeout") ||
+            errorMessage.toLowerCase().contains("timed out")) {
+            return "Image processing timed out. The image may be too large or complex. Try a smaller image or reduce quality settings.";
+        }
+
+        // Server busy (from ImageService.java:39)
+        if (errorMessage.contains("Server busy")) {
+            return "Server is currently busy. Please try again in a moment.";
+        }
+
+        // Dimension reading errors (from ImageService.java:521)
+        if (errorMessage.contains("get image dimensions") ||
+            errorMessage.contains("Invalid dimension")) {
+            return "Unable to process image. The file may be corrupted or in an unsupported format.";
+        }
+
+        // GIF extraction errors (from ImageService.java:390)
+        if (errorMessage.contains("Failed to extract GIF frames") ||
+            errorMessage.contains("No frames extracted")) {
+            return "Failed to process GIF file. The file may be corrupted or invalid.";
+        }
+
+        // Default: Don't leak any exception details
+        // Log the full error server-side, show generic message to user
+        logger.debug("Sanitized error message for user. Original: {}", errorMessage);
+        return "Image conversion failed. Please try a different image or contact support if the issue persists.";
     }
 
     private static String mimeFor(String fmt) {

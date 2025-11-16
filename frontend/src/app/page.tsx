@@ -308,10 +308,13 @@ export default function ConvertPage() {
         const errorData = await res.json().catch(() => ({})) as { error?: string };
         let errorMessage = headerError || errorData.error || `Conversion failed: ${res.status}`;
 
-        if (res.status === 400 && !headerError) {
-          errorMessage = 'Invalid GIF file or corrupted. Please try a different file.';
-        } else if (res.status === 415 && !headerError) {
-          errorMessage = 'Only GIF files are supported for frame extraction.';
+        // Only provide fallback messages if no specific error was provided
+        if (!headerError && !errorData.error) {
+          if (res.status === 400) {
+            errorMessage = 'Invalid GIF file or corrupted. Please try a different file.';
+          } else if (res.status === 415) {
+            errorMessage = 'Only GIF files are supported for frame extraction.';
+          }
         }
 
         throw new Error(errorMessage);
@@ -435,13 +438,15 @@ export default function ConvertPage() {
           const errorData = await res.json().catch(() => ({})) as { error?: string };
           let errorMessage = headerError || errorData.error || `Conversion failed: ${res.status}`;
 
-          // Provide more specific error messages for common issues
-          if (res.status === 400 && !headerError) {
-            errorMessage = 'Invalid file format or corrupted image. Please try a different file.';
-          } else if (res.status === 415 && !headerError) {
-            errorMessage = 'Unsupported file format. Please use standard image formats like .jpg, .png, or .webp.';
-          } else if (res.status === 422 && !headerError) {
-            errorMessage = 'File format not supported for conversion. Please try a different image format.';
+          // Only provide fallback messages if no specific error was provided
+          if (!headerError && !errorData.error) {
+            if (res.status === 400) {
+              errorMessage = 'Invalid file format or corrupted image. Please try a different file.';
+            } else if (res.status === 415) {
+              errorMessage = 'Unsupported file format. Please use standard image formats like .jpg, .png, or .webp.';
+            } else if (res.status === 422) {
+              errorMessage = 'File format not supported for conversion. Please try a different image format.';
+            }
           }
 
           throw new Error(errorMessage);
