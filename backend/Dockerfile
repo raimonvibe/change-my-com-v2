@@ -36,6 +36,8 @@ RUN apk add --no-cache \
     libpng-dev \
     libwebp \
     libwebp-dev \
+    libheif \
+    libheif-dev \
     curl
 
 # Create app user
