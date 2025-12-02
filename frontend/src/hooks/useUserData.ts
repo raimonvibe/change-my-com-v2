@@ -92,11 +92,11 @@ export function useUserData() {
   }, [status, session?.idToken, reset, fetchUserData]);
 
   // Manual refetch function for explicit updates (e.g., after conversion)
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     if (session?.idToken) {
       await fetchUserData(session.idToken as string);
     }
-  };
+  }, [session?.idToken, fetchUserData]);
 
   return {
     loading,
