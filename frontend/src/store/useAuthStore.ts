@@ -27,6 +27,14 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        email: state.email,
+        authenticated: state.authenticated,
+        freeRemaining: state.freeRemaining,
+        paidCredits: state.paidCredits,
+        subscriptionStatus: state.subscriptionStatus,
+        // autoRenewal is intentionally excluded from localStorage to prevent cross-device sync issues
+      }),
     }
   )
 );

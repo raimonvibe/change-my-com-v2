@@ -1,6 +1,6 @@
 'use client';
 // Trigger new deployment - TypeScript fixes applied - v2
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -19,7 +19,12 @@ export default function AccountPage() {
   const [toggleLoading, setToggleLoading] = useState(false);
 
   // Use shared hook for auth state synchronization
-  useUserData();
+  const { refetch } = useUserData();
+
+  // Force fresh data fetch on mount to ensure autoRenewal is synced
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   const toggleAutoRenewal = async () => {
     if (!session?.idToken) return;
@@ -35,6 +40,8 @@ export default function AccountPage() {
         const data = await res.json();
         if (data.success) {
           setAuth({ autoRenewal: data.autoRenewal });
+          // Refetch to ensure all devices sync with the latest state
+          await refetch();
         }
       }
     } catch {
