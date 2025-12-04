@@ -15,6 +15,8 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -93,6 +95,21 @@ public class SecurityConfig {
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    // ====== User Details Service ======
+    /**
+     * Disables UserDetailsServiceAutoConfiguration by providing a no-op implementation.
+     * This application uses stateless JWT authentication via Google OAuth tokens only.
+     * Username/password authentication is not supported.
+     */
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> {
+            throw new UsernameNotFoundException(
+                "This application uses JWT authentication only. Username/password login is not supported."
+            );
+        };
     }
 
     // ====== CORS ======
