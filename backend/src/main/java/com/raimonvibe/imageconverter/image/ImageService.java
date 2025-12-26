@@ -125,8 +125,15 @@ public class ImageService {
 
                 // Add input file with optional format hint
                 // Format hint syntax: ico:filename tells ImageMagick to treat the file as ICO format
+                // For ICO files, use [0] to only process the first/largest image
+                String inputArg;
                 if (inputFormatHint != null && !inputFormatHint.isEmpty()) {
-                    args.add(inputFormatHint + ":" + processedInput.getAbsolutePath());
+                    inputArg = inputFormatHint + ":" + processedInput.getAbsolutePath();
+                    // ICO files contain multiple images - use only the first one
+                    if ("ico".equals(inputFormatHint)) {
+                        inputArg = inputArg + "[0]";
+                    }
+                    args.add(inputArg);
                 } else {
                     args.add(processedInput.getAbsolutePath());
                 }
@@ -538,6 +545,13 @@ public class ImageService {
                 ? formatHint + ":" + input.getAbsolutePath()
                 : input.getAbsolutePath();
 
+            // For ICO files, only get dimensions of the first image using [0] index
+            // ICO files contain multiple images at different resolutions (256x256, 128x128, etc.)
+            // Without [0], ImageMagick returns dimensions for all embedded images
+            if ("ico".equals(formatHint)) {
+                inputPath = inputPath + "[0]";
+            }
+
             ProcessBuilder pb = new ProcessBuilder(
                 "magick", "identify",
                 "-format", "%w %h",
@@ -557,7 +571,11 @@ public class ImageService {
                 throw new IOException("Failed to get image dimensions: " + output);
             }
 
-            String[] parts = output.split("\\s+");
+            // For multi-image formats like ICO, only parse the first line
+            // This handles cases where ImageMagick returns multiple dimension pairs
+            String firstLine = output.split("\\r?\\n")[0].trim();
+            String[] parts = firstLine.split("\\s+");
+
             if (parts.length >= 2) {
                 return new int[]{Integer.parseInt(parts[0]), Integer.parseInt(parts[1])};
             }
