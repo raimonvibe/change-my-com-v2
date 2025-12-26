@@ -33,8 +33,13 @@ public class ImageService {
      * - Concurrency gelimiteerd met Semaphore
      * - Timeout van 15 seconden
      * - Temp output in system temp
+     *
+     * @param input Input file to convert
+     * @param options Conversion options (format, quality, sharpness, width)
+     * @param inputFormatHint Optional format hint for input file (e.g., "ico", "png")
+     * @return Converted file
      */
-    public File convert(File input, ConversionOptions options) throws IOException, InterruptedException {
+    public File convert(File input, ConversionOptions options, String inputFormatHint) throws IOException, InterruptedException {
         if (!semaphore.tryAcquire(30, TimeUnit.SECONDS)) {
             throw new IOException("Server busy: too many concurrent conversions");
         }
@@ -48,7 +53,8 @@ public class ImageService {
             File out = Files.createTempFile("conv-" + UUID.randomUUID(), "." + outExt).toFile();
 
             // Detect image dimensions and cap sharpness to respect 10s policy time limit
-            int[] dimensions = getImageDimensions(input);
+            // Use the format hint if provided to help ImageMagick identify the file
+            int[] dimensions = getImageDimensions(input, inputFormatHint);
             int maxDimension = Math.max(dimensions[0], dimensions[1]);
 
             // Auto-resize large images (>2000px) to respect 10s policy time limit
@@ -117,7 +123,13 @@ public class ImageService {
                 args.add("map");
                 args.add("512MiB");
 
-                args.add(processedInput.getAbsolutePath());
+                // Add input file with optional format hint
+                // Format hint syntax: ico:filename tells ImageMagick to treat the file as ICO format
+                if (inputFormatHint != null && !inputFormatHint.isEmpty()) {
+                    args.add(inputFormatHint + ":" + processedInput.getAbsolutePath());
+                } else {
+                    args.add(processedInput.getAbsolutePath());
+                }
 
                 // Apply width resize if specified (before format-specific handling)
                 if (adjustedOptions.width() != null && adjustedOptions.width() > 0 && !"ico".equals(outExt)) {
@@ -427,8 +439,8 @@ public class ImageService {
                             options.width()
                         );
 
-                        // Convert frame
-                        File converted = convert(frame, frameOptions);
+                        // Convert frame (PNG frames from GIF extraction, no format hint needed)
+                        File converted = convert(frame, frameOptions, null);
                         tempFiles.add(converted);
 
                         // Add to ZIP with proper naming: frame-001.png, frame-001.jpg, etc.
@@ -501,11 +513,12 @@ public class ImageService {
      * This is used by the controller to validate images before conversion.
      *
      * @param input Image file to analyze
+     * @param formatHint Optional format hint (e.g., "ico", "png") to help ImageMagick identify the file
      * @return Array with [width, height]
      * @throws IOException if dimensions cannot be determined
      */
-    public int[] validateImageDimensions(File input) throws IOException {
-        return getImageDimensions(input);
+    public int[] validateImageDimensions(File input, String formatHint) throws IOException {
+        return getImageDimensions(input, formatHint);
     }
 
     /**
@@ -513,15 +526,22 @@ public class ImageService {
      * Fast operation that doesn't load the full image into memory.
      *
      * @param input Image file to analyze
+     * @param formatHint Optional format hint (e.g., "ico", "png") to help ImageMagick identify the file
      * @return Array with [width, height]
      * @throws IOException if dimensions cannot be determined
      */
-    private int[] getImageDimensions(File input) throws IOException {
+    private int[] getImageDimensions(File input, String formatHint) throws IOException {
         try {
+            // Build command with optional format hint
+            // Format hint syntax: ico:filename tells ImageMagick to treat the file as ICO format
+            String inputPath = formatHint != null && !formatHint.isEmpty()
+                ? formatHint + ":" + input.getAbsolutePath()
+                : input.getAbsolutePath();
+
             ProcessBuilder pb = new ProcessBuilder(
                 "magick", "identify",
                 "-format", "%w %h",
-                input.getAbsolutePath()
+                inputPath
             );
             pb.redirectErrorStream(true);
 

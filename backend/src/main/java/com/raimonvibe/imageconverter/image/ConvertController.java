@@ -263,9 +263,13 @@ public class ConvertController {
         }
 
         // ---- 2) Bestandsvalidatie (size/MIME/magic)
+        String detectedFormat = null;
         try {
             FileValidator.validate(file);
-            logger.debug("File validation passed for: {}", file.getOriginalFilename());
+            // Detect format from magic bytes to help ImageMagick process the file
+            detectedFormat = FileValidator.detectFormat(file);
+            logger.debug("File validation passed for: {}, detected format: {}",
+                file.getOriginalFilename(), detectedFormat);
         } catch (IllegalArgumentException iae) {
             logger.warn("File validation failed: {}", iae.getMessage());
             return badRequest(iae.getMessage());
@@ -313,8 +317,9 @@ public class ConvertController {
 
             // Validate image dimensions before attempting conversion
             // This provides early feedback for oversized images
+            // Pass the detected format to help ImageMagick identify files like ICO
             try {
-                int[] dimensions = imageService.validateImageDimensions(tmp);
+                int[] dimensions = imageService.validateImageDimensions(tmp, detectedFormat);
                 int maxDim = Math.max(dimensions[0], dimensions[1]);
                 final int MAX_DIMENSION = 8000;
 
@@ -336,7 +341,7 @@ public class ConvertController {
             final Integer q = (quality != null) ? quality : null;
             final Integer s = (sharpness != null) ? sharpness : 0;
             final Integer w = (width != null) ? width : null;
-            out = imageService.convert(tmp, new ImageService.ConversionOptions(fmt, q, s, w));
+            out = imageService.convert(tmp, new ImageService.ConversionOptions(fmt, q, s, w), detectedFormat);
 
             // Record cost metrics
             long processingTime = System.currentTimeMillis() - startTime;

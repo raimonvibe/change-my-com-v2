@@ -559,6 +559,125 @@ public class FileValidatorTest {
         assertDoesNotThrow(() -> FileValidator.validate(file));
     }
 
+    // ==================== FORMAT DETECTION TESTS ====================
+
+    @Test
+    @DisplayName("Should detect PNG format from magic bytes")
+    void testDetectPngFormat() throws IOException {
+        byte[] pngHeader = new byte[]{
+            (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+            0x00, 0x00, 0x00, 0x0D
+        };
+
+        MultipartFile file = new MockMultipartFile(
+            "file",
+            "test.png",
+            "image/png",
+            pngHeader
+        );
+
+        String detected = FileValidator.detectFormat(file);
+        assertEquals("png", detected);
+    }
+
+    @Test
+    @DisplayName("Should detect JPEG format from magic bytes")
+    void testDetectJpegFormat() throws IOException {
+        byte[] jpegHeader = new byte[]{
+            (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
+            0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01
+        };
+
+        MultipartFile file = new MockMultipartFile(
+            "file",
+            "test.jpg",
+            "image/jpeg",
+            jpegHeader
+        );
+
+        String detected = FileValidator.detectFormat(file);
+        assertEquals("jpg", detected);
+    }
+
+    @Test
+    @DisplayName("Should detect ICO format from magic bytes")
+    void testDetectIcoFormat() throws IOException {
+        byte[] icoHeader = new byte[]{
+            0x00, 0x00, 0x01, 0x00,
+            0x01, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        };
+
+        MultipartFile file = new MockMultipartFile(
+            "file",
+            "favicon.ico",
+            "image/x-icon",
+            icoHeader
+        );
+
+        String detected = FileValidator.detectFormat(file);
+        assertEquals("ico", detected);
+    }
+
+    @Test
+    @DisplayName("Should detect WebP format from magic bytes")
+    void testDetectWebPFormat() throws IOException {
+        byte[] webpHeader = new byte[]{
+            'R', 'I', 'F', 'F',
+            0x00, 0x00, 0x00, 0x00,
+            'W', 'E', 'B', 'P'
+        };
+
+        MultipartFile file = new MockMultipartFile(
+            "file",
+            "test.webp",
+            "image/webp",
+            webpHeader
+        );
+
+        String detected = FileValidator.detectFormat(file);
+        assertEquals("webp", detected);
+    }
+
+    @Test
+    @DisplayName("Should detect GIF format from magic bytes")
+    void testDetectGifFormat() throws IOException {
+        byte[] gifHeader = new byte[]{
+            'G', 'I', 'F', '8', '9', 'a',
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        };
+
+        MultipartFile file = new MockMultipartFile(
+            "file",
+            "test.gif",
+            "image/gif",
+            gifHeader
+        );
+
+        String detected = FileValidator.detectFormat(file);
+        assertEquals("gif", detected);
+    }
+
+    @Test
+    @DisplayName("Should return null for unknown format")
+    void testDetectUnknownFormat() throws IOException {
+        byte[] unknownHeader = new byte[]{
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00
+        };
+
+        MultipartFile file = new MockMultipartFile(
+            "file",
+            "unknown.bin",
+            "application/octet-stream",
+            unknownHeader
+        );
+
+        String detected = FileValidator.detectFormat(file);
+        assertNull(detected);
+    }
+
     // ==================== PATH TRAVERSAL TESTS ====================
 
     @Test

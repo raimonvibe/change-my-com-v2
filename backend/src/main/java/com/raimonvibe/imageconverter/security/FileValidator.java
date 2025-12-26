@@ -30,6 +30,33 @@ public final class FileValidator {
 
     private FileValidator() {}
 
+    /**
+     * Detect image format from magic bytes.
+     * This helps ImageMagick process files correctly by providing format hints.
+     *
+     * @param file The uploaded file
+     * @return Format extension (png, jpg, gif, webp, avif, heic, ico, bmp, tiff) or null if unknown
+     * @throws IOException if file cannot be read
+     */
+    public static String detectFormat(MultipartFile file) throws IOException {
+        try (InputStream in = file.getInputStream()) {
+            byte[] head = in.readNBytes(12);
+            if (head.length < 2) return null;
+
+            if (isPng(head)) return "png";
+            if (isJpeg(head)) return "jpg";
+            if (isGif(head)) return "gif";
+            if (isWebp(head)) return "webp";
+            if (isAvif(head)) return "avif";
+            if (isHeic(head)) return "heic";
+            if (isIco(head)) return "ico";
+            if (isBmp(head)) return "bmp";
+            if (isTiff(head)) return "tiff";
+
+            return null;
+        }
+    }
+
     public static void validate(MultipartFile file) throws IOException, IllegalArgumentException {
         if (file == null || file.isEmpty()) throw new IllegalArgumentException("File is empty.");
         if (file.getSize() > MAX_BYTES) throw new IllegalArgumentException("File too large.");
