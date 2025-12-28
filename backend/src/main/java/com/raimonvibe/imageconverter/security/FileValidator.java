@@ -85,8 +85,8 @@ public final class FileValidator {
         }
 
         // MIME header validation
-        // Security: HEIC files may be uploaded with incorrect MIME types (e.g., application/octet-stream)
-        // We ONLY allow HEIC files with wrong MIME type if ALL security checks pass:
+        // Security: HEIC files may be uploaded with incorrect MIME types (e.g., application/octet-stream or null)
+        // We ONLY allow HEIC files with wrong/null MIME type if ALL security checks pass:
         // 1. Magic bytes match HEIC signature (already validated above)
         // 2. Extension is .heic or .heif (already validated above)
         // 3. No suspicious content detected (already validated above)
@@ -95,7 +95,13 @@ public final class FileValidator {
         boolean isHeicFile = isHeic(head);
         boolean isHeicExtension = "heic".equals(ext) || "heif".equals(ext);
         
-        if (contentType != null && !ALLOWED_MIME.contains(contentType.toLowerCase())) {
+        // Security: Reject null MIME types for non-HEIC files
+        if (contentType == null) {
+            if (!isHeicFile || !isHeicExtension) {
+                throw new IllegalArgumentException("Unsupported MIME type.");
+            }
+            // HEIC file with null MIME type - allow it since magic bytes AND extension match
+        } else if (!ALLOWED_MIME.contains(contentType.toLowerCase())) {
             // Security: Only allow wrong MIME type for HEIC if ALL conditions are met
             if (!isHeicFile || !isHeicExtension) {
                 throw new IllegalArgumentException("Unsupported MIME type.");
