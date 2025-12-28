@@ -96,12 +96,18 @@ public final class FileValidator {
         boolean isHeicExtension = "heic".equals(ext) || "heif".equals(ext);
         
         // Security: Reject null MIME types for non-HEIC files
-        if (contentType == null) {
+        // Check if content type is null or empty
+        if (contentType == null || contentType.trim().isEmpty()) {
+            // Only allow null/empty MIME type for HEIC files if magic bytes AND extension match
             if (!isHeicFile || !isHeicExtension) {
                 throw new IllegalArgumentException("Unsupported MIME type.");
             }
             // HEIC file with null MIME type - allow it since magic bytes AND extension match
-        } else if (!ALLOWED_MIME.contains(contentType.toLowerCase())) {
+            return; // Early return for HEIC with null MIME type
+        }
+        
+        // For non-null MIME types, validate against whitelist
+        if (!ALLOWED_MIME.contains(contentType.toLowerCase())) {
             // Security: Only allow wrong MIME type for HEIC if ALL conditions are met
             if (!isHeicFile || !isHeicExtension) {
                 throw new IllegalArgumentException("Unsupported MIME type.");
