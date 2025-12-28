@@ -85,7 +85,7 @@ public class StripeWebhookController {
     // Log signature header info (first part only, safe to log)
     String[] sigParts = sigHeader.split(",");
     if (sigParts.length > 0) {
-      String timestamp = sigParts[0].split("=")[1] if (sigParts[0].contains("=")) else "unknown";
+      String timestamp = sigParts[0].contains("=") ? sigParts[0].split("=")[1] : "unknown";
       logger.info("Webhook signature timestamp: {}", timestamp);
     }
     
