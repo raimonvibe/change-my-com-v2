@@ -42,15 +42,33 @@ public class StripeWebhookController {
   @Value("${app.stripe.webhookSecret:}")
   private String webhookSecret;
 
+  // Security: Maximum payload size for Stripe webhooks (512KB - Stripe's typical max is ~100KB)
+  private static final int MAX_PAYLOAD_SIZE = 512 * 1024; // 512KB
+
   @PostMapping("/webhook")
   @Transactional
-  public ResponseEntity<String> webhook(HttpServletRequest request, @RequestBody byte[] payloadBytes, @RequestHeader("Stripe-Signature") String sigHeader) throws IOException {
-    logger.info("=== WEBHOOK RECEIVED === Signature present: {}", sigHeader != null);
+  public ResponseEntity<String> webhook(HttpServletRequest request, @RequestBody byte[] payloadBytes, @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) throws IOException {
+    // Security: Require signature header
+    if (sigHeader == null || sigHeader.trim().isEmpty()) {
+      logger.error("SECURITY: Webhook request missing Stripe-Signature header - rejecting");
+      return ResponseEntity.status(400).body("Missing signature header");
+    }
     
     // Security check: Ensure webhook secret is configured
     if (webhookSecret == null || webhookSecret.trim().isEmpty()) {
       logger.error("CRITICAL: Stripe webhook secret is not configured! Set STRIPE_WEBHOOK_SECRET environment variable.");
       return ResponseEntity.status(500).body("Webhook secret not configured");
+    }
+
+    // Security: Validate payload size to prevent DoS attacks
+    if (payloadBytes == null || payloadBytes.length == 0) {
+      logger.error("SECURITY: Empty webhook payload - rejecting");
+      return ResponseEntity.status(400).body("Empty payload");
+    }
+    
+    if (payloadBytes.length > MAX_PAYLOAD_SIZE) {
+      logger.error("SECURITY: Webhook payload too large: {} bytes (max: {} bytes) - rejecting", payloadBytes.length, MAX_PAYLOAD_SIZE);
+      return ResponseEntity.status(413).body("Payload too large");
     }
 
     String payload = new String(payloadBytes, StandardCharsets.UTF_8);
@@ -63,6 +81,17 @@ public class StripeWebhookController {
       logger.error("Stripe webhook signature verification failed: {}", e.getMessage());
       logger.error("This usually means: 1) Webhook secret mismatch, 2) Request not from Stripe, or 3) Payload was modified");
       return ResponseEntity.status(400).body("Invalid signature");
+    }
+
+    // Security: Validate event ID and type
+    if (event.getId() == null || event.getId().trim().isEmpty()) {
+      logger.error("SECURITY: Webhook event missing ID - rejecting");
+      return ResponseEntity.status(400).body("Invalid event: missing ID");
+    }
+    
+    if (event.getType() == null || event.getType().trim().isEmpty()) {
+      logger.error("SECURITY: Webhook event missing type - rejecting");
+      return ResponseEntity.status(400).body("Invalid event: missing type");
     }
 
     logger.info("=== Received Stripe webhook event: {} (id: {}) ===", event.getType(), event.getId());
@@ -83,6 +112,7 @@ public class StripeWebhookController {
     }
 
     // Now process the event - this will only happen once per event ID
+    // Security: Only process known event types
     try {
       switch (event.getType()) {
         case "checkout.session.completed":
@@ -98,7 +128,8 @@ public class StripeWebhookController {
           handleSubscriptionDeleted(event);
           break;
         default:
-          logger.info("Unhandled event type: {}", event.getType());
+          logger.info("Unhandled event type: {} (id: {}) - ignoring", event.getType(), event.getId());
+          // Return 200 to acknowledge receipt but don't process unknown events
       }
     } catch (Exception e) {
       logger.error("Error processing webhook event {}: {}", event.getId(), e.getMessage(), e);
@@ -140,20 +171,38 @@ public class StripeWebhookController {
         }
       }
 
-      logger.info("Session details - subscriptionId: {}, metadata: {}",
-                  subscriptionId, metadata);
+      logger.info("Session details - subscriptionId: {}, metadata keys: {}", subscriptionId, metadata.keySet());
+
+      // Security: Validate inputs before processing
+      if (email == null || email.trim().isEmpty()) {
+        logger.error("SECURITY: Missing or empty email in checkout.session.completed event");
+        return;
+      }
+      
+      // Security: Validate email format (basic check)
+      if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+        logger.error("SECURITY: Invalid email format in checkout.session.completed event");
+        return;
+      }
+      
+      if (subscriptionId == null || subscriptionId.trim().isEmpty()) {
+        logger.error("SECURITY: Missing or empty subscriptionId in checkout.session.completed event");
+        return;
+      }
+      
+      // Security: Validate subscriptionId format (Stripe IDs start with 'sub_')
+      if (!subscriptionId.startsWith("sub_")) {
+        logger.error("SECURITY: Invalid subscriptionId format in checkout.session.completed event: {}", subscriptionId);
+        return;
+      }
 
       if (metadata.containsKey("subscription") && "monthly_1000".equals(metadata.get("subscription"))) {
-        if (email != null && subscriptionId != null) {
-          User user = userService.ensureUserByEmail(email);
-          user.setStripeSubscriptionId(subscriptionId);
-          user.setSubscriptionStatus("active");
-          user.setAutoRenewal(true);
-          userService.activateSubscription(user, 1000);
-          logger.info("✓ Activated subscription for user ID: {}, subscriptionId: {}, credits: 1000", user.getId(), subscriptionId);
-        } else {
-          logger.warn("Missing email or subscriptionId - email: {}, subscriptionId: {}", email, subscriptionId);
-        }
+        User user = userService.ensureUserByEmail(email);
+        user.setStripeSubscriptionId(subscriptionId);
+        user.setSubscriptionStatus("active");
+        user.setAutoRenewal(true);
+        userService.activateSubscription(user, 1000);
+        logger.info("✓ Activated subscription for user ID: {}, subscriptionId: {}, credits: 1000", user.getId(), subscriptionId);
       } else {
         logger.warn("Metadata check failed - metadata: {}", metadata);
       }
@@ -165,14 +214,34 @@ public class StripeWebhookController {
   private void handleInvoicePaid(Event event) {
     try {
       Invoice invoice = (Invoice) event.getDataObjectDeserializer().getObject().orElse(null);
-      if (invoice != null && invoice.getLines() != null && invoice.getLines().getData().size() > 0) {
-        // Get subscription ID from the first line item
-        String subscriptionId = invoice.getLines().getData().get(0).getSubscription();
+      if (invoice == null) {
+        logger.error("SECURITY: invoice.paid event missing invoice object");
+        return;
+      }
+      
+      if (invoice.getLines() == null || invoice.getLines().getData() == null || invoice.getLines().getData().isEmpty()) {
+        logger.error("SECURITY: invoice.paid event missing line items");
+        return;
+      }
+      
+      // Get subscription ID from the first line item
+      String subscriptionId = invoice.getLines().getData().get(0).getSubscription();
+      
+      // Security: Validate subscriptionId
+      if (subscriptionId == null || subscriptionId.trim().isEmpty()) {
+        logger.error("SECURITY: invoice.paid event missing subscriptionId");
+        return;
+      }
+      
+      if (!subscriptionId.startsWith("sub_")) {
+        logger.error("SECURITY: Invalid subscriptionId format in invoice.paid event: {}", subscriptionId);
+        return;
+      }
 
-        logger.info("Processing invoice.paid for subscriptionId: {}", subscriptionId);
+      logger.info("Processing invoice.paid for subscriptionId: {}", subscriptionId);
 
-        // Find user by subscription ID
-        User user = userRepository.findByStripeSubscriptionId(subscriptionId).orElse(null);
+      // Find user by subscription ID
+      User user = userRepository.findByStripeSubscriptionId(subscriptionId).orElse(null);
         if (user != null && user.getAutoRenewal()) {
           LocalDate today = LocalDate.now();
 
@@ -201,15 +270,31 @@ public class StripeWebhookController {
   private void handleSubscriptionUpdated(Event event) {
     try {
       Subscription subscription = (Subscription) event.getDataObjectDeserializer().getObject().orElse(null);
-      if (subscription != null) {
-        String subscriptionId = subscription.getId();
-        String status = subscription.getStatus();
-        Boolean cancelAtPeriodEnd = subscription.getCancelAtPeriodEnd();
+      if (subscription == null) {
+        logger.error("SECURITY: subscription.updated event missing subscription object");
+        return;
+      }
+      
+      String subscriptionId = subscription.getId();
+      String status = subscription.getStatus();
+      Boolean cancelAtPeriodEnd = subscription.getCancelAtPeriodEnd();
+      
+      // Security: Validate subscriptionId
+      if (subscriptionId == null || subscriptionId.trim().isEmpty() || !subscriptionId.startsWith("sub_")) {
+        logger.error("SECURITY: Invalid subscriptionId in subscription.updated event: {}", subscriptionId);
+        return;
+      }
+      
+      // Security: Validate status
+      if (status == null || status.trim().isEmpty()) {
+        logger.error("SECURITY: Missing status in subscription.updated event");
+        return;
+      }
 
-        logger.info("Processing subscription.updated for subscriptionId: {}, status: {}, cancelAtPeriodEnd: {}",
-                    subscriptionId, status, cancelAtPeriodEnd);
+      logger.info("Processing subscription.updated for subscriptionId: {}, status: {}, cancelAtPeriodEnd: {}",
+                  subscriptionId, status, cancelAtPeriodEnd);
 
-        User user = userRepository.findByStripeSubscriptionId(subscriptionId).orElse(null);
+      User user = userRepository.findByStripeSubscriptionId(subscriptionId).orElse(null);
         if (user != null) {
           user.setSubscriptionStatus(status);
           // If user canceled subscription, disable auto-renewal
@@ -229,12 +314,22 @@ public class StripeWebhookController {
   private void handleSubscriptionDeleted(Event event) {
     try {
       Subscription subscription = (Subscription) event.getDataObjectDeserializer().getObject().orElse(null);
-      if (subscription != null) {
-        String subscriptionId = subscription.getId();
+      if (subscription == null) {
+        logger.error("SECURITY: subscription.deleted event missing subscription object");
+        return;
+      }
+      
+      String subscriptionId = subscription.getId();
+      
+      // Security: Validate subscriptionId
+      if (subscriptionId == null || subscriptionId.trim().isEmpty() || !subscriptionId.startsWith("sub_")) {
+        logger.error("SECURITY: Invalid subscriptionId in subscription.deleted event: {}", subscriptionId);
+        return;
+      }
 
-        logger.info("Processing subscription.deleted for subscriptionId: {}", subscriptionId);
+      logger.info("Processing subscription.deleted for subscriptionId: {}", subscriptionId);
 
-        User user = userRepository.findByStripeSubscriptionId(subscriptionId).orElse(null);
+      User user = userRepository.findByStripeSubscriptionId(subscriptionId).orElse(null);
         if (user != null) {
           user.setSubscriptionStatus("canceled");
           user.setAutoRenewal(false);
