@@ -142,6 +142,7 @@ public class StripeWebhookController {
     Event event;
     try {
       event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
+      logger.info("✓ Webhook signature verification successful");
     } catch (SignatureVerificationException e) {
       logger.error("Stripe webhook signature verification failed: {}", e.getMessage());
       logger.error("This usually means:");
@@ -152,6 +153,17 @@ public class StripeWebhookController {
       logger.error("Current webhook secret length: {} chars, prefix: {}", 
                    webhookSecret.length(),
                    webhookSecret.substring(0, Math.min(10, webhookSecret.length())));
+      
+      // Additional debugging: Log signature header structure
+      logger.error("Signature header parts: {}", java.util.Arrays.toString(sigHeader.split(",")));
+      logger.error("Payload first 100 chars: {}", payload.length() > 100 ? payload.substring(0, 100) : payload);
+      logger.error("Payload hash (first 32 chars): {}", payload.length() > 32 ? payload.substring(0, 32) : payload);
+      
+      // Check if payload might have been modified
+      if (payload.contains("\r\n") || payload.contains("\r")) {
+        logger.error("WARNING: Payload contains CR/LF characters - might have been modified by proxy");
+      }
+      
       return ResponseEntity.status(400).body("Invalid signature");
     }
 
