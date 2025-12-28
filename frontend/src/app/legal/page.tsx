@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: 'https://www.change-my.com/legal',
+  },
+};
+
 export default function LegalPage() {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">

@@ -3,9 +3,16 @@
 
   <url>
     <loc>https://www.change-my.com/</loc>
-    <lastmod>2025-11-01T00:00:00+00:00</lastmod>
+    <lastmod>2025-01-15T00:00:00+00:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.00</priority>
+  </url>
+
+  <url>
+    <loc>https://www.change-my.com/home</loc>
+    <lastmod>2025-01-15T00:00:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
   </url>
 
   <url>

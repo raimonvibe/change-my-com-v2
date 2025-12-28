@@ -7,6 +7,9 @@ import { WhoItsFor } from "../../components/WhoItsFor";
 export const metadata: Metadata = {
   title: "Free Image Converter | Optimize for Web Performance",
   description: "Convert JPG, PNG, WebP images with quality control. Perfect for web developers, designers, and bloggers. 20 free conversions daily.",
+  alternates: {
+    canonical: 'https://www.change-my.com/home',
+  },
 };
 
 export default function HomePage() {
