@@ -71,10 +71,22 @@ public class StripeWebhookController {
   @PostMapping("/webhook")
   @Transactional
   public ResponseEntity<String> webhook(HttpServletRequest request, @RequestBody byte[] payloadBytes, @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) throws IOException {
+    // Log request info for debugging
+    String clientIp = request.getRemoteAddr();
+    String userAgent = request.getHeader("User-Agent");
+    logger.info("Webhook request from IP: {}, User-Agent: {}", clientIp, userAgent);
+    
     // Security: Require signature header
     if (sigHeader == null || sigHeader.trim().isEmpty()) {
       logger.error("SECURITY: Webhook request missing Stripe-Signature header - rejecting");
       return ResponseEntity.status(400).body("Missing signature header");
+    }
+    
+    // Log signature header info (first part only, safe to log)
+    String[] sigParts = sigHeader.split(",");
+    if (sigParts.length > 0) {
+      String timestamp = sigParts[0].split("=")[1] if (sigParts[0].contains("=")) else "unknown";
+      logger.info("Webhook signature timestamp: {}", timestamp);
     }
     
     // Security check: Ensure webhook secret is configured
@@ -112,6 +124,20 @@ public class StripeWebhookController {
 
     String payload = new String(payloadBytes, StandardCharsets.UTF_8);
     logger.info("Webhook payload length: {} bytes", payloadBytes.length);
+    
+    // Try to extract event type from payload for debugging (before verification)
+    // This helps identify which webhook endpoint is being called
+    try {
+      com.google.gson.JsonObject payloadJson = new com.google.gson.Gson().fromJson(payload, com.google.gson.JsonObject.class);
+      if (payloadJson.has("type")) {
+        logger.info("Webhook event type from payload: {}", payloadJson.get("type").getAsString());
+      }
+      if (payloadJson.has("id")) {
+        logger.info("Webhook event ID from payload: {}", payloadJson.get("id").getAsString());
+      }
+    } catch (Exception e) {
+      logger.warn("Could not parse payload JSON for debugging: {}", e.getMessage());
+    }
 
     Event event;
     try {
