@@ -330,13 +330,12 @@ public class StripeWebhookController {
       logger.info("Processing subscription.deleted for subscriptionId: {}", subscriptionId);
 
       User user = userRepository.findByStripeSubscriptionId(subscriptionId).orElse(null);
-        if (user != null) {
-          user.setSubscriptionStatus("canceled");
-          user.setAutoRenewal(false);
-          // Don't remove credits immediately - let them use remaining credits
-          userRepository.save(user);
-          logger.info("Canceled subscription for user ID: {}, auto-renewal disabled", user.getId());
-        }
+      if (user != null) {
+        user.setSubscriptionStatus("canceled");
+        user.setAutoRenewal(false);
+        // Don't remove credits immediately - let them use remaining credits
+        userRepository.save(user);
+        logger.info("Canceled subscription for user ID: {}, auto-renewal disabled", user.getId());
       }
     } catch (Exception e) {
       logger.error("Error processing subscription.deleted: {}", e.getMessage());
