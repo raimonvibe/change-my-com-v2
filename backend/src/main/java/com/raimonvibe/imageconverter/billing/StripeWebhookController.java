@@ -265,25 +265,24 @@ public class StripeWebhookController {
 
       // Find user by subscription ID
       User user = userRepository.findByStripeSubscriptionId(subscriptionId).orElse(null);
-        if (user != null && user.getAutoRenewal()) {
-          LocalDate today = LocalDate.now();
+      if (user != null && user.getAutoRenewal()) {
+        LocalDate today = LocalDate.now();
 
-          // Atomic update: only adds credits if this is a NEW billing period (monthly renewal)
-          // The WHERE clause prevents duplicate additions within the same day
-          int rowsAffected = userRepository.atomicAddCreditsForRenewal(user.getId(), 1000, today, "active");
+        // Atomic update: only adds credits if this is a NEW billing period (monthly renewal)
+        // The WHERE clause prevents duplicate additions within the same day
+        int rowsAffected = userRepository.atomicAddCreditsForRenewal(user.getId(), 1000, today, "active");
 
-          if (rowsAffected > 0) {
-            logger.info("Monthly renewal: Added 1000 credits for user ID: {} (previous lastReset: {})",
-                       user.getId(), user.getLastPaidReset());
-          } else {
-            logger.info("Skipping credit addition for user ID: {} - already added today ({})",
-                       user.getId(), today);
-          }
-        } else if (user != null) {
-          logger.info("User ID: {} has auto-renewal disabled, not adding credits", user.getId());
+        if (rowsAffected > 0) {
+          logger.info("Monthly renewal: Added 1000 credits for user ID: {} (previous lastReset: {})",
+                     user.getId(), user.getLastPaidReset());
         } else {
-          logger.warn("No user found for subscription ID: {}", subscriptionId);
+          logger.info("Skipping credit addition for user ID: {} - already added today ({})",
+                     user.getId(), today);
         }
+      } else if (user != null) {
+        logger.info("User ID: {} has auto-renewal disabled, not adding credits", user.getId());
+      } else {
+        logger.warn("No user found for subscription ID: {}", subscriptionId);
       }
     } catch (Exception e) {
       logger.error("Error processing invoice.paid: {}", e.getMessage());
@@ -318,16 +317,15 @@ public class StripeWebhookController {
                   subscriptionId, status, cancelAtPeriodEnd);
 
       User user = userRepository.findByStripeSubscriptionId(subscriptionId).orElse(null);
-        if (user != null) {
-          user.setSubscriptionStatus(status);
-          // If user canceled subscription, disable auto-renewal
-          if (cancelAtPeriodEnd) {
-            user.setAutoRenewal(false);
-            logger.info("Auto-renewal disabled for user ID: {} (subscription set to cancel at period end)", user.getId());
-          }
-          userRepository.save(user);
-          logger.info("Updated subscription status for user ID: {} to {}", user.getId(), status);
+      if (user != null) {
+        user.setSubscriptionStatus(status);
+        // If user canceled subscription, disable auto-renewal
+        if (cancelAtPeriodEnd) {
+          user.setAutoRenewal(false);
+          logger.info("Auto-renewal disabled for user ID: {} (subscription set to cancel at period end)", user.getId());
         }
+        userRepository.save(user);
+        logger.info("Updated subscription status for user ID: {} to {}", user.getId(), status);
       }
     } catch (Exception e) {
       logger.error("Error processing subscription.updated: {}", e.getMessage());
