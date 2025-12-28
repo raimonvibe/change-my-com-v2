@@ -45,6 +45,24 @@ public class StripeWebhookController {
   // Security: Maximum payload size for Stripe webhooks (512KB - Stripe's typical max is ~100KB)
   private static final int MAX_PAYLOAD_SIZE = 512 * 1024; // 512KB
 
+  // Log webhook secret status on startup (without exposing the actual secret)
+  @jakarta.annotation.PostConstruct
+  private void logWebhookSecretStatus() {
+    if (webhookSecret == null || webhookSecret.trim().isEmpty()) {
+      logger.warn("⚠️  STRIPE_WEBHOOK_SECRET environment variable is not set or empty");
+      logger.warn("⚠️  Webhook signature verification will fail until this is configured");
+    } else {
+      // Log that it's configured without exposing the actual value
+      logger.info("✓ Stripe webhook secret is configured (length: {} chars)", webhookSecret.length());
+      // Verify it starts with expected prefix
+      if (webhookSecret.startsWith("whsec_")) {
+        logger.info("✓ Webhook secret format appears correct (starts with whsec_)");
+      } else {
+        logger.warn("⚠️  Webhook secret does not start with 'whsec_' - may be incorrect format");
+      }
+    }
+  }
+
   @PostMapping("/webhook")
   @Transactional
   public ResponseEntity<String> webhook(HttpServletRequest request, @RequestBody byte[] payloadBytes, @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) throws IOException {
@@ -56,7 +74,12 @@ public class StripeWebhookController {
     
     // Security check: Ensure webhook secret is configured
     if (webhookSecret == null || webhookSecret.trim().isEmpty()) {
-      logger.error("CRITICAL: Stripe webhook secret is not configured! Set STRIPE_WEBHOOK_SECRET environment variable.");
+      logger.error("CRITICAL: Stripe webhook secret is not configured!");
+      logger.error("CRITICAL: Please check:");
+      logger.error("  1. STRIPE_WEBHOOK_SECRET environment variable is set on Render");
+      logger.error("  2. Service has been restarted after setting the variable");
+      logger.error("  3. Variable name is exactly 'STRIPE_WEBHOOK_SECRET' (case-sensitive)");
+      logger.error("  4. Spring profile is set to 'prod' (SPRING_PROFILES_ACTIVE=prod)");
       return ResponseEntity.status(500).body("Webhook secret not configured");
     }
 
