@@ -46,19 +46,24 @@ public class StripeWebhookController {
   private static final int MAX_PAYLOAD_SIZE = 512 * 1024; // 512KB
 
   // Log webhook secret status on startup (without exposing the actual secret)
-  @jakarta.annotation.PostConstruct
+  // Note: Using @PostConstruct may not work reliably with @Value injection
+  // So we also check in the webhook method itself
   private void logWebhookSecretStatus() {
     if (webhookSecret == null || webhookSecret.trim().isEmpty()) {
-      logger.warn("⚠️  STRIPE_WEBHOOK_SECRET environment variable is not set or empty");
-      logger.warn("⚠️  Webhook signature verification will fail until this is configured");
+      logger.error("⚠️  STRIPE_WEBHOOK_SECRET environment variable is not set or empty");
+      logger.error("⚠️  Webhook signature verification will fail until this is configured");
+      logger.error("⚠️  Check Render dashboard → Environment → STRIPE_WEBHOOK_SECRET");
     } else {
       // Log that it's configured without exposing the actual value
       logger.info("✓ Stripe webhook secret is configured (length: {} chars)", webhookSecret.length());
       // Verify it starts with expected prefix
       if (webhookSecret.startsWith("whsec_")) {
         logger.info("✓ Webhook secret format appears correct (starts with whsec_)");
+        // Log first 10 chars for debugging (whsec_xxxx is safe to log)
+        logger.info("✓ Webhook secret prefix: {}...", webhookSecret.substring(0, Math.min(10, webhookSecret.length())));
       } else {
-        logger.warn("⚠️  Webhook secret does not start with 'whsec_' - may be incorrect format");
+        logger.error("⚠️  Webhook secret does not start with 'whsec_' - may be incorrect format");
+        logger.error("⚠️  Expected format: whsec_... (from Stripe Dashboard → Webhooks → Signing secret)");
       }
     }
   }
@@ -73,6 +78,7 @@ public class StripeWebhookController {
     }
     
     // Security check: Ensure webhook secret is configured
+    // Log status on first webhook request (helps diagnose configuration issues)
     if (webhookSecret == null || webhookSecret.trim().isEmpty()) {
       logger.error("CRITICAL: Stripe webhook secret is not configured!");
       logger.error("CRITICAL: Please check:");
@@ -81,6 +87,16 @@ public class StripeWebhookController {
       logger.error("  3. Variable name is exactly 'STRIPE_WEBHOOK_SECRET' (case-sensitive)");
       logger.error("  4. Spring profile is set to 'prod' (SPRING_PROFILES_ACTIVE=prod)");
       return ResponseEntity.status(500).body("Webhook secret not configured");
+    }
+    
+    // Log secret status on first webhook (helps diagnose signature mismatch)
+    // Only log once to avoid log spam
+    if (!webhookSecret.startsWith("whsec_")) {
+      logger.error("CRITICAL: Webhook secret format is incorrect!");
+      logger.error("CRITICAL: Secret should start with 'whsec_' (from Stripe Dashboard)");
+      logger.error("CRITICAL: Current secret length: {} chars, starts with: {}", 
+                   webhookSecret.length(), 
+                   webhookSecret.substring(0, Math.min(10, webhookSecret.length())));
     }
 
     // Security: Validate payload size to prevent DoS attacks
