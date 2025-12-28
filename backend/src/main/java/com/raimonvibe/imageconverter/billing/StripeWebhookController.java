@@ -46,6 +46,12 @@ public class StripeWebhookController {
   @Transactional
   public ResponseEntity<String> webhook(HttpServletRequest request, @RequestBody byte[] payloadBytes, @RequestHeader("Stripe-Signature") String sigHeader) throws IOException {
     logger.info("=== WEBHOOK RECEIVED === Signature present: {}", sigHeader != null);
+    
+    // Security check: Ensure webhook secret is configured
+    if (webhookSecret == null || webhookSecret.trim().isEmpty()) {
+      logger.error("CRITICAL: Stripe webhook secret is not configured! Set STRIPE_WEBHOOK_SECRET environment variable.");
+      return ResponseEntity.status(500).body("Webhook secret not configured");
+    }
 
     String payload = new String(payloadBytes, StandardCharsets.UTF_8);
     logger.info("Webhook payload length: {} bytes", payloadBytes.length);
@@ -55,6 +61,7 @@ public class StripeWebhookController {
       event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
     } catch (SignatureVerificationException e) {
       logger.error("Stripe webhook signature verification failed: {}", e.getMessage());
+      logger.error("This usually means: 1) Webhook secret mismatch, 2) Request not from Stripe, or 3) Payload was modified");
       return ResponseEntity.status(400).body("Invalid signature");
     }
 
