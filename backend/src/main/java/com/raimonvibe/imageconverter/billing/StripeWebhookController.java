@@ -68,9 +68,9 @@ public class StripeWebhookController {
     }
   }
 
-  @PostMapping("/webhook")
+  @PostMapping(value = "/webhook", consumes = "application/json")
   @Transactional
-  public ResponseEntity<String> webhook(HttpServletRequest request, @RequestBody byte[] payloadBytes, @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) throws IOException {
+  public ResponseEntity<String> webhook(HttpServletRequest request, @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) throws IOException {
     // Log request info for debugging
     String clientIp = request.getRemoteAddr();
     String userAgent = request.getHeader("User-Agent");
@@ -111,6 +111,14 @@ public class StripeWebhookController {
                    webhookSecret.substring(0, Math.min(10, webhookSecret.length())));
     }
 
+    // CRITICAL: Read raw request body directly from HttpServletRequest
+    // This ensures we get the exact bytes Stripe sent, without any modification by Spring/Jackson
+    // Using @RequestBody can cause payload modification (whitespace, encoding, etc.)
+    byte[] payloadBytes;
+    try (java.io.InputStream inputStream = request.getInputStream()) {
+      payloadBytes = inputStream.readAllBytes();
+    }
+    
     // Security: Validate payload size to prevent DoS attacks
     if (payloadBytes == null || payloadBytes.length == 0) {
       logger.error("SECURITY: Empty webhook payload - rejecting");
@@ -122,6 +130,7 @@ public class StripeWebhookController {
       return ResponseEntity.status(413).body("Payload too large");
     }
 
+    // Convert to string for Stripe SDK (must use exact bytes for signature verification)
     String payload = new String(payloadBytes, StandardCharsets.UTF_8);
     logger.info("Webhook payload length: {} bytes", payloadBytes.length);
     
@@ -160,7 +169,7 @@ public class StripeWebhookController {
                    webhookSecret.substring(0, Math.min(10, webhookSecret.length())));
       
       // Additional debugging: Log signature header structure (safe - these are hashes, not secrets)
-      String[] sigParts = sigHeader.split(",");
+      // Reuse sigParts that was already defined earlier in the method
       if (sigParts.length > 0) {
         // Only log timestamp, not the signature hash itself
         String timestampPart = sigParts[0];
@@ -177,7 +186,7 @@ public class StripeWebhookController {
         if (payloadJson.has("id")) {
           logger.error("Failed event ID: {}", payloadJson.get("id").getAsString());
         }
-      } catch (Exception e) {
+      } catch (Exception parseEx) {
         logger.warn("Could not parse payload for debugging");
       }
       
