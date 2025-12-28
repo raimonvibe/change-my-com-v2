@@ -118,7 +118,14 @@ public class StripeWebhookController {
       event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
     } catch (SignatureVerificationException e) {
       logger.error("Stripe webhook signature verification failed: {}", e.getMessage());
-      logger.error("This usually means: 1) Webhook secret mismatch, 2) Request not from Stripe, or 3) Payload was modified");
+      logger.error("This usually means:");
+      logger.error("  1) Webhook secret mismatch - Check if you're using TEST secret with LIVE project or vice versa");
+      logger.error("  2) Request not from Stripe - Verify webhook is coming from Stripe servers");
+      logger.error("  3) Payload was modified - Check if proxy/load balancer is modifying requests");
+      logger.error("  4) Wrong webhook endpoint - Ensure webhook secret matches the endpoint in Stripe Dashboard");
+      logger.error("Current webhook secret length: {} chars, prefix: {}", 
+                   webhookSecret.length(),
+                   webhookSecret.substring(0, Math.min(10, webhookSecret.length())));
       return ResponseEntity.status(400).body("Invalid signature");
     }
 
