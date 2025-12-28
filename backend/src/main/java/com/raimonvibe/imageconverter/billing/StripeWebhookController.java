@@ -125,15 +125,19 @@ public class StripeWebhookController {
     String payload = new String(payloadBytes, StandardCharsets.UTF_8);
     logger.info("Webhook payload length: {} bytes", payloadBytes.length);
     
-    // Try to extract event type from payload for debugging (before verification)
-    // This helps identify which webhook endpoint is being called
+    // Security: Only extract and log event metadata, never the full payload
+    // This helps identify which webhook endpoint is being called without logging sensitive data
+    String eventType = null;
+    String eventId = null;
     try {
       com.google.gson.JsonObject payloadJson = new com.google.gson.Gson().fromJson(payload, com.google.gson.JsonObject.class);
       if (payloadJson.has("type")) {
-        logger.info("Webhook event type from payload: {}", payloadJson.get("type").getAsString());
+        eventType = payloadJson.get("type").getAsString();
+        logger.info("Webhook event type: {}", eventType);
       }
       if (payloadJson.has("id")) {
-        logger.info("Webhook event ID from payload: {}", payloadJson.get("id").getAsString());
+        eventId = payloadJson.get("id").getAsString();
+        logger.info("Webhook event ID: {}", eventId);
       }
     } catch (Exception e) {
       logger.warn("Could not parse payload JSON for debugging: {}", e.getMessage());
@@ -150,14 +154,32 @@ public class StripeWebhookController {
       logger.error("  2) Request not from Stripe - Verify webhook is coming from Stripe servers");
       logger.error("  3) Payload was modified - Check if proxy/load balancer is modifying requests");
       logger.error("  4) Wrong webhook endpoint - Ensure webhook secret matches the endpoint in Stripe Dashboard");
+      // Security: Only log secret prefix (first 10 chars), never the full secret
       logger.error("Current webhook secret length: {} chars, prefix: {}", 
                    webhookSecret.length(),
                    webhookSecret.substring(0, Math.min(10, webhookSecret.length())));
       
-      // Additional debugging: Log signature header structure
-      logger.error("Signature header parts: {}", java.util.Arrays.toString(sigHeader.split(",")));
-      logger.error("Payload first 100 chars: {}", payload.length() > 100 ? payload.substring(0, 100) : payload);
-      logger.error("Payload hash (first 32 chars): {}", payload.length() > 32 ? payload.substring(0, 32) : payload);
+      // Additional debugging: Log signature header structure (safe - these are hashes, not secrets)
+      String[] sigParts = sigHeader.split(",");
+      if (sigParts.length > 0) {
+        // Only log timestamp, not the signature hash itself
+        String timestampPart = sigParts[0];
+        logger.error("Signature timestamp: {}", timestampPart.contains("=") ? timestampPart.split("=")[1] : "unknown");
+        logger.error("Signature has {} parts", sigParts.length);
+      }
+      
+      // Security: Only log event metadata, not full payload
+      try {
+        com.google.gson.JsonObject payloadJson = new com.google.gson.Gson().fromJson(payload, com.google.gson.JsonObject.class);
+        if (payloadJson.has("type")) {
+          logger.error("Failed event type: {}", payloadJson.get("type").getAsString());
+        }
+        if (payloadJson.has("id")) {
+          logger.error("Failed event ID: {}", payloadJson.get("id").getAsString());
+        }
+      } catch (Exception e) {
+        logger.warn("Could not parse payload for debugging");
+      }
       
       // Check if payload might have been modified
       if (payload.contains("\r\n") || payload.contains("\r")) {
