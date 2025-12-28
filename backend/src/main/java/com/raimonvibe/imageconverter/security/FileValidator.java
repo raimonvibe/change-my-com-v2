@@ -66,15 +66,10 @@ public final class FileValidator {
         String ext = original.contains(".") ? original.substring(original.lastIndexOf('.') + 1).toLowerCase() : "";
         if (!ALLOWED_EXT.contains(ext)) throw new IllegalArgumentException("Unsupported extension.");
 
-        // MIME header
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_MIME.contains(contentType.toLowerCase())) {
-            throw new IllegalArgumentException("Unsupported MIME type.");
-        }
-
-        // Magic numbers (quick checks)
+        // Magic numbers (quick checks) - do this first to detect format
+        byte[] head;
         try (InputStream in = file.getInputStream()) {
-            byte[] head = in.readNBytes(12);
+            head = in.readNBytes(12);
             if (head.length < 2) throw new IllegalArgumentException("Invalid file.");
 
             // Check for suspicious content in file header
@@ -83,11 +78,29 @@ public final class FileValidator {
             }
 
             // Validate against known safe magic bytes
-            if (isPng(head) || isJpeg(head) || isWebp(head) || isAvif(head) ||
-                isGif(head) || isBmp(head) || isTiff(head) || isHeic(head) || isIco(head)) {
-                return;
+            if (!(isPng(head) || isJpeg(head) || isWebp(head) || isAvif(head) ||
+                isGif(head) || isBmp(head) || isTiff(head) || isHeic(head) || isIco(head))) {
+                throw new IllegalArgumentException("Invalid or unsupported image signature.");
             }
-            throw new IllegalArgumentException("Invalid or unsupported image signature.");
+        }
+
+        // MIME header validation
+        // Security: HEIC files may be uploaded with incorrect MIME types (e.g., application/octet-stream)
+        // We ONLY allow HEIC files with wrong MIME type if ALL security checks pass:
+        // 1. Magic bytes match HEIC signature (already validated above)
+        // 2. Extension is .heic or .heif (already validated above)
+        // 3. No suspicious content detected (already validated above)
+        // This prevents bypassing validation with other file types
+        String contentType = file.getContentType();
+        boolean isHeicFile = isHeic(head);
+        boolean isHeicExtension = "heic".equals(ext) || "heif".equals(ext);
+        
+        if (contentType != null && !ALLOWED_MIME.contains(contentType.toLowerCase())) {
+            // Security: Only allow wrong MIME type for HEIC if ALL conditions are met
+            if (!isHeicFile || !isHeicExtension) {
+                throw new IllegalArgumentException("Unsupported MIME type.");
+            }
+            // HEIC file with wrong MIME type - allow it since magic bytes AND extension match
         }
     }
 
@@ -135,10 +148,19 @@ public final class FileValidator {
 
     private static boolean isHeic(byte[] b){
         // HEIC/HEIF uses ISO BMFF with ftyp containing heic/heif/mif1
+        // Security: Check exact byte patterns to prevent false positives
         if (b.length<12) return false;
         if (b[4]=='f'&&b[5]=='t'&&b[6]=='y'&&b[7]=='p') {
-            String brand = new String(b, 8, Math.min(4, b.length - 8));
-            return brand.contains("heic") || brand.contains("heif") || brand.contains("mif1");
+            // Check for exact HEIC/HEIF brand identifiers at bytes 8-11
+            // HEIC: bytes 8-11 should be "heic", "heif", or "mif1" (case-sensitive in ISO BMFF)
+            if (b.length >= 12) {
+                // Check for "heic" (0x68 0x65 0x69 0x63)
+                if (b[8]=='h' && b[9]=='e' && b[10]=='i' && b[11]=='c') return true;
+                // Check for "heif" (0x68 0x65 0x69 0x66)
+                if (b[8]=='h' && b[9]=='e' && b[10]=='i' && b[11]=='f') return true;
+                // Check for "mif1" (0x6D 0x69 0x66 0x31)
+                if (b[8]=='m' && b[9]=='i' && b[10]=='f' && b[11]=='1') return true;
+            }
         }
         return false;
     }

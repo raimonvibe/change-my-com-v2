@@ -127,6 +127,14 @@ export default function ConvertPage() {
   // Validate image dimensions and return dimensions
   const validateImageDimensions = (file: File): Promise<{ valid: boolean; error?: string; width?: number; height?: number }> => {
     return new Promise((resolve) => {
+      // HEIC files cannot be read by browsers' Image API, so skip dimension validation
+      // Backend will validate dimensions using ImageMagick
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      if (extension === 'heic' || extension === 'heif') {
+        resolve({ valid: true }); // Skip dimension check for HEIC - backend will validate
+        return;
+      }
+
       const img = new Image();
       const url = URL.createObjectURL(file);
 
@@ -144,7 +152,13 @@ export default function ConvertPage() {
 
       img.onerror = () => {
         URL.revokeObjectURL(url);
-        resolve({ valid: false, error: 'Unable to read image dimensions' });
+        // For HEIC/HEIF, this is expected - browsers can't read them
+        // Backend will validate dimensions
+        if (extension === 'heic' || extension === 'heif') {
+          resolve({ valid: true });
+        } else {
+          resolve({ valid: false, error: 'Unable to read image dimensions' });
+        }
       };
 
       img.src = url;
