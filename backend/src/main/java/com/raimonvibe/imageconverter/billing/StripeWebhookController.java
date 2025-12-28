@@ -70,7 +70,7 @@ public class StripeWebhookController {
 
   @PostMapping(value = "/webhook", consumes = "application/json")
   @Transactional
-  public ResponseEntity<String> webhook(HttpServletRequest request, @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader) throws IOException {
+  public ResponseEntity<String> webhook(@RequestBody byte[] payloadBytes, @RequestHeader(value = "Stripe-Signature", required = false) String sigHeader, HttpServletRequest request) throws IOException {
     // Log request info for debugging
     String clientIp = request.getRemoteAddr();
     String userAgent = request.getHeader("User-Agent");
@@ -111,12 +111,15 @@ public class StripeWebhookController {
                    webhookSecret.substring(0, Math.min(10, webhookSecret.length())));
     }
 
-    // CRITICAL: Read raw request body directly from HttpServletRequest
-    // This ensures we get the exact bytes Stripe sent, without any modification by Spring/Jackson
-    // Using @RequestBody can cause payload modification (whitespace, encoding, etc.)
-    byte[] payloadBytes;
-    try (java.io.InputStream inputStream = request.getInputStream()) {
-      payloadBytes = inputStream.readAllBytes();
+    // Security: Validate payload size to prevent DoS attacks
+    if (payloadBytes == null || payloadBytes.length == 0) {
+      logger.error("SECURITY: Empty webhook payload - rejecting");
+      return ResponseEntity.status(400).body("Empty payload");
+    }
+    
+    if (payloadBytes.length > MAX_PAYLOAD_SIZE) {
+      logger.error("SECURITY: Webhook payload too large: {} bytes (max: {} bytes) - rejecting", payloadBytes.length, MAX_PAYLOAD_SIZE);
+      return ResponseEntity.status(413).body("Payload too large");
     }
     
     // Security: Validate payload size to prevent DoS attacks
