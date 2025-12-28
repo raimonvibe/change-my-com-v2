@@ -121,18 +121,41 @@ public class SecurityConfig {
             "https://www.change-my.com" // Production domain
         );
 
-        CorsConfiguration conf = new CorsConfiguration();
+        // CORS configuratie voor normale API endpoints (frontend)
+        CorsConfiguration apiConf = new CorsConfiguration();
         // Gebruik expliciete origins (geen "*") zodat browsers Authorization headers toestaan
-        conf.setAllowedOrigins(allowedOrigins);
-        conf.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
-        conf.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        apiConf.setAllowedOrigins(allowedOrigins);
+        apiConf.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        apiConf.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
         // Bearer tokens via header → credentials niet nodig/uit
-        conf.setAllowCredentials(false);
+        apiConf.setAllowCredentials(false);
         // Expose rate-limit headers voor de frontend
-        conf.setExposedHeaders(List.of("X-RateLimit-Remaining", "X-RateLimit-Reset", "Retry-After"));
+        apiConf.setExposedHeaders(List.of("X-RateLimit-Remaining", "X-RateLimit-Reset", "Retry-After"));
+
+        // CORS configuratie voor Stripe webhook endpoint
+        // SECURITY: Stripe webhooks komen van Stripe's servers, niet van de frontend
+        // We gebruiken "*" voor origins omdat Stripe van verschillende IPs/origins kan komen
+        // Echter, de echte beveiliging gebeurt via signature verificatie in de controller
+        CorsConfiguration webhookConf = new CorsConfiguration();
+        // Allow all origins (Stripe uses various IPs/origins)
+        // Security: This is safe because signature verification is REQUIRED in the controller
+        webhookConf.setAllowedOrigins(List.of("*"));
+        // Only allow POST (webhooks) and OPTIONS (preflight)
+        webhookConf.setAllowedMethods(List.of("POST", "OPTIONS"));
+        // Strictly limit allowed headers to only what Stripe needs
+        webhookConf.setAllowedHeaders(List.of("Stripe-Signature", "Content-Type", "User-Agent"));
+        // Never allow credentials (no cookies, tokens, etc.)
+        webhookConf.setAllowCredentials(false);
+        // Don't expose any headers (webhooks don't need CORS response headers)
+        webhookConf.setExposedHeaders(List.of());
+        // Limit preflight cache to 1 hour (security: reduce attack window)
+        webhookConf.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", conf);
+        // Specifieke configuratie voor webhook endpoint
+        source.registerCorsConfiguration("/stripe/webhook", webhookConf);
+        // Algemene configuratie voor alle andere endpoints
+        source.registerCorsConfiguration("/**", apiConf);
         return source;
     }
 }

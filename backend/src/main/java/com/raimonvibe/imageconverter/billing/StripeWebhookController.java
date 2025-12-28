@@ -76,7 +76,15 @@ public class StripeWebhookController {
     String userAgent = request.getHeader("User-Agent");
     logger.info("Webhook request from IP: {}, User-Agent: {}", clientIp, userAgent);
     
-    // Security: Require signature header
+    // Security: Optional User-Agent verification (warning only, not blocking)
+    // Stripe webhooks typically have User-Agent starting with "Stripe/"
+    // This is a defense-in-depth measure - signature verification is the primary security
+    if (userAgent != null && !userAgent.startsWith("Stripe/")) {
+      logger.warn("SECURITY: Webhook User-Agent does not match expected Stripe pattern: {}", userAgent);
+      logger.warn("SECURITY: This may indicate a spoofed request, but signature verification will be the final check");
+    }
+    
+    // Security: Require signature header (PRIMARY SECURITY CHECK)
     if (sigHeader == null || sigHeader.trim().isEmpty()) {
       logger.error("SECURITY: Webhook request missing Stripe-Signature header - rejecting");
       return ResponseEntity.status(400).body("Missing signature header");
@@ -111,17 +119,6 @@ public class StripeWebhookController {
                    webhookSecret.substring(0, Math.min(10, webhookSecret.length())));
     }
 
-    // Security: Validate payload size to prevent DoS attacks
-    if (payloadBytes == null || payloadBytes.length == 0) {
-      logger.error("SECURITY: Empty webhook payload - rejecting");
-      return ResponseEntity.status(400).body("Empty payload");
-    }
-    
-    if (payloadBytes.length > MAX_PAYLOAD_SIZE) {
-      logger.error("SECURITY: Webhook payload too large: {} bytes (max: {} bytes) - rejecting", payloadBytes.length, MAX_PAYLOAD_SIZE);
-      return ResponseEntity.status(413).body("Payload too large");
-    }
-    
     // Security: Validate payload size to prevent DoS attacks
     if (payloadBytes == null || payloadBytes.length == 0) {
       logger.error("SECURITY: Empty webhook payload - rejecting");
