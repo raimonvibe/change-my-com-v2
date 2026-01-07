@@ -2,9 +2,8 @@
 User-agent: *
 Allow: /
 
-# Disallow authentication and API routes
+# Disallow API routes
 Disallow: /api/
-Disallow: /account
 
 # Sitemap
 Sitemap: https://www.change-my.com/sitemap.xml
