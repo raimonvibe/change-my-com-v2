@@ -631,39 +631,49 @@ public class ImageService {
         File resized = Files.createTempFile("resized-" + UUID.randomUUID(), ".jpg").toFile();
 
         try {
-            ProcessBuilder pb = new ProcessBuilder(
-                "magick",
-                "-limit", "time", "30",  // Quick resize shouldn't take long
-                "-limit", "memory", "256MiB",
-                input.getAbsolutePath(),
-                "-resize", maxDimension + "x" + maxDimension + ">",  // Only shrink, don't enlarge
-                "-quality", "90",  // Good quality for intermediate resize
-                resized.getAbsolutePath()
-            );
-            pb.redirectErrorStream(true);
+            IOException lastError = null;
 
-            Process p = pb.start();
-            String output = new String(p.getInputStream().readAllBytes());
+            // Try both 'magick' (ImageMagick 7.0+) and 'convert' (ImageMagick 6.x) commands
+            for (String cmd : List.of("magick", "convert")) {
+                ProcessBuilder pb = new ProcessBuilder(
+                    cmd,
+                    "-limit", "time", "30",  // Quick resize shouldn't take long
+                    "-limit", "memory", "256MiB",
+                    input.getAbsolutePath(),
+                    "-resize", maxDimension + "x" + maxDimension + ">",  // Only shrink, don't enlarge
+                    "-quality", "90",  // Good quality for intermediate resize
+                    "jpg:" + resized.getAbsolutePath()  // Explicitly specify JPG output format
+                );
+                pb.redirectErrorStream(true);
 
-            if (!p.waitFor(30, TimeUnit.SECONDS)) {
-                p.destroyForcibly();
-                safeDelete(resized);
-                throw new IOException("Auto-resize timeout");
+                Process p = pb.start();
+                String output = new String(p.getInputStream().readAllBytes());
+
+                if (!p.waitFor(30, TimeUnit.SECONDS)) {
+                    p.destroyForcibly();
+                    safeDelete(resized);
+                    throw new IOException("Auto-resize timeout");
+                }
+
+                if (p.exitValue() != 0) {
+                    logger.warn("Auto-resize failed with '{}': {}", cmd, output);
+                    lastError = new IOException("Auto-resize failed with '" + cmd + "': " + output);
+                    continue;  // Try next command
+                }
+
+                if (!resized.exists() || resized.length() == 0) {
+                    logger.warn("Auto-resize with '{}' produced empty file", cmd);
+                    lastError = new IOException("Auto-resize produced empty file");
+                    continue;  // Try next command
+                }
+
+                logger.debug("Auto-resize successful with '{}', output size: {} bytes", cmd, resized.length());
+                return resized;
             }
 
-            if (p.exitValue() != 0) {
-                logger.error("Auto-resize failed: {}", output);
-                safeDelete(resized);
-                throw new IOException("Auto-resize failed: " + output);
-            }
-
-            if (!resized.exists() || resized.length() == 0) {
-                safeDelete(resized);
-                throw new IOException("Auto-resize produced empty file");
-            }
-
-            logger.debug("Auto-resize successful, output size: {} bytes", resized.length());
-            return resized;
+            // If we got here, both commands failed
+            safeDelete(resized);
+            throw lastError != null ? lastError : new IOException("Auto-resize failed with all ImageMagick commands");
 
         } catch (Exception e) {
             safeDelete(resized);
