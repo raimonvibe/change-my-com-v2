@@ -29,16 +29,33 @@ const nextConfig: NextConfig = {
   // HTTPS Redirects and Security Headers
   async redirects() {
     return [
+      // Redirect non-www to www (for all protocols)
       {
-        source: '/(.*)',
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'change-my.com',
+          },
+        ],
+        destination: 'https://www.change-my.com/:path*',
+        permanent: true,
+      },
+      // Redirect HTTP to HTTPS (for www domain)
+      {
+        source: '/:path*',
         has: [
           {
             type: 'header',
             key: 'x-forwarded-proto',
             value: 'http',
           },
+          {
+            type: 'host',
+            value: 'www.change-my.com',
+          },
         ],
-        destination: 'https://www.change-my.com/$1',
+        destination: 'https://www.change-my.com/:path*',
         permanent: true,
       },
     ];

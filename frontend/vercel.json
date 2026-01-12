@@ -11,15 +11,30 @@
   },
   "redirects": [
     {
-      "source": "/(.*)",
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "change-my.com"
+        }
+      ],
+      "destination": "https://www.change-my.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
       "has": [
         {
           "type": "header",
           "key": "x-forwarded-proto",
           "value": "http"
+        },
+        {
+          "type": "host",
+          "value": "www.change-my.com"
         }
       ],
-      "destination": "https://www.change-my.com/$1",
+      "destination": "https://www.change-my.com/:path*",
       "permanent": true
     }
   ],
