@@ -629,7 +629,12 @@ public class ImageService {
      * @throws IOException if resize fails
      */
     private File autoResizeImage(File input, int maxDimension, String inputFormatHint) throws IOException, InterruptedException {
-        File resized = Files.createTempFile("resized-" + UUID.randomUUID(), ".jpg").toFile();
+        // Preserve input format to avoid format conversion issues
+        // Use jpg for unknown formats or when no hint provided (fast lossy format)
+        String extension = (inputFormatHint != null && !inputFormatHint.isEmpty())
+            ? "." + inputFormatHint.toLowerCase()
+            : ".jpg";
+        File resized = Files.createTempFile("resized-" + UUID.randomUUID(), extension).toFile();
 
         try {
             IOException lastError = null;
@@ -645,18 +650,17 @@ public class ImageService {
                 args.add("memory");
                 args.add("256MiB");
 
-                // Add input file with optional format hint to help ImageMagick identify the format
-                if (inputFormatHint != null && !inputFormatHint.isEmpty()) {
-                    args.add(inputFormatHint + ":" + input.getAbsolutePath());
-                } else {
-                    args.add(input.getAbsolutePath());
-                }
+                // Add input file - ImageMagick will auto-detect format from file content
+                args.add(input.getAbsolutePath());
 
                 args.add("-resize");
                 args.add(maxDimension + "x" + maxDimension + ">");  // Only shrink, don't enlarge
+
                 args.add("-quality");
                 args.add("90");  // Good quality for intermediate resize
-                args.add("jpg:" + resized.getAbsolutePath());  // Explicitly specify JPG output format
+
+                // Output file - format determined by extension
+                args.add(resized.getAbsolutePath());
 
                 ProcessBuilder pb = new ProcessBuilder(args);
                 pb.redirectErrorStream(true);
