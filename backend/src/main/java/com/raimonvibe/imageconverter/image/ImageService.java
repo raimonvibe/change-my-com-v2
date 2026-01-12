@@ -62,7 +62,7 @@ public class ImageService {
             if (maxDimension > 2000) {
                 logger.info("Auto-resizing {}x{} image to 2000px to complete within 10s time limit",
                     dimensions[0], dimensions[1]);
-                processedInput = autoResizeImage(input, 2000);
+                processedInput = autoResizeImage(input, 2000, inputFormatHint);
                 wasAutoResized = true;
             }
 
@@ -624,10 +624,11 @@ public class ImageService {
      *
      * @param input Original image file
      * @param maxDimension Maximum width or height (maintains aspect ratio)
+     * @param inputFormatHint Format hint to help ImageMagick identify the input file (e.g., "png", "jpg")
      * @return Resized temp file (caller must delete)
      * @throws IOException if resize fails
      */
-    private File autoResizeImage(File input, int maxDimension) throws IOException, InterruptedException {
+    private File autoResizeImage(File input, int maxDimension, String inputFormatHint) throws IOException, InterruptedException {
         File resized = Files.createTempFile("resized-" + UUID.randomUUID(), ".jpg").toFile();
 
         try {
@@ -635,15 +636,29 @@ public class ImageService {
 
             // Try both 'magick' (ImageMagick 7.0+) and 'convert' (ImageMagick 6.x) commands
             for (String cmd : List.of("magick", "convert")) {
-                ProcessBuilder pb = new ProcessBuilder(
-                    cmd,
-                    "-limit", "time", "30",  // Quick resize shouldn't take long
-                    "-limit", "memory", "256MiB",
-                    input.getAbsolutePath(),
-                    "-resize", maxDimension + "x" + maxDimension + ">",  // Only shrink, don't enlarge
-                    "-quality", "90",  // Good quality for intermediate resize
-                    "jpg:" + resized.getAbsolutePath()  // Explicitly specify JPG output format
-                );
+                java.util.List<String> args = new java.util.ArrayList<>();
+                args.add(cmd);
+                args.add("-limit");
+                args.add("time");
+                args.add("30");  // Quick resize shouldn't take long
+                args.add("-limit");
+                args.add("memory");
+                args.add("256MiB");
+
+                // Add input file with optional format hint to help ImageMagick identify the format
+                if (inputFormatHint != null && !inputFormatHint.isEmpty()) {
+                    args.add(inputFormatHint + ":" + input.getAbsolutePath());
+                } else {
+                    args.add(input.getAbsolutePath());
+                }
+
+                args.add("-resize");
+                args.add(maxDimension + "x" + maxDimension + ">");  // Only shrink, don't enlarge
+                args.add("-quality");
+                args.add("90");  // Good quality for intermediate resize
+                args.add("jpg:" + resized.getAbsolutePath());  // Explicitly specify JPG output format
+
+                ProcessBuilder pb = new ProcessBuilder(args);
                 pb.redirectErrorStream(true);
 
                 Process p = pb.start();
