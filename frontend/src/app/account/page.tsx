@@ -152,7 +152,7 @@ export default function AccountPage() {
         <div className="rounded-lg border bg-white p-6 text-center">
           <div className="text-slate-600 mb-4 text-lg">Please sign in to view your account information</div>
           <button
-            onClick={() => router.push('/convert')}
+            onClick={() => router.push('/')}
             className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-5 py-3 text-white hover:bg-sky-700 text-base"
           >
             Go to Convert Page

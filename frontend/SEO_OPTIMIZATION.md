@@ -73,6 +73,31 @@
 - ✅ **Internal linking**: Navigation with proper anchor text
 - ✅ **External links**: rel="noopener noreferrer" for security
 
+## Google Search Console: 404 & Redirects
+
+If Google reports **"Niet gevonden (404)"** or **"Pagina met omleiding"** (Page with redirect):
+
+### Routing layout (fixed)
+- **Canonical homepage**: `https://www.change-my.com/` (root = converter).
+- **`/home`**: Landing/marketing page; both `/` and `/home` return 200.
+- **`/convert`**: Redirects to `/`; nav no longer links here, so Google sees fewer redirect URLs.
+
+### Domain & Vercel
+1. In **Vercel** → Project → Settings → Domains, add both:
+   - `change-my.com`
+   - `www.change-my.com`
+2. **Apex domain** (`change-my.com`): use **Redirect to Another Domain** → target `www.change-my.com` with **301 Permanent Redirect** (not 307). 301 is required for proper SEO and Search Console validation.
+3. **www** (`www.change-my.com`): **Connect to an environment** → Production (no redirect).
+4. After deploy, check:
+   - `https://www.change-my.com/` → 200
+   - `https://www.change-my.com/home` → 200
+   - `http://change-my.com/` → 301 to `https://www.change-my.com/`
+
+### Validatie opnieuw aanvragen
+In Search Console: open the 404 or redirect issue → **Validatie opnieuw aanvragen**. After fixing domains and deploying, validation often succeeds within a few days.
+
+---
+
 ## Next Steps for SEO Improvement
 
 ### 1. Content Marketing

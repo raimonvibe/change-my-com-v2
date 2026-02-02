@@ -37,7 +37,7 @@ describe('Header Component', () => {
       render(<Header />)
 
       expect(screen.getByRole('link', { name: /^Home$/i })).toHaveAttribute('href', '/home')
-      expect(screen.getByRole('link', { name: /^Convert$/i })).toHaveAttribute('href', '/convert')
+expect(screen.getByRole('link', { name: /^Convert$/i })).toHaveAttribute('href', '/')
       expect(screen.getByRole('link', { name: /^Pricing$/i })).toHaveAttribute('href', '/billing')
       expect(screen.getByRole('link', { name: /^Account$/i })).toHaveAttribute('href', '/account')
       expect(screen.getByRole('link', { name: /^Contact$/i })).toHaveAttribute('href', '/contact')

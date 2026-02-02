@@ -75,7 +75,7 @@ export const metadata: Metadata = {
     ],
   },
   alternates: {
-    canonical: 'https://www.change-my.com',
+    canonical: 'https://www.change-my.com/',
   },
   openGraph: {
     title: "Free Online Image Converter - Convert, Sharpen & Optimize Images",
