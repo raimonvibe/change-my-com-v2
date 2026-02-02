@@ -17,7 +17,7 @@ export function Header() {
           <div className="flex items-center gap-4">
             <nav className="flex gap-4 text-base">
               <Link href="/home" className="text-slate-600 hover:text-sky-700">Home</Link>
-              <Link href="/" className="text-slate-600 hover:text-sky-700">Convert</Link>
+<Link href="/" className="text-slate-600 hover:text-sky-700">Convert</Link>
               <Link href="/billing" className="text-slate-600 hover:text-sky-700">Pricing</Link>
               <Link href="/account" className="text-slate-600 hover:text-sky-700">Account</Link>
               <Link href="/contact" className="text-slate-600 hover:text-sky-700">Contact</Link>
@@ -53,7 +53,7 @@ export function Header() {
                 Home
               </Link>
               <Link
-                href="/"
+href="/"
                 className="text-slate-600 hover:text-sky-700 py-2 px-3 rounded hover:bg-slate-50"
                 onClick={() => setMobileMenuOpen(false)}
               >

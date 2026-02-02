@@ -20,6 +20,6 @@ describe('HomePage', () => {
   it('should have a link to converter', () => {
     render(<HomePage />);
     const link = screen.getByText('Try converter');
-    expect(link.closest('a')).toHaveAttribute('href', '/');
+expect(link.closest('a')).toHaveAttribute('href', '/');
   });
 });

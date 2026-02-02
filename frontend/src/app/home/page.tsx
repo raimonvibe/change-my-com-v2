@@ -34,7 +34,7 @@ export default function HomePage() {
         ))}
       </div>
       <div className="space-y-3">
-        <Link href="/" className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-4 py-2 text-white hover:bg-sky-700">
+<Link href="/" className="inline-flex items-center gap-2 rounded-md bg-sky-600 px-4 py-2 text-white hover:bg-sky-700">
           Try converter
         </Link>
         <p className="text-sm text-slate-500">Trusted by web developers, designers, and content creators</p>
