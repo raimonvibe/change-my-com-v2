@@ -27,6 +27,7 @@ public class AnonymousUserService {
         if (!today.equals(tracker.getLastReset())) {
             tracker.setLastReset(today);
             tracker.setConversionsUsedToday(0);
+            ipConversionTrackerRepository.save(tracker); // persist reset so next request sees new day
         }
 
         if (tracker.getConversionsUsedToday() < freeDailyLimit) {

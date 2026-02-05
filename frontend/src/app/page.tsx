@@ -438,7 +438,9 @@ export default function ConvertPage() {
           setShowLimitModal(true);
           const errorMsg = hasStaleSubscription()
             ? 'Your session has expired. Please sign in to use your subscription.'
-            : 'No conversions remaining. Please subscribe to continue.';
+            : session
+              ? 'No conversions remaining. Subscribe to continue.'
+              : 'Daily limit reached. Sign in to use your account or subscribe to continue.';
           setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'error', error: errorMsg } : x));
           return;
         }
@@ -1070,7 +1072,7 @@ export default function ConvertPage() {
                   ) : session ? (
                     <>You&apos;ve used all your conversions for today. Subscribe to get 1000 conversions per month for just $1.98/month.</>
                   ) : (
-                    <>You&apos;ve used all 20 free conversions for today. Sign in to continue, or subscribe for 1000 conversions per month at $1.98/month.</>
+                    <>You&apos;ve used all 20 free conversions for today. Sign in to use your account and subscription credits, or subscribe for 1000 conversions per month at $1.98/month.</>
                   )}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
