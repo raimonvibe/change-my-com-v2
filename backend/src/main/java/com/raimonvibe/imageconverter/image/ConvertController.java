@@ -122,7 +122,7 @@ public class ConvertController {
             }
         } catch (IllegalArgumentException iae) {
             logger.warn("File validation failed: {}", iae.getMessage());
-            return badRequest(iae.getMessage());
+            return badRequest(sanitizeValidationError(iae.getMessage()));
         } catch (IOException ioe) {
             logger.error("File read error during validation: {}", ioe.getMessage());
             return unprocessable("Failed to read upload");
@@ -275,7 +275,7 @@ public class ConvertController {
                 file.getOriginalFilename(), detectedFormat);
         } catch (IllegalArgumentException iae) {
             logger.warn("File validation failed: {}", iae.getMessage());
-            return badRequest(iae.getMessage());
+            return badRequest(sanitizeValidationError(iae.getMessage()));
         } catch (IOException ioe) {
             logger.error("File read error during validation: {}", ioe.getMessage());
             return unprocessable("Failed to read upload");
@@ -450,6 +450,24 @@ public class ConvertController {
         String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8)
                                    .replace("+", "%20");
         return "attachment; filename=\"" + filename + "\"; filename*=UTF-8''" + encoded;
+    }
+
+    /** Whitelist of safe validation messages from FileValidator (no user/path data). */
+    private static final Set<String> SAFE_VALIDATION_MESSAGES = Set.of(
+        "File is empty.",
+        "File too large.",
+        "Unsupported extension.",
+        "Invalid file.",
+        "File contains suspicious content.",
+        "Invalid or unsupported image signature.",
+        "Unsupported MIME type."
+    );
+
+    private static String sanitizeValidationError(String message) {
+        if (message != null && SAFE_VALIDATION_MESSAGES.contains(message)) {
+            return message;
+        }
+        return "Invalid file or format. Please check file type and size.";
     }
 
     /**
