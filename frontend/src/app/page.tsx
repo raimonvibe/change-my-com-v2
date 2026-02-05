@@ -567,6 +567,54 @@ export default function ConvertPage() {
         </div>
       )}
 
+      {/* Queue & progress summary — above the fold. Secure: only counts and fixed strings, no user content. */}
+      {jobs.length > 0 && (() => {
+        const queued = jobs.filter(j => j.status === 'queued').length;
+        const running = jobs.filter(j => j.status === 'running').length;
+        const done = jobs.filter(j => j.status === 'done').length;
+        const error = jobs.filter(j => j.status === 'error').length;
+        const total = jobs.length;
+        let message: string;
+        if (running > 0) {
+          message = `Converting ${running} of ${total}… ${done > 0 ? `${done} done` : ''}`.trim();
+        } else if (queued === total) {
+          message = `${total} file${total === 1 ? '' : 's'} in queue — set options below and click Convert`;
+        } else if (done > 0 || error > 0) {
+          const parts = [];
+          if (done > 0) parts.push(`${done} done`);
+          if (error > 0) parts.push(`${error} failed`);
+          if (queued > 0) parts.push(`${queued} queued`);
+          message = parts.join(' • ');
+        } else {
+          message = `${total} file${total === 1 ? '' : 's'} uploaded`;
+        }
+        return (
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-lg border border-sky-200 bg-gradient-to-r from-sky-50 via-sky-100/80 to-sky-50 px-4 py-3 flex items-center justify-between gap-3 shadow-sm"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {running > 0 && (
+                <div className="animate-spin h-4 w-4 border-2 border-sky-600 border-t-transparent rounded-full flex-shrink-0" aria-hidden="true" />
+              )}
+              <span className="text-sm font-medium text-sky-900 truncate">{message}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                jobs.forEach(job => { if (job.url) URL.revokeObjectURL(job.url); });
+                setJobs([]);
+              }}
+              className="text-xs text-sky-600 hover:text-sky-800 hover:bg-sky-200/50 px-2 py-1 rounded flex-shrink-0 transition-colors"
+              aria-label="Clear all files"
+            >
+              Clear all
+            </button>
+          </div>
+        );
+      })()}
+
       <div className="rounded-lg border bg-white p-3 sm:p-4">
         {/* Drop Zone - Now at the top and bigger */}
         <div {...getRootProps()} className={"mb-6 border-2 border-dashed rounded-lg p-6 sm:p-16 text-center cursor-pointer " + dropClass} role="button" aria-label="Upload images - drag and drop or click to select. Maximum 8MB, 8000x8000 pixels. Supported formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO" tabIndex={0}>
