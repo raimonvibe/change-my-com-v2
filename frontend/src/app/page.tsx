@@ -1072,36 +1072,36 @@ export default function ConvertPage() {
                   ) : session ? (
                     <>You&apos;ve used all your conversions for today. Subscribe to get 1000 conversions per month for just $1.98/month.</>
                   ) : (
-                    <>You&apos;ve used all 20 free conversions for today. Sign in to use your account and subscription credits, or subscribe for 1000 conversions per month at $1.98/month.</>
+                    <>
+                      You&apos;ve used the 20 free conversions for this session.
+                      <span className="mt-2 block font-medium text-slate-800">Already subscribed? Sign in to use your monthly credits.</span>
+                      New to Change-My? Sign in or subscribe for 1000 conversions/month at $1.98/month.
+                    </>
                   )}
                 </p>
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col gap-3">
                   {!session && (
                     <button
                       onClick={() => signIn('google')}
                       aria-label="Sign in with Google"
-                      className={`flex-1 inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-white text-sm font-medium ${
-                        hasStaleSubscription()
-                          ? 'bg-emerald-600 hover:bg-emerald-700'
-                          : 'bg-sky-600 hover:bg-sky-700'
-                      }`}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-white text-sm font-semibold bg-sky-600 hover:bg-sky-700"
                     >
-                      Sign In
+                      Sign in to use my account
                     </button>
                   )}
-                  {!hasStaleSubscription() && (
+                  {!session && !hasStaleSubscription() && (
                     <button
                       onClick={() => router.push('/billing')}
                       aria-label="Go to billing page to subscribe"
-                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-white hover:bg-emerald-700 text-sm font-medium"
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-slate-700 hover:bg-slate-50 text-sm font-medium"
                     >
-                      Subscribe Now
+                      I don&apos;t have an account — Subscribe
                     </button>
                   )}
                   <button
                     onClick={() => setShowLimitModal(false)}
                     aria-label="Close limit modal"
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-slate-100 px-4 py-2.5 text-slate-700 hover:bg-slate-200 text-sm font-medium"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-slate-100 px-4 py-2.5 text-slate-600 hover:bg-slate-200 text-sm font-medium"
                   >
                     Close
                   </button>

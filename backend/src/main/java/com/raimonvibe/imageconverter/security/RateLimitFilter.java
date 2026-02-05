@@ -61,9 +61,12 @@ public class RateLimitFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) res;
 
         boolean isAuth = request.getUserPrincipal() != null;
+        // Use same client IP as ConvertController/AnonymousUserController (X-Forwarded-For when behind proxy)
+        // so anonymous users each get their own rate limit and conversion quota.
+        String clientIp = getClientIp(request);
         String baseKey = isAuth
                 ? "u:" + request.getUserPrincipal().getName()
-                : "ip:" + normalizeIp(request.getRemoteAddr());
+                : "ip:" + normalizeIp(clientIp);
 
         // Separate rate limiting for convert endpoints (both regular and GIF) and webhook
         String requestPath = request.getRequestURI();
@@ -91,6 +94,14 @@ public class RateLimitFilter implements Filter {
             
             response.sendError(429, "Too Many Requests");
         }
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isEmpty()) {
+            return xff.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     private String normalizeIp(String addr) {

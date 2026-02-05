@@ -128,7 +128,8 @@ public class ConvertController {
             return unprocessable("Failed to read upload");
         }
 
-        // ---- 3) Credits (same as regular): free 20/day anon; paid only when logged in
+        // ---- 3) Credits (same as regular): free 20/day without login (IP); paid only when logged in
+        // Anonymous (principal == null): no login required; limit by IP in AnonymousUserService.
         boolean allowed;
         try {
             if (principal != null) {
@@ -280,7 +281,8 @@ public class ConvertController {
             return unprocessable("Failed to read upload");
         }
 
-        // ---- 3) Credits: free 20/day without login (IP); paid 1000/subscription only when logged in
+        // ---- 3) Credits: free 20/day without login (IP-based); paid only when logged in
+        // Anonymous (principal == null): no login required; limit enforced by IP in AnonymousUserService.
         // Security: paid credits exist only for authenticated users; anonymous path never touches User.paidCredits
         boolean allowed;
         try {
