@@ -91,7 +91,30 @@ export default function ConvertPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [rateLimitRemaining, setRateLimitRemaining] = useState<number | null>(null);
   const [gifFormats, setGifFormats] = useState<string[]>(['png', 'jpg']);
+  const [anonymousRemaining, setAnonymousRemaining] = useState<number | null>(null);
+  const [anonymousDailyLimit, setAnonymousDailyLimit] = useState(20);
   const token = session?.idToken as string | undefined;
+
+  // Fetch anonymous (IP-based) remaining conversions when not logged in. Used for UX and testing.
+  const fetchAnonymousRemaining = React.useCallback(async () => {
+    if (session) return;
+    try {
+      const res = await fetch(`${API_URL}/api/anonymous/remaining`);
+      if (res.ok) {
+        const data = await res.json() as { remaining: number; dailyLimit: number };
+        setAnonymousRemaining(data.remaining);
+        setAnonymousDailyLimit(data.dailyLimit ?? 20);
+      }
+    } catch {
+      setAnonymousRemaining(null);
+    }
+  }, [session]);
+
+  // When not logged in, load anonymous remaining on mount so user can see "X of 20 left today"
+  useEffect(() => {
+    if (!session) fetchAnonymousRemaining();
+    else setAnonymousRemaining(null);
+  }, [session, fetchAnonymousRemaining]);
 
   // Helper to detect if user has subscription but isn't logged in
   // Used purely for UX messaging - backend still validates JWT for all authenticated requests
@@ -306,6 +329,7 @@ export default function ConvertPage() {
       if (res.status === 401) throw new Error('Please sign in with Google to convert.');
       if (res.status === 402) {
         setShowLimitModal(true);
+        if (!session) fetchAnonymousRemaining();
         const errorMsg = hasStaleSubscription()
           ? 'Your session has expired. Please sign in to use your subscription.'
           : 'No conversions remaining. Please subscribe to continue.';
@@ -339,6 +363,7 @@ export default function ConvertPage() {
       setJobs((prev) => prev.map(job => job.id === j.id ? { ...job, status: 'done' as const, url, progress: 100 } : job));
 
       await refetchUserData();
+      if (!session) fetchAnonymousRemaining();
     } catch (e: unknown) {
       clearInterval(progressInterval);
       let errorMessage = 'Unknown error occurred';
@@ -360,13 +385,16 @@ export default function ConvertPage() {
   const start = async () => {
     const pending = jobs.filter(j => j.status === 'queued');
 
-    // Check if user has credits before starting conversion
-    if (pending.length > 0 && auth.freeRemaining === 0 && auth.paidCredits === 0) {
+    // Check if user has credits before starting conversion (logged-in: auth store; anonymous: IP quota)
+    const loggedInNoCredits = session && auth.freeRemaining === 0 && auth.paidCredits === 0;
+    const anonymousNoCredits = !session && anonymousRemaining === 0;
+    if (pending.length > 0 && (loggedInNoCredits || anonymousNoCredits)) {
       setShowLimitModal(true);
-      // Show context-aware error message
       const errorMsg = hasStaleSubscription()
         ? 'Your session has expired. Please sign in to use your subscription.'
-        : 'No conversions remaining. Please subscribe to continue.';
+        : session
+          ? 'No conversions remaining. Subscribe to continue.'
+          : 'Daily limit reached. Sign in to use your account or subscribe to continue.';
       setJobs((prev) => prev.map(job =>
         pending.some(p => p.id === job.id)
           ? { ...job, status: 'error', error: errorMsg }
@@ -436,6 +464,7 @@ export default function ConvertPage() {
         if (res.status === 401) throw new Error('Please sign in with Google to convert.');
         if (res.status === 402) {
           setShowLimitModal(true);
+          if (!session) fetchAnonymousRemaining();
           const errorMsg = hasStaleSubscription()
             ? 'Your session has expired. Please sign in to use your subscription.'
             : session
@@ -471,8 +500,8 @@ export default function ConvertPage() {
         const url = URL.createObjectURL(blob);
         setJobs((prev) => prev.map(job => job.id === j.id ? { ...job, status: 'done' as const, url, progress: 100 } : job));
 
-        // Refresh user credits after successful conversion
         await refetchUserData();
+        if (!session) fetchAnonymousRemaining();
       } catch (e: unknown) {
         clearInterval(progressInterval);
         let errorMessage = 'Unknown error occurred';
@@ -513,6 +542,14 @@ export default function ConvertPage() {
             <X size={18} aria-hidden="true" />
           </button>
         </div>
+      )}
+
+      {/* Anonymous remaining (when not logged in) - so you can test free conversions without signing in */}
+      {!session && anonymousRemaining !== null && (
+        <p className="text-sm text-slate-600" aria-live="polite">
+          <strong>{anonymousRemaining}</strong> of {anonymousDailyLimit} free conversions left today.
+          <span className="text-slate-500"> Sign in to use your subscription.</span>
+        </p>
       )}
 
       {/* Rate Limit Warning */}

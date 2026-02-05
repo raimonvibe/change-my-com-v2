@@ -192,6 +192,17 @@ public class SecurityConfigTest {
             .andExpect(status().isOk());
     }
 
+    @Test
+    @DisplayName("SECURITY: Should allow anonymous GET /api/anonymous/remaining (no auth, safe for UX)")
+    void testAnonymousRemainingPublic() throws Exception {
+        mockMvc.perform(get("/api/anonymous/remaining"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith("application/json"))
+            .andExpect(jsonPath("$.remaining").isNumber())
+            .andExpect(jsonPath("$.dailyLimit").value(20))
+            .andExpect(jsonPath("$.authenticated").value(false));
+    }
+
     // ==================== CSRF PROTECTION TESTS ====================
 
     @Test

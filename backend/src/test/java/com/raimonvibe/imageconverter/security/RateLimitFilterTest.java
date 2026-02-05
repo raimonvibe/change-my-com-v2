@@ -438,4 +438,75 @@ public class RateLimitFilterTest {
             eq("/api/user/me")
         );
     }
+
+    // ==================== X-FORWARDED-FOR (PROXY) SECURITY TESTS ====================
+
+    @Test
+    @DisplayName("SECURITY: Should use X-Forwarded-For for anonymous client IP when behind proxy")
+    void testXForwardedFor_UsedForRateLimitKey() throws IOException, ServletException {
+        // When behind a reverse proxy, all requests may have same RemoteAddr (proxy IP).
+        // Rate limit must use X-Forwarded-For so each real client gets their own bucket.
+        String clientIp = "203.0.113.50";
+        String proxyIp = "10.0.0.1";
+
+        MockHttpServletRequest req1 = new MockHttpServletRequest();
+        req1.setRemoteAddr(proxyIp);
+        req1.addHeader("X-Forwarded-For", clientIp);
+        req1.setMethod("GET");
+        req1.setRequestURI("/api/user/me");
+
+        MockHttpServletRequest req2 = new MockHttpServletRequest();
+        req2.setRemoteAddr(proxyIp);
+        req2.addHeader("X-Forwarded-For", "203.0.113.99"); // Different client
+        req2.setMethod("GET");
+        req2.setRequestURI("/api/user/me");
+
+        // When: Same proxy IP but different X-Forwarded-For each use their own bucket
+        for (int i = 0; i < 60; i++) {
+            response = new MockHttpServletResponse();
+            rateLimitFilter.doFilter(req1, response, filterChain);
+            assertEquals(200, response.getStatus(), "Client 1 request " + (i + 1));
+        }
+        // Client 2 should still have full quota (different bucket)
+        response = new MockHttpServletResponse();
+        rateLimitFilter.doFilter(req2, response, filterChain);
+        assertEquals(200, response.getStatus());
+        assertEquals("59", response.getHeader("X-RateLimit-Remaining"));
+    }
+
+    @Test
+    @DisplayName("SECURITY: Same X-Forwarded-For should share rate limit bucket (same client)")
+    void testXForwardedFor_SameClientSharesBucket() throws IOException, ServletException {
+        String clientIp = "198.51.100.1";
+        request.setRemoteAddr("10.0.0.1");
+        request.addHeader("X-Forwarded-For", clientIp);
+        request.setMethod("GET");
+        request.setRequestURI("/api/user/me");
+
+        // When: Exceed limit using X-Forwarded-For as key
+        for (int i = 0; i < 60; i++) {
+            response = new MockHttpServletResponse();
+            rateLimitFilter.doFilter(request, response, filterChain);
+            assertEquals(200, response.getStatus(), "Request " + (i + 1));
+        }
+        response = new MockHttpServletResponse();
+        rateLimitFilter.doFilter(request, response, filterChain);
+        assertEquals(429, response.getStatus());
+        verify(auditLogger, times(1)).logRateLimitExceeded(eq("ip:198.51.100.1"), eq("/api/user/me"));
+    }
+
+    @Test
+    @DisplayName("SECURITY: X-Forwarded-For first hop only (comma-separated list)")
+    void testXForwardedFor_FirstHopOnly() throws IOException, ServletException {
+        // X-Forwarded-For can be "client, proxy1, proxy2" - we use first (client)
+        request.setRemoteAddr("10.0.0.1");
+        request.addHeader("X-Forwarded-For", "203.0.113.10, 10.0.0.2, 10.0.0.1");
+        request.setMethod("GET");
+        request.setRequestURI("/api/user/me");
+
+        rateLimitFilter.doFilter(request, response, filterChain);
+        assertEquals(200, response.getStatus());
+        // Key should be based on 203.0.113.10 (first in list)
+        verify(filterChain, times(1)).doFilter(request, response);
+    }
 }
