@@ -236,6 +236,12 @@ const nextConfig = {
 # Verify client ID and secret are correct
 ```
 
+#### Issue: Web Service exceeded its memory limit
+The app is tuned for Render’s free tier (512MB): 8MB max upload, and images over 1920px are auto-resized before conversion to avoid ImageMagick memory spikes (e.g. iPhone 12MP photos).
+
+- **If you still see memory alerts:** Upgrade the backend to a larger instance in Render (e.g. paid plan with more RAM), or ensure users upload images under 8MB; the frontend already blocks larger files.
+- **File size:** Uploads are limited to 8MB (frontend and backend). This keeps smartphone HEIC/JPEG within a safe range while allowing full-resolution conversion after server-side resize.
+
 ### 12. **Cost Optimization**
 
 #### Free Tier Limits:
@@ -244,8 +250,8 @@ const nextConfig = {
 - **Frontend**: Unlimited static hosting
 
 #### Paid Plans:
-- **Backend**: $7/month for always-on
-- **Database**: $7/month for 1GB, $20/month for 10GB
+- **Backend**: $7/month for always-on (512MB RAM) — the app is tuned for this (8MB uploads, auto-resize at 1920px, ImageMagick memory limits).
+- **Database**: ~$6/month for Starter PostgreSQL; $7/month for 1GB, $20/month for 10GB
 
 ### 13. **Security Checklist for Render**
 

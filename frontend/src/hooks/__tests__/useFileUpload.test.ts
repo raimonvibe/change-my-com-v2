@@ -61,12 +61,12 @@ describe('useFileUpload Hook', () => {
     expect(result.current.files).toHaveLength(0)
   })
 
-  it('should clear error when adding files', () => {
+  it('should clear error when adding files', async () => {
     const { result } = renderHook(() => useFileUpload())
 
-    // Simulate an error
-    act(() => {
-      result.current.uploadFiles(async () => {
+    // Simulate an error (await so setState runs inside act)
+    await act(async () => {
+      await result.current.uploadFiles(async () => {
         throw new Error('Test error')
       })
     })

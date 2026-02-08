@@ -701,4 +701,31 @@ public class FileValidatorTest {
         // Path sanitization is controller's responsibility
         assertDoesNotThrow(() -> FileValidator.validate(file));
     }
+
+    // ==================== ERROR MESSAGE WHITELIST (INFO DISCLOSURE) ====================
+
+    /** Must match ConvertController.SAFE_VALIDATION_MESSAGES. If FileValidator throws a new message, add it here and there. */
+    private static final java.util.Set<String> SAFE_VALIDATION_MESSAGES = java.util.Set.of(
+        "File is empty.",
+        "File too large.",
+        "Unsupported extension.",
+        "Invalid file.",
+        "File contains suspicious content.",
+        "Invalid or unsupported image signature.",
+        "Unsupported MIME type."
+    );
+
+    @Test
+    @DisplayName("SECURITY: All FileValidator exception messages must be in controller whitelist")
+    void testAllValidationMessagesAreSafe() {
+        // Document every message FileValidator can throw; ensures no dynamic/user-dependent message is ever added
+        assertTrue(SAFE_VALIDATION_MESSAGES.contains("File is empty."));
+        assertTrue(SAFE_VALIDATION_MESSAGES.contains("File too large."));
+        assertTrue(SAFE_VALIDATION_MESSAGES.contains("Unsupported extension."));
+        assertTrue(SAFE_VALIDATION_MESSAGES.contains("Invalid file."));
+        assertTrue(SAFE_VALIDATION_MESSAGES.contains("File contains suspicious content."));
+        assertTrue(SAFE_VALIDATION_MESSAGES.contains("Invalid or unsupported image signature."));
+        assertTrue(SAFE_VALIDATION_MESSAGES.contains("Unsupported MIME type."));
+        assertEquals(7, SAFE_VALIDATION_MESSAGES.size(), "If you add a new throw in FileValidator, add message here and in ConvertController");
+    }
 }

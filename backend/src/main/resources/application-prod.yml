@@ -1,5 +1,9 @@
 # Production Configuration
 spring:
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 8MB
   datasource:
     hikari:
       connection-test-query: SELECT 1

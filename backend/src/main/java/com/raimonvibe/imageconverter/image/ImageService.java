@@ -57,12 +57,12 @@ public class ImageService {
             int[] dimensions = getImageDimensions(input, inputFormatHint);
             int maxDimension = Math.max(dimensions[0], dimensions[1]);
 
-            // Auto-resize large images (>2000px) to respect 10s policy time limit
-            // Large images take 50-60s even with 0% sharpness, exceeding both policy and frontend timeout
-            if (maxDimension > 2000) {
-                logger.info("Auto-resizing {}x{} image to 2000px to complete within 10s time limit",
+            // Auto-resize large images (>1920px) to stay within time/memory limits on constrained hosts (e.g. Render 512MB)
+            // Smartphone photos (e.g. iPhone 11 Pro 12MP) are often 4032x3024; full decode/resize can OOM
+            if (maxDimension > 1920) {
+                logger.info("Auto-resizing {}x{} image to 1920px for time/memory limits",
                     dimensions[0], dimensions[1]);
-                processedInput = autoResizeImage(input, 2000, inputFormatHint);
+                processedInput = autoResizeImage(input, 1920, inputFormatHint);
                 wasAutoResized = true;
             }
 
@@ -84,7 +84,7 @@ public class ImageService {
 
             int originalSharpness = options.sharpness() != null ? options.sharpness() : 0;
             // Use resized dimensions for sharpness capping if auto-resized
-            int sharpnessCheckDimension = wasAutoResized ? 2000 : maxDimension;
+            int sharpnessCheckDimension = wasAutoResized ? 1920 : maxDimension;
             int cappedSharpness = capSharpnessForDimensions(sharpnessCheckDimension, originalSharpness);
 
             if (cappedSharpness < originalSharpness) {
@@ -109,19 +109,18 @@ public class ImageService {
                 java.util.List<String> args = new java.util.ArrayList<>();
                 args.add(cmd);
 
-                // Set resource limits as command-line options (more reliable than env vars)
-                // Note: -limit can only DECREASE values, not increase them beyond policy.xml
-                // We respect the 10s policy limit by auto-resizing large images and capping sharpness
+                // Set resource limits to avoid OOM on constrained hosts (e.g. Render free 512MB)
+                // Auto-resize and sharpness capping keep conversions within time/memory
                 int magickTimeLimit = adjustedOptions.sharpness() != null && adjustedOptions.sharpness() > 100 ? 120 : 60;
                 args.add("-limit");
                 args.add("time");
                 args.add(String.valueOf(magickTimeLimit));
                 args.add("-limit");
                 args.add("memory");
-                args.add("256MiB");
+                args.add("192MiB");
                 args.add("-limit");
                 args.add("map");
-                args.add("512MiB");
+                args.add("384MiB");
 
                 // Add input file with optional format hint
                 // Format hint syntax: ico:filename tells ImageMagick to treat the file as ICO format
@@ -173,11 +172,10 @@ public class ImageService {
                 args.add(out.getAbsolutePath());
                 pb = new ProcessBuilder(args);
 
-                // Set memory limit for ImageMagick to prevent OOM on low-resource servers
-                // Increased limits to handle high sharpness conversions (100-200%)
-                pb.environment().put("MAGICK_MEMORY_LIMIT", "256MB");
-                pb.environment().put("MAGICK_MAP_LIMIT", "512MB");
-                pb.environment().put("MAGICK_DISK_LIMIT", "1GB");
+                // Set memory limit for ImageMagick to prevent OOM on low-resource servers (e.g. Render 512MB)
+                pb.environment().put("MAGICK_MEMORY_LIMIT", "192MB");
+                pb.environment().put("MAGICK_MAP_LIMIT", "384MB");
+                pb.environment().put("MAGICK_DISK_LIMIT", "512MB");
 
                 // Also set environment variables as fallback for older ImageMagick versions
                 pb.environment().put("MAGICK_TIME_LIMIT", String.valueOf(magickTimeLimit));
@@ -383,15 +381,15 @@ public class ImageService {
             ProcessBuilder extractPb = new ProcessBuilder(
                 "magick",
                 "-limit", "time", "120",
-                "-limit", "memory", "256MiB",
-                "-limit", "map", "512MiB",
+                "-limit", "memory", "192MiB",
+                "-limit", "map", "384MiB",
                 input.getAbsolutePath(),
                 "-coalesce",  // Properly handle GIF animation layers
                 framePattern
             );
             // Also set environment variables as fallback
             extractPb.environment().put("MAGICK_TIME_LIMIT", "120");
-            extractPb.environment().put("MAGICK_MEMORY_LIMIT", "256MB");
+            extractPb.environment().put("MAGICK_MEMORY_LIMIT", "192MB");
             extractPb.redirectErrorStream(true);
 
             logger.info("Extracting GIF frames with 120s time limit");
@@ -530,7 +528,8 @@ public class ImageService {
 
     /**
      * Get image dimensions using ImageMagick identify command.
-     * Fast operation that doesn't load the full image into memory.
+     * Uses -ping to avoid loading full image into memory (header-only read where possible),
+     * and strict memory limits so large smartphone photos (e.g. iPhone 12MP) don't OOM the instance.
      *
      * @param input Image file to analyze
      * @param formatHint Optional format hint (e.g., "ico", "png") to help ImageMagick identify the file
@@ -552,8 +551,14 @@ public class ImageService {
                 inputPath = inputPath + "[0]";
             }
 
+            // -ping: read only header/metadata where possible (JPEG, PNG, WebP, etc.), avoids full decode and memory spike
+            // -limit: cap memory so identify doesn't OOM on constrained hosts (e.g. Render free 512MB)
             ProcessBuilder pb = new ProcessBuilder(
                 "magick", "identify",
+                "-limit", "memory", "128MiB",
+                "-limit", "map", "256MiB",
+                "-limit", "time", "10",
+                "-ping",
                 "-format", "%w %h",
                 inputPath
             );
@@ -562,13 +567,16 @@ public class ImageService {
             Process p = pb.start();
             String output = new String(p.getInputStream().readAllBytes()).trim();
 
-            if (!p.waitFor(5, TimeUnit.SECONDS)) {
+            if (!p.waitFor(10, TimeUnit.SECONDS)) {
                 p.destroyForcibly();
                 throw new IOException("Timeout getting image dimensions");
             }
 
             if (p.exitValue() != 0) {
-                throw new IOException("Failed to get image dimensions: " + output);
+                // -ping may not work for all formats (e.g. some HEIC); retry without -ping but with strict memory limits
+                String fallback = runIdentifyWithLimits(inputPath, false);
+                if (fallback == null) throw new IOException("Failed to get image dimensions");
+                output = fallback;
             }
 
             // For multi-image formats like ICO, only parse the first line
@@ -587,6 +595,44 @@ public class ImageService {
             throw new IOException("Interrupted getting dimensions");
         } catch (NumberFormatException e) {
             throw new IOException("Invalid dimension values");
+        }
+    }
+
+    /**
+     * Run ImageMagick identify with memory/time limits. Used as fallback when -ping fails (e.g. HEIC).
+     * @return Trimmed output or null on failure
+     */
+    private String runIdentifyWithLimits(String inputPath, boolean usePing) {
+        try {
+            List<String> args = new ArrayList<>();
+            args.add("magick");
+            args.add("identify");
+            args.add("-limit");
+            args.add("memory");
+            args.add("128MiB");
+            args.add("-limit");
+            args.add("map");
+            args.add("256MiB");
+            args.add("-limit");
+            args.add("time");
+            args.add("15");
+            if (usePing) args.add("-ping");
+            args.add("-format");
+            args.add("%w %h");
+            args.add(inputPath);
+
+            ProcessBuilder pb = new ProcessBuilder(args);
+            pb.redirectErrorStream(true);
+            Process p = pb.start();
+            String out = new String(p.getInputStream().readAllBytes()).trim();
+            if (!p.waitFor(15, TimeUnit.SECONDS)) {
+                p.destroyForcibly();
+                return null;
+            }
+            return p.exitValue() == 0 ? out : null;
+        } catch (Exception e) {
+            logger.debug("Identify fallback failed: {}", e.getMessage());
+            return null;
         }
     }
 
@@ -648,7 +694,7 @@ public class ImageService {
                 args.add("30");  // Quick resize shouldn't take long
                 args.add("-limit");
                 args.add("memory");
-                args.add("256MiB");
+                args.add("192MiB");
 
                 // Add input file - ImageMagick will auto-detect format from file content
                 args.add(input.getAbsolutePath());

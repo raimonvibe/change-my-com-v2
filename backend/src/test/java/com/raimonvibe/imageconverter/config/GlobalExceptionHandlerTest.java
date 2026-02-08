@@ -145,6 +145,22 @@ public class GlobalExceptionHandlerTest {
             "Should mention 'bestand' (file in Dutch)");
     }
 
+    @Test
+    @DisplayName("SECURITY: 413 response must never leak paths, stack traces, or exception class names")
+    void testHandleMaxUploadSizeExceeded_NoInformationDisclosure() {
+        MaxUploadSizeExceededException ex = new MaxUploadSizeExceededException(10 * 1024 * 1024);
+
+        ResponseEntity<Map<String, String>> response = exceptionHandler.handleMaxUploadSizeExceeded(ex);
+
+        String message = response.getBody().get("error");
+        assertNotNull(message);
+        assertFalse(message.contains("at com."), "Must not leak stack trace");
+        assertFalse(message.contains("at java."), "Must not leak stack trace");
+        assertFalse(message.contains("at org."), "Must not leak stack trace");
+        assertFalse(message.contains("/etc/") || message.contains("C:\\\\"), "Must not leak paths");
+        assertFalse(message.contains("MaxUploadSizeExceeded"), "Must not expose exception class name");
+    }
+
     // ==================== INTEGRATION TESTS ====================
 
     @Test

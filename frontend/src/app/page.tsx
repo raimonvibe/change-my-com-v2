@@ -781,7 +781,7 @@ export default function ConvertPage() {
                   <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded p-3 mt-3">
                     <div className="font-semibold mb-1">⚠️ PNG not supported for very large images</div>
                     <div className="mb-2">
-                      Your image is {maxDimension}px. Even after auto-resize to 2000px, PNG compression is too slow.
+                      Your image is {maxDimension}px. Even after auto-resize to 1920px, PNG compression is too slow.
                     </div>
                     <div className="font-medium">
                       Recommended: <span className="text-emerald-600">WebP</span> (best quality/size),
@@ -800,12 +800,12 @@ export default function ConvertPage() {
 
               const maxDimension = Math.max(...queuedJobs.map(j => Math.max(j.width || 0, j.height || 0)));
 
-              if (maxDimension > 2000) {
+              if (maxDimension > 1920) {
                 return (
                   <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded p-3 mt-3">
                     <div className="font-semibold mb-1">ℹ️ Auto-resize enabled</div>
                     <div>
-                      Your {maxDimension}px image will be resized to 2000px before conversion to complete within 10 seconds.
+                      Your {maxDimension}px image will be resized to 1920px before conversion to fit server limits.
                       For custom sizes, use the resize option below.
                     </div>
                   </div>
@@ -946,7 +946,7 @@ export default function ConvertPage() {
                 } else if (maxDimension > 2000 && sharpness > 100) {
                   return (
                     <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mt-2">
-                      ⚠️ Large image detected ({maxDimension}px). Sharpness will be limited to 100% to respect server time limits. For higher sharpness, resize your image to ≤2000px first.
+                      ⚠️ Large image detected ({maxDimension}px). Sharpness will be limited to 100% to respect server time limits. For higher sharpness, resize your image to ≤1920px first.
                     </div>
                   );
                 }
