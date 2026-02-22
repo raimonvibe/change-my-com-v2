@@ -1,4 +1,4 @@
-/**
+﻿/**
  * E2E Security Test Suite - Content Security Policy
  * Tests the CSP implementation and nonce injection in production-like environment
  */

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 // Trigger new deployment - TypeScript fixes applied - v2
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
