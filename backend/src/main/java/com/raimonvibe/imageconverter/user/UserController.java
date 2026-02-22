@@ -1,4 +1,4 @@
-﻿package com.raimonvibe.imageconverter.user;
+package com.raimonvibe.imageconverter.user;
 
 import com.stripe.Stripe;
 import com.stripe.model.Subscription;
