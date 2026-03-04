@@ -1,0 +1,60 @@
+# CodeQL analysis for JavaScript/TypeScript (frontend) and Java (backend).
+# Addresses: Code Scanning "out of date" / configuration warnings and Java build-mode suggestion.
+# If you use GitHub's "Default setup" for code scanning, switch to Advanced and use this workflow.
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Monday
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+          - language: java-kotlin
+            build-mode: manual
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      # -------- Java: manual build so CodeQL can extract full code (addresses build-mode suggestion) --------
+      - name: Set up Java (Java only)
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Build Java backend for CodeQL (Java only)
+        if: matrix.language == 'java-kotlin'
+        working-directory: backend
+        run: mvn -B compile -DskipTests -q
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
