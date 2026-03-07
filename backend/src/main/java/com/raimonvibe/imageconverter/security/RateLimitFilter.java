@@ -81,13 +81,17 @@ public class RateLimitFilter implements Filter {
 
         if (probe.isConsumed()) {
             long limit = isConvertRequest ? CONVERT_LIMIT : (isAuth ? AUTH_LIMIT : ANON_LIMIT);
-            response.setHeader("X-RateLimit-Limit", String.valueOf(limit));
-            response.setHeader("X-RateLimit-Remaining", String.valueOf(probe.getRemainingTokens()));
-            response.setHeader("X-RateLimit-Reset", String.valueOf(probe.getNanosToWaitForRefill() / 1_000_000_000));
+            if (!response.isCommitted()) {
+                response.setHeader("X-RateLimit-Limit", String.valueOf(limit));
+                response.setHeader("X-RateLimit-Remaining", String.valueOf(probe.getRemainingTokens()));
+                response.setHeader("X-RateLimit-Reset", String.valueOf(probe.getNanosToWaitForRefill() / 1_000_000_000));
+            }
             chain.doFilter(request, response);
         } else {
             long waitSec = probe.getNanosToWaitForRefill() / 1_000_000_000;
-            response.setHeader("Retry-After", String.valueOf(waitSec));
+            if (!response.isCommitted()) {
+                response.setHeader("Retry-After", String.valueOf(waitSec));
+            }
             
             // Log rate limit exceeded
             auditLogger.logRateLimitExceeded(baseKey, requestPath);

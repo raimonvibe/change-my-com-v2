@@ -66,13 +66,15 @@ public class SecurityConfig {
                     .includeSubDomains(true)
                     .preload(true)
                     .maxAgeInSeconds(31536000)) // 1 year
-                // Additional security headers
+                // Additional security headers (only if response not yet committed — avoids Tomcat MimeHeaders corruption on streaming e.g. image/ICO)
                 .addHeaderWriter((request, response) -> {
-                    response.setHeader("Permissions-Policy", 
-                        "camera=(), microphone=(), geolocation=(), payment=()");
-                    response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-                    response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-                    response.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+                    if (!response.isCommitted()) {
+                        response.setHeader("Permissions-Policy",
+                            "camera=(), microphone=(), geolocation=(), payment=()");
+                        response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+                        response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+                        response.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+                    }
                 })
             )
             .authorizeHttpRequests(auth -> auth
