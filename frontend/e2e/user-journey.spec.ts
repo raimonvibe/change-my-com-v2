@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 /**
  * E2E Tests: Complete User Journeys
@@ -211,8 +211,8 @@ test.describe('User Journey - Error Recovery', () => {
   test('journey: exceed file size and see error message', async ({ page }) => {
     await page.goto('/');
 
-    // Upload file larger than 8MB
-    const largeBuffer = Buffer.alloc(9 * 1024 * 1024);
+    // Upload file larger than 20MB
+    const largeBuffer = Buffer.alloc(21 * 1024 * 1024);
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles({
       name: 'large.jpg',
@@ -223,7 +223,7 @@ test.describe('User Journey - Error Recovery', () => {
     await page.waitForTimeout(2000);
 
     // Should show size error
-    const sizeError = page.locator('text=/8MB|too large|size limit/i');
+    const sizeError = page.locator('text=/20MB|too large|size limit/i');
 
     if (await sizeError.count() > 0) {
       await expect(sizeError.first()).toBeVisible();

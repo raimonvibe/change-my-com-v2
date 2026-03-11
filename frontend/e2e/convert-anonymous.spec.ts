@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import path from 'path';
 
 /**
@@ -123,15 +123,15 @@ test.describe('Convert Page - Validation', () => {
     await page.goto('/');
   });
 
-  test('should reject file larger than 8MB', async ({ page }) => {
-    const largeBuffer = Buffer.alloc(9 * 1024 * 1024);
+  test('should reject file larger than 20MB', async ({ page }) => {
+    const largeBuffer = Buffer.alloc(21 * 1024 * 1024); // 21MB, exceeds 20MB limit
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles({
       name: 'large.jpg',
       mimeType: 'image/jpeg',
       buffer: largeBuffer,
     });
-    await expect(page.locator('text=/8MB|too large|maximum allowed/i').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=/20MB|too large|maximum allowed/i').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should reject invalid file types', async ({ page }) => {

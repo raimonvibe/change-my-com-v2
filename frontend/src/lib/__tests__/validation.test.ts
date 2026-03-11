@@ -23,23 +23,23 @@ describe('Validation Utilities', () => {
       expect(result.error).toBeUndefined()
     })
 
-    it('should reject files exceeding 8MB', () => {
-      const largeContent = new Array(9 * 1024 * 1024).fill('a').join('')
+    it('should reject files exceeding 20MB', () => {
+      const largeContent = new Array(21 * 1024 * 1024).fill('a').join('')
       const file = new File([largeContent], 'large.jpg', { type: 'image/jpeg' })
       const result = validateFileSize(file)
       expect(result.valid).toBe(false)
-      expect(result.error).toContain('8MB')
+      expect(result.error).toContain('20MB')
     })
 
     it('should include file size in error message', () => {
-      const largeContent = new Array(9 * 1024 * 1024).fill('a').join('')
+      const largeContent = new Array(21 * 1024 * 1024).fill('a').join('')
       const file = new File([largeContent], 'large.jpg', { type: 'image/jpeg' })
       const result = validateFileSize(file)
       expect(result.error).toMatch(/\d+\.\d+MB/)
     })
 
-    it('should accept file at exactly 8MB', () => {
-      const content = new Array(8 * 1024 * 1024).fill('a').join('')
+    it('should accept file at exactly 20MB', () => {
+      const content = new Array(20 * 1024 * 1024).fill('a').join('')
       const file = new File([content], 'max.jpg', { type: 'image/jpeg' })
       const result = validateFileSize(file)
       expect(result.valid).toBe(true)
@@ -106,7 +106,7 @@ describe('Validation Utilities', () => {
     })
 
     it('should collect multiple errors', () => {
-      const largeContent = new Array(9 * 1024 * 1024).fill('a').join('')
+      const largeContent = new Array(21 * 1024 * 1024).fill('a').join('')
       const file = new File([largeContent], 'test.txt', { type: 'text/plain' })
       const result = validateFile(file)
       expect(result.valid).toBe(false)
@@ -114,10 +114,10 @@ describe('Validation Utilities', () => {
     })
 
     it('should return all error messages', () => {
-      const largeContent = new Array(9 * 1024 * 1024).fill('a').join('')
+      const largeContent = new Array(21 * 1024 * 1024).fill('a').join('')
       const file = new File([largeContent], 'test.txt', { type: 'text/plain' })
       const result = validateFile(file)
-      expect(result.errors.some(e => e.includes('8MB'))).toBe(true)
+      expect(result.errors.some(e => e.includes('20MB'))).toBe(true)
       expect(result.errors.some(e => e.includes('Invalid file type'))).toBe(true)
     })
   })
@@ -219,7 +219,7 @@ describe('Validation Utilities', () => {
 
   describe('Constants', () => {
     it('should export correct max file size', () => {
-      expect(MAX_FILE_SIZE).toBe(8 * 1024 * 1024)
+      expect(MAX_FILE_SIZE).toBe(20 * 1024 * 1024)
     })
 
     it('should include all supported image types', () => {

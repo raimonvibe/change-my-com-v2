@@ -175,7 +175,7 @@ import com.raimonvibe.imageconverter.user.User;
 10. Error messages don't leak details
 
 ### ✅ Resource Protection
-1. File size limit: 8MB
+1. File size limit: 20MB
 2. GIF frame limit: 100 frames
 3. Output format limit: 4 formats
 4. Concurrency limit: 4 conversions

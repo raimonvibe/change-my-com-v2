@@ -71,7 +71,7 @@
 - API client exports
 
 **File**: `src/lib/__tests__/validation.test.ts` (80+ tests)
-- File size validation (8MB limit)
+- File size validation (20MB limit)
 - File type validation (10+ image formats)
 - Email validation
 - Quality validation (1-100)

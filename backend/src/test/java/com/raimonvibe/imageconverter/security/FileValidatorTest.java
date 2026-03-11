@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("FileValidator Security Tests")
 public class FileValidatorTest {
 
-    private static final long MAX_FILE_SIZE = 8L * 1024 * 1024; // 8MB
+    private static final long MAX_FILE_SIZE = 20L * 1024 * 1024; // 20MB
 
     // ==================== VALID FILE TESTS ====================
 
@@ -253,9 +253,9 @@ public class FileValidatorTest {
     // ==================== FILE SIZE TESTS ====================
 
     @Test
-    @DisplayName("SECURITY: Should reject file exceeding 8MB limit")
+    @DisplayName("SECURITY: Should reject file exceeding 20MB limit")
     void testFileSizeTooLarge() {
-        byte[] largeFile = new byte[(int) (MAX_FILE_SIZE + 1024)]; // 8MB + 1KB
+        byte[] largeFile = new byte[(int) (MAX_FILE_SIZE + 1024)]; // 20MB + 1KB
         // Fill with JPEG header
         largeFile[0] = (byte) 0xFF;
         largeFile[1] = (byte) 0xD8;
@@ -273,7 +273,7 @@ public class FileValidatorTest {
     }
 
     @Test
-    @DisplayName("SECURITY: Should accept file at exactly 8MB limit")
+    @DisplayName("SECURITY: Should accept file at exactly 20MB limit")
     void testFileSizeAtLimit() {
         byte[] maxFile = new byte[(int) MAX_FILE_SIZE];
         // Fill with PNG header

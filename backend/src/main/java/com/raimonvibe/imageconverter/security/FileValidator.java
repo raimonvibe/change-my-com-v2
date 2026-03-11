@@ -26,7 +26,7 @@ public final class FileValidator {
             "image/x-icon",
             "image/vnd.microsoft.icon"
     );
-    private static final long MAX_BYTES = 8L * 1024 * 1024;
+    private static final long MAX_BYTES = 20L * 1024 * 1024;
 
     private FileValidator() {}
 

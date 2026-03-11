@@ -20,10 +20,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, String>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
-        String message = "Bestand is te groot. Maximum toegestane grootte is 8MB. Kies een kleiner bestand.";
+        String message = "File is too large. Maximum allowed size is 20MB. Please choose a smaller file.";
         
         // Record failed upload for cost tracking
-        costMonitor.recordFailedUpload("File too large", 8L * 1024 * 1024); // Assume max size
+        costMonitor.recordFailedUpload("File too large", 20L * 1024 * 1024); // Assume max size
         
         return ResponseEntity
                 .status(HttpStatus.PAYLOAD_TOO_LARGE)

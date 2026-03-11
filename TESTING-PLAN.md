@@ -43,7 +43,7 @@
 - Anonymous user support (IP-based tracking)
 
 ### System Limits
-- **File Upload:** 8MB max per file
+- **File Upload:** 20MB max per file
 - **GIF Frames:** 100 max
 - **Output Formats:** 4 max per GIF conversion
 - **Request Timeout:** 30 seconds
@@ -128,7 +128,7 @@
 
 #### Test Cases:
 - **UPLOAD-001**: Accept valid image formats (JPG, PNG, WebP, AVIF, HEIC, GIF, ICO)
-- **UPLOAD-002**: Reject files exceeding 8MB size limit
+- **UPLOAD-002**: Reject files exceeding 20MB size limit
 - **UPLOAD-003**: Reject unsupported file formats (PDF, SVG, TIFF, BMP)
 - **UPLOAD-004**: Reject files with invalid extensions (e.g., image.jpg_small, image:thumb)
 - **UPLOAD-005**: Reject files with dimension exceeding 8000px
@@ -256,7 +256,7 @@
 - **SEC-INJ-004**: Command injection attempts in conversion parameters are blocked
 - **SEC-INJ-005**: MIME type spoofing is detected (magic number validation)
 - **SEC-INJ-006**: Malicious file headers are detected and rejected
-- **SEC-INJ-007**: Large payload attacks are blocked (8MB limit enforced)
+- **SEC-INJ-007**: Large payload attacks are blocked (20MB limit enforced)
 
 **Priority:** Critical
 **Test Data:** OWASP Top 10 payloads, malicious files
@@ -361,7 +361,7 @@
 - **PERF-FILE-001**: 100KB file converts in < 1 second
 - **PERF-FILE-002**: 1MB file converts in < 2 seconds
 - **PERF-FILE-003**: 5MB file converts in < 5 seconds
-- **PERF-FILE-004**: 8MB file (max size) converts in < 10 seconds
+- **PERF-FILE-004**: 20MB file (max size) converts in < 10 seconds
 - **PERF-FILE-005**: GIF animation conversion completes within timeout
 
 **Priority:** Medium
@@ -966,7 +966,7 @@ Create a test data repository with:
 
 #### Test Cases:
 - **CONFIG-001**: Server port configured correctly (default 8080)
-- **CONFIG-002**: Max upload size enforced (8MB)
+- **CONFIG-002**: Max upload size enforced (20MB)
 - **CONFIG-003**: Tomcat max connections (8192) configured
 - **CONFIG-004**: Tomcat thread pool (200 max) configured
 - **CONFIG-005**: Error details not exposed (include-stacktrace: never)

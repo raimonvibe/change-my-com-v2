@@ -12,7 +12,7 @@ All test images are small, optimized files for fast test execution.
 2. **test-image.jpg** - Valid JPEG file (1x1 pixel)
 3. **test-image.webp** - Valid WebP file (1x1 pixel)
 4. **test-image.gif** - Valid GIF file (1x1 pixel, animated)
-5. **large-file.jpg** - File exceeding 8MB size limit (for validation tests)
+5. **large-file.jpg** - File exceeding 20MB size limit (for validation tests)
 6. **invalid-file.txt** - Text file (for type validation tests)
 
 ## Usage

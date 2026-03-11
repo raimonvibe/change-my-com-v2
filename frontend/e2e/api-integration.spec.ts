@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 /**
  * E2E Tests: API Integration
@@ -83,13 +83,13 @@ test.describe('API Integration - Rate Limiting Headers', () => {
 test.describe('API Integration - File Validation', () => {
   test('should validate file size before upload', async ({ page }) => {
     await page.goto('/');
-    const largeBuffer = Buffer.alloc(9 * 1024 * 1024);
+    const largeBuffer = Buffer.alloc(21 * 1024 * 1024); // 21MB, exceeds 20MB limit
     await page.locator('input[type="file"]').setInputFiles({
       name: 'large.jpg',
       mimeType: 'image/jpeg',
       buffer: largeBuffer,
     });
-    await expect(page.locator('text=/8MB|too large|maximum allowed/i').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=/20MB|too large|maximum allowed/i').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should validate file type before upload', async ({ page }) => {

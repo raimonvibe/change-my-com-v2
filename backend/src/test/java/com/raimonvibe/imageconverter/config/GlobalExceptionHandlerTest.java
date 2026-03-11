@@ -67,8 +67,9 @@ public class GlobalExceptionHandlerTest {
 
         String errorMessage = response.getBody().get("error");
         assertNotNull(errorMessage);
-        assertTrue(errorMessage.contains("8MB"), "Error message should mention 8MB limit");
-        assertTrue(errorMessage.toLowerCase().contains("groot"), "Error message should be in Dutch");
+        assertTrue(errorMessage.contains("20MB"), "Error message should mention 20MB limit");
+        assertTrue(errorMessage.toLowerCase().contains("large") || errorMessage.toLowerCase().contains("size"),
+            "Error message should be in English (mention size/large)");
     }
 
     @Test
@@ -83,7 +84,7 @@ public class GlobalExceptionHandlerTest {
         // Then: Should record failed upload
         verify(costMonitor, times(1)).recordFailedUpload(
             eq("File too large"),
-            eq(8L * 1024 * 1024)
+            eq(20L * 1024 * 1024)
         );
     }
 
@@ -100,16 +101,16 @@ public class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("Should use correct max file size (8MB) in cost tracking")
+    @DisplayName("Should use correct max file size (20MB) in cost tracking")
     void testHandleMaxUploadSizeExceeded_CorrectMaxSize() {
         // Given
-        MaxUploadSizeExceededException ex = new MaxUploadSizeExceededException(15 * 1024 * 1024);
+        MaxUploadSizeExceededException ex = new MaxUploadSizeExceededException(25 * 1024 * 1024);
 
         // When
         exceptionHandler.handleMaxUploadSizeExceeded(ex);
 
-        // Then: Should record with 8MB limit (not the actual exceeded size)
-        long expectedSize = 8L * 1024 * 1024; // 8MB in bytes
+        // Then: Should record with 20MB limit (not the actual exceeded size)
+        long expectedSize = 20L * 1024 * 1024; // 20MB in bytes
         verify(costMonitor).recordFailedUpload(anyString(), eq(expectedSize));
     }
 
@@ -137,12 +138,13 @@ public class GlobalExceptionHandlerTest {
         // When
         ResponseEntity<Map<String, String>> response = exceptionHandler.handleMaxUploadSizeExceeded(ex);
 
-        // Then: Message should be user-friendly (in Dutch)
+        // Then: Message should be user-friendly (in English)
         String message = response.getBody().get("error");
         assertFalse(message.contains("Exception"), "Should not expose technical details");
         assertFalse(message.contains("Stack"), "Should not expose technical details");
-        assertTrue(message.contains("bestand") || message.contains("Bestand"),
-            "Should mention 'bestand' (file in Dutch)");
+        assertTrue(message.contains("20MB"), "Should mention 20MB limit");
+        assertTrue(message.contains("file") || message.contains("File"),
+            "Should mention 'file' in message");
     }
 
     @Test

@@ -146,7 +146,7 @@ So: **anonymous users never send Bearer token**; backend sees `Principal == null
 - **Convert endpoints**: No auth required; quota enforced in controller (free by IP or user, paid by user credits).
 - **CORS**: Explicit origins (e.g. localhost:3000, www.change-my.com); `Authorization` allowed so browser sends Bearer.
 - **Rate limiting**: Per client (IP or user); convert endpoints have separate 10/min bucket. Uses same IP as conversion quota (X-Forwarded-For when present).
-- **File validation**: `FileValidator` – size (8MB), extension whitelist, magic-byte checks. Used before conversion.
+- **File validation**: `FileValidator` – size (20MB), extension whitelist, magic-byte checks. Used before conversion.
 - **Stripe**: Webhook secret required; payload verified; idempotency by event ID. Redirect URLs for checkout whitelisted.
 
 ---

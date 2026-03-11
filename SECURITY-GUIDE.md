@@ -94,8 +94,8 @@ logger.warn("Token validation failed: {}", e.getMessage());
 spring:
   servlet:
     multipart:
-      max-file-size: 8MB
-      max-request-size: 8MB
+      max-file-size: 20MB
+      max-request-size: 20MB
 ```
 
 #### Layer 2: MIME Type Validation

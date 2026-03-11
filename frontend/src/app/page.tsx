@@ -21,7 +21,7 @@ const FORMAT_GROUPS = {
   'Other': ['ico']
 };
 
-const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB in bytes
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
 const MAX_DIMENSION = 8000; // Maximum width or height in pixels
 
 // Valid file extensions for better error handling
@@ -193,7 +193,7 @@ export default function ConvertPage() {
     if (rejectedFiles.length > 0) {
       const rejectedFile = rejectedFiles[0];
       if (rejectedFile.errors.some((e) => e.code === 'file-too-large')) {
-        setErrorMessage(`File "${rejectedFile.file.name}" is too large. Maximum allowed size is 8MB.`);
+        setErrorMessage(`File "${rejectedFile.file.name}" is too large. Maximum allowed size is 20MB.`);
         setTimeout(() => setErrorMessage(null), 5000);
         return;
       }
@@ -220,7 +220,7 @@ export default function ConvertPage() {
 
     for (const file of acceptedFiles) {
       if (file.size > MAX_FILE_SIZE) {
-        setErrorMessage(`File "${file.name}" is too large (${Math.round(file.size / 1024 / 1024)}MB). Maximum allowed size is 8MB.`);
+        setErrorMessage(`File "${file.name}" is too large (${Math.round(file.size / 1024 / 1024)}MB). Maximum allowed size is 20MB.`);
         setTimeout(() => setErrorMessage(null), 5000);
         continue;
       }
@@ -338,7 +338,7 @@ export default function ConvertPage() {
       }
       if (res.status === 413) {
         const errorData = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(errorData.error || 'File is too large. Maximum allowed size is 8MB.');
+        throw new Error(errorData.error || 'File is too large. Maximum allowed size is 20MB.');
       }
       if (!res.ok) {
         // Try to get error message from response header first (more reliable)
@@ -475,7 +475,7 @@ export default function ConvertPage() {
         }
         if (res.status === 413) {
           const errorData = await res.json().catch(() => ({})) as { error?: string };
-          throw new Error(errorData.error || 'File is too large. Maximum allowed size is 8MB.');
+          throw new Error(errorData.error || 'File is too large. Maximum allowed size is 20MB.');
         }
         if (!res.ok) {
           // Try to get error message from response header first (more reliable)
@@ -723,7 +723,7 @@ export default function ConvertPage() {
 
       <div className="rounded-lg border bg-white p-3 sm:p-4">
         {/* Drop Zone - Now at the top and bigger */}
-        <div {...getRootProps()} className={"mb-6 border-2 border-dashed rounded-lg p-6 sm:p-16 text-center cursor-pointer " + dropClass} role="button" aria-label="Upload images - drag and drop or click to select. Maximum 8MB, 8000x8000 pixels. Supported formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO" tabIndex={0}>
+        <div {...getRootProps()} className={"mb-6 border-2 border-dashed rounded-lg p-6 sm:p-16 text-center cursor-pointer " + dropClass} role="button" aria-label="Upload images - drag and drop or click to select. Maximum 20MB, 8000x8000 pixels. Supported formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO" tabIndex={0}>
           <input {...getInputProps()} aria-label="File upload input" className="hidden" />
           <div className="flex flex-col items-center justify-center gap-2 sm:gap-3 text-slate-600">
             <Upload size={40} className="sm:w-12 sm:h-12 text-sky-500" aria-hidden="true" />
@@ -732,8 +732,8 @@ export default function ConvertPage() {
               <span className="sm:hidden">Tap to select images</span>
             </div>
             <div className="text-xs sm:text-sm text-slate-500 mt-1 px-2">
-              <div className="hidden sm:block">Max: 8MB, {MAX_DIMENSION}x{MAX_DIMENSION}px • Formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO</div>
-              <div className="sm:hidden">Max: 8MB • JPG, PNG, WebP, AVIF, GIF, HEIC, ICO</div>
+              <div className="hidden sm:block">Max: 20MB, {MAX_DIMENSION}x{MAX_DIMENSION}px • Formats: JPG, PNG, WebP, AVIF, GIF, HEIC, ICO</div>
+              <div className="sm:hidden">Max: 20MB • JPG, PNG, WebP, AVIF, GIF, HEIC, ICO</div>
             </div>
           </div>
         </div>

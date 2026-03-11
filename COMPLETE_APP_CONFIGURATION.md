@@ -54,7 +54,7 @@
 server:
   port: ${PORT:8080}                    # Default: 8080
   tomcat:
-    max-swallow-size: 8MB               # Max upload size
+    max-swallow-size: 20MB              # Max upload size
     max-connections: 8192               # Production: high concurrency
     accept-count: 100                   # Queue size
     max-threads: 200                    # Thread pool
@@ -68,7 +68,7 @@ server:
 
 **Purpose:**
 - Handles up to 8192 concurrent connections
-- 8MB file upload limit (GIF/image files)
+- 20MB file upload limit (GIF/image files)
 - No error details exposed (security hardening)
 
 ---
@@ -123,15 +123,15 @@ spring:
 spring:
   servlet:
     multipart:
-      max-file-size: 8MB                # Per-file limit
-      max-request-size: 8MB             # Total request size
+      max-file-size: 20MB               # Per-file limit
+      max-request-size: 20MB            # Total request size
   mvc:
     async:
       request-timeout: 30s              # Async processing timeout
 ```
 
 **Purpose:**
-- 8MB file size limit (prevents resource exhaustion)
+- 20MB file size limit (prevents resource exhaustion)
 - 30-second timeout for GIF frame extraction
 
 ---
@@ -348,7 +348,7 @@ exposedHeaders: X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After
 3. Magic bytes validation (file signature)
 
 // Limits
-max-file-size: 8MB
+max-file-size: 20MB
 max-gif-frames: 100
 max-output-formats: 4
 ```
@@ -721,7 +721,7 @@ GET  /api/debug/users                 - List all users
 
 ### Resource Limits
 ```
-File Upload: 8MB
+File Upload: 20MB
 GIF Frames: 100 max
 Output Formats: 4 max (per GIF conversion)
 Request Timeout: 30 seconds

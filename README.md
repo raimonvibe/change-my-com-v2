@@ -230,7 +230,7 @@ Open your browser and navigate to:
 
 1. 🌐 Visit [change-my.com](https://change-my.com) or `http://localhost:3000`
 2. 🖱️ Click **"Start Converting"** or navigate to `/convert`
-3. 📎 Drag-and-drop or click to upload image (max 10MB)
+3. 📎 Drag-and-drop or click to upload image (max 20MB)
 4. 🎯 Select target format (PNG, JPG, WEBP, GIF, AVIF)
 5. ⚡ Click **"Convert"**
 6. 💾 Download converted image
@@ -268,7 +268,7 @@ curl -X POST http://localhost:8080/api/convert/anonymous \
 ```
 
 **📋 Parameters**:
-- 📎 `file` (multipart/form-data): Image file (max 10MB)
+- 📎 `file` (multipart/form-data): Image file (max 20MB)
 - 🎯 `targetFormat` (string): Target format (`png`, `jpg`, `webp`, `gif`, `avif`)
 
 **📤 Response**: Binary image data (Content-Type: `image/jpeg`, `image/png`, etc.)
@@ -988,7 +988,7 @@ HTTP 429: Too Many Requests
 Payload Too Large (413)
 ```
 
-**🔍 Cause**: File exceeds 10MB limit (Spring Boot default)
+**🔍 Cause**: File exceeds 20MB limit (Spring Boot default)
 
 **✅ Fix**:
 ```properties

@@ -86,7 +86,7 @@ This document summarizes the systematic implementation of comprehensive testing 
 - ✅ Quality validation (1-100)
 - ✅ Sharpness validation (0-200)
 - ✅ Width validation (16-8000)
-- ✅ File size limit (8MB)
+- ✅ File size limit (20MB)
 - ✅ GIF conversion with multiple formats (max 4)
 - ✅ All 8 supported formats tested
 - ✅ Anonymous access allowed
@@ -124,7 +124,7 @@ This document summarizes the systematic implementation of comprehensive testing 
 - Format selection (PNG, JPG, WebP, etc.)
 - Quality and sharpness sliders
 - "Clear All" functionality
-- File size validation (8MB limit)
+- File size validation (20MB limit)
 - Invalid file type rejection
 - State persistence security (images NOT persisted)
 - Keyboard navigation
@@ -297,7 +297,7 @@ frontend/
 ### Security ✅
 - [x] GDPR compliance (user IDs logged, not emails)
 - [x] Rate limiting (60 anon, 300 auth, 10 conversion)
-- [x] File size limits (8MB)
+- [x] File size limits (20MB)
 - [x] File type validation
 - [x] Image state not persisted (security)
 - [x] Authentication requirement for account page

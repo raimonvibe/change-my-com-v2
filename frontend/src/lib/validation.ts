@@ -4,7 +4,7 @@
  */
 
 // File validation constants
-export const MAX_FILE_SIZE = 8 * 1024 * 1024 // 8MB
+export const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
 export const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',
   'image/jpg',
@@ -25,7 +25,7 @@ export function validateFileSize(file: File): { valid: boolean; error?: string }
   if (file.size > MAX_FILE_SIZE) {
     return {
       valid: false,
-      error: `File size exceeds 8MB limit. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB`,
+      error: `File size exceeds 20MB limit. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB`,
     }
   }
   return { valid: true }

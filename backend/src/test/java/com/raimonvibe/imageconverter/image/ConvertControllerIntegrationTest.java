@@ -188,10 +188,10 @@ public class ConvertControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should reject file exceeding 8MB size limit")
+    @DisplayName("Should reject file exceeding 20MB size limit")
     void testConvert_FileTooLarge() throws Exception {
-        // Create a 9MB file (exceeds 8MB limit)
-        byte[] largeData = new byte[9 * 1024 * 1024];
+        // Create a 21MB file (exceeds 20MB limit)
+        byte[] largeData = new byte[21 * 1024 * 1024];
         MockMultipartFile file = new MockMultipartFile(
             "file",
             "large.jpg",
