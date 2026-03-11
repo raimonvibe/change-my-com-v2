@@ -47,6 +47,8 @@ server:
 logging:
   level:
     com.raimonvibe.imageconverter: INFO
+    # Uncomment to trace ImageMagick command attempts (which command tried, next fallback):
+    # com.raimonvibe.imageconverter.image: DEBUG
     org.springframework.security: WARN
     org.springframework.web: WARN
     org.hibernate: WARN

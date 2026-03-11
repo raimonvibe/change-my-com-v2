@@ -63,6 +63,8 @@ public class ImageService {
             throw new IOException("Server busy: too many concurrent conversions");
         }
 
+        logger.info("Conversion started: format={}, inputHint={}, size={} bytes", options.format(), inputFormatHint, input.length());
+
         // Declare these outside try block so they're accessible in catch/finally
         File processedInput = input;
         boolean wasAutoResized = false;
@@ -73,16 +75,18 @@ public class ImageService {
 
             // Detect image dimensions and cap sharpness to respect 10s policy time limit
             // Use the format hint if provided to help ImageMagick identify the file
+            logger.debug("Flow: getting image dimensions (hint={})", inputFormatHint);
             int[] dimensions = getImageDimensions(input, inputFormatHint);
             int maxDimension = Math.max(dimensions[0], dimensions[1]);
+            logger.info("Flow: dimensions {}x{}", dimensions[0], dimensions[1]);
 
             // Auto-resize large images (>1920px) to stay within time/memory limits on constrained hosts (e.g. Render 512MB)
             // Smartphone photos (e.g. iPhone 11 Pro 12MP) are often 4032x3024; full decode/resize can OOM
             if (maxDimension > 1920) {
-                logger.info("Auto-resizing {}x{} image to 1920px for time/memory limits",
-                    dimensions[0], dimensions[1]);
+                logger.info("Flow: auto-resizing {}x{} to 1920px", dimensions[0], dimensions[1]);
                 processedInput = autoResizeImage(input, 1920, inputFormatHint);
                 wasAutoResized = true;
+                logger.debug("Flow: auto-resize done, processedInput size={}", processedInput.length());
             }
 
             // Block PNG conversion for very large images (>4000px) - even after resize, PNG is slow
@@ -120,8 +124,11 @@ public class ImageService {
             );
 
             IOException lastError = null;
+            List<String> convertCommands = List.of("magick", "convert", "/usr/bin/convert");
+            logger.info("Flow: conversion loop starting (will try: {})", convertCommands);
 
-            for (String cmd : List.of("magick", "convert")) {
+            for (String cmd : convertCommands) {
+                logger.debug("Conversion: trying command: {}", cmd);
                 ProcessBuilder pb;
 
                 // Build command arguments
@@ -229,18 +236,20 @@ public class ImageService {
 
                     int code = p.exitValue();
                     if (code == 0 && out.exists() && out.length() > 0) {
-                        logger.debug("ImageMagick conversion successful, output size: {} bytes", out.length());
+                        logger.info("Flow: conversion succeeded with command '{}', output {} bytes", cmd, out.length());
                         return out;
                     }
 
                     logger.warn("ImageMagick failed with exit code {}: {}", code, processOutput);
                     lastError = new IOException("Conversion failed with '" + cmd + "', exit code=" + code);
                 } catch (IOException ioe) {
-                    logger.info("ImageMagick with '{}' not available ({}), trying next command", cmd, ioe.getMessage());
+                    logger.warn("Conversion: command '{}' failed: {} (trying next)", cmd, ioe.getMessage());
                     lastError = ioe;
                 }
             }
 
+            logger.error("Conversion: all commands failed (tried: {}). Last error: {}",
+                convertCommands, lastError != null ? lastError.getMessage() : "none");
             throw (lastError != null ? lastError : new IOException("Unknown conversion error"));
         } catch (Exception e) {
             // Clean up auto-resized temp file on error
@@ -395,7 +404,7 @@ public class ImageService {
             String framePattern = tempDir.resolve("frame-%03d.png").toString();
 
             boolean extracted = false;
-            for (String imCmd : List.of("magick", "convert")) {
+            for (String imCmd : List.of("magick", "convert", "/usr/bin/convert")) {
                 try {
                     List<String> extractArgs = new ArrayList<>();
                     extractArgs.add(imCmd);
@@ -431,11 +440,12 @@ public class ImageService {
                     extracted = true;
                     break;
                 } catch (IOException e) {
-                    logger.info("ImageMagick GIF extract with '{}' not available ({}), trying next", imCmd, e.getMessage());
+                    logger.warn("GIF extract: command '{}' failed: {} (trying next)", imCmd, e.getMessage());
                 }
             }
 
             if (!extracted) {
+                logger.error("GIF extract: all commands failed (tried: magick, convert, /usr/bin/convert)");
                 throw new IOException("Failed to extract GIF frames (magick/convert not available or failed)");
             }
 
@@ -581,13 +591,16 @@ public class ImageService {
                 inputPath = inputPath + "[0]";
             }
 
-            // Try "magick identify" (ImageMagick 7) then "identify" (ImageMagick 6) so we work on systems without magick
+            // Try "magick identify" (IM7), then "identify", then full path (container PATH may not include /usr/bin)
             String output = null;
-            for (List<String> identifyPrefix : List.of(
+            List<List<String>> identifyOptions = List.of(
                 List.of("magick", "identify"),
-                List.of("identify")
-            )) {
+                List.of("identify"),
+                List.of("/usr/bin/identify")
+            );
+            for (List<String> identifyPrefix : identifyOptions) {
                 try {
+                    logger.debug("Dimensions: trying identify with command prefix: {}", identifyPrefix);
                     List<String> args = new ArrayList<>(identifyPrefix);
                     args.add("-limit");
                     args.add("memory");
@@ -619,17 +632,17 @@ public class ImageService {
                     }
                     break;
                 } catch (IOException e) {
-                    // magick/identify not found or exec failed - try next (e.g. Render has IM6: identify, not magick)
-                    logger.info("ImageMagick identify with {} not available ({}), trying next", identifyPrefix, e.getMessage());
+                    logger.warn("Dimensions: identify with {} failed: {} (trying next)", identifyPrefix, e.getMessage());
                     output = null;
                 }
             }
 
             if (output == null || output.isBlank()) {
-                // -ping may not work for all formats (e.g. some HEIC); retry without -ping
+                logger.debug("Dimensions: -ping failed, retrying identify without -ping");
                 output = runIdentifyWithLimits(inputPath, false);
             }
             if (output == null || output.isBlank()) {
+                logger.error("Dimensions: all identify attempts failed (tried: magick identify, identify, /usr/bin/identify)");
                 throw new IOException("Failed to get image dimensions");
             }
 
@@ -638,9 +651,11 @@ public class ImageService {
             String[] parts = firstLine.split("\\s+");
 
             if (parts.length >= 2) {
+                logger.debug("Flow: dimensions parsed: {}x{}", parts[0], parts[1]);
                 return new int[]{Integer.parseInt(parts[0]), Integer.parseInt(parts[1])};
             }
 
+            logger.error("Dimensions: invalid output (expected width height): {}", output);
             throw new IOException("Invalid dimension output: " + output);
 
         } catch (InterruptedException e) {
@@ -658,9 +673,11 @@ public class ImageService {
     private String runIdentifyWithLimits(String inputPath, boolean usePing) {
         for (List<String> identifyPrefix : List.of(
             List.of("magick", "identify"),
-            List.of("identify")
+            List.of("identify"),
+            List.of("/usr/bin/identify")
         )) {
             try {
+                logger.debug("runIdentifyWithLimits: trying {}", identifyPrefix);
                 List<String> args = new ArrayList<>(identifyPrefix);
                 args.add("-limit");
                 args.add("memory");
@@ -688,9 +705,10 @@ public class ImageService {
                     return out;
                 }
             } catch (Exception e) {
-                logger.debug("Identify fallback with {} failed: {}", identifyPrefix, e.getMessage());
+                logger.warn("runIdentifyWithLimits: {} failed: {}", identifyPrefix, e.getMessage());
             }
         }
+        logger.debug("runIdentifyWithLimits: all attempts returned null");
         return null;
     }
 
@@ -741,8 +759,8 @@ public class ImageService {
         try {
             IOException lastError = null;
 
-            // Try both 'magick' (ImageMagick 7.0+) and 'convert' (ImageMagick 6.x) commands
-            for (String cmd : List.of("magick", "convert")) {
+            // Try magick, convert, then full path (container PATH may omit /usr/bin)
+            for (String cmd : List.of("magick", "convert", "/usr/bin/convert")) {
                 java.util.List<String> args = new java.util.ArrayList<>();
                 args.add(cmd);
                 args.add("-limit");

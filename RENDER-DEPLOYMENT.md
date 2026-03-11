@@ -230,7 +230,20 @@ const nextConfig = {
 #### Issue: "Cannot run program 'magick': No such file or directory" / Image conversion failed
 The backend needs ImageMagick to convert images. If you deployed as **Native Java** (not Docker), ImageMagick is not installed on Render’s host.
 
-**Fix:** Redeploy the backend as **Docker** (see **Option A** in section 2). Use **Dockerfile Path**: `./backend/Dockerfile`, **Docker Build Context Directory**: `backend`. After redeploy, the container will have ImageMagick 6 (`convert`/`identify`); the app will use them automatically.
+**Fix (Native Java):** Redeploy as **Docker** (Option A). Use **Dockerfile Path**: `./backend/Dockerfile`, **Docker Build Context Directory**: `backend`.
+
+**If you already use Docker and still see the error:**
+1. **Deploy latest code** – The app falls back to `convert`/`identify` only in recent commits. Trigger a new deploy from latest `main`.
+2. **Clear build cache** – Dashboard → Service → Settings → Build & Deploy → **Clear build cache**, then **Manual Deploy**.
+3. **Check logs** – After deploy you should see:
+   - `Conversion started: format=..., inputHint=..., size=...` (every conversion attempt)
+   - `Dimensions: identify with [...] failed: ... (trying next)` or `Conversion: command '...' failed: ... (trying next)` when fallbacks are used
+   - `Conversion: all commands failed (tried: [...]). Last error: ...` if every attempt failed
+   - `Conversion I/O error: ... - exception: IOException` in the controller (includes exception type)
+   To see which command is tried first (DEBUG), set env `LOGGING_LEVEL_COM_RAIMONVIBE_IMAGECONVERTER_IMAGE=DEBUG` for the service.
+4. The Dockerfile now verifies `convert`/`identify` exist at build time; if the build succeeds, the container has ImageMagick.
+
+**Why it may have worked before:** A previous deploy might have used a different branch, cache, or environment. Use Docker (Option A), clear cache, and deploy from latest `main`.
 
 #### Issue: Database Connection Failed
 ```bash

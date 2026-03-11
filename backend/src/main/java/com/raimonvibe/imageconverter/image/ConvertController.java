@@ -255,6 +255,8 @@ public class ConvertController {
         }
 
         // ---- 1) Output-formaat whitelist & normalisatie
+        logger.info("Convert request received: to={}, size={} bytes, auth={}", toFormat, file.getSize(), principal != null);
+
         String fmt = toFormat.toLowerCase();
         // Normaliseer jpg naar jpeg voor consistentie
         if ("jpg".equals(fmt)) {
@@ -280,6 +282,7 @@ public class ConvertController {
             logger.error("File read error during validation: {}", ioe.getMessage());
             return unprocessable("Failed to read upload");
         }
+        logger.debug("Flow: validation done, detectedFormat={}", detectedFormat);
 
         // ---- 3) Credits: free 20/day without login (IP-based); paid only when logged in
         // Anonymous (principal == null): no login required; limit enforced by IP in AnonymousUserService.
@@ -306,13 +309,14 @@ public class ConvertController {
         }
 
         if (!allowed) {
-            // 402 Payment Required
+            logger.info("Flow: credits denied (402)");
             return ResponseEntity.status(402)
                     .header("Cache-Control", "no-store")
                     .build();
         }
 
         // ---- 4) Veilige temp-bestanden & conversie
+        logger.debug("Flow: credits OK, creating temp file and validating dimensions");
         File tmp = null;
         File out = null;
         long startTime = System.currentTimeMillis();
@@ -324,8 +328,10 @@ public class ConvertController {
             // This provides early feedback for oversized images
             // Pass the detected format to help ImageMagick identify files like ICO
             try {
+                logger.debug("Flow: calling validateImageDimensions (tmp size={})", tmp.length());
                 int[] dimensions = imageService.validateImageDimensions(tmp, detectedFormat);
                 int maxDim = Math.max(dimensions[0], dimensions[1]);
+                logger.info("Flow: dimensions OK {}x{} (maxDim={})", dimensions[0], dimensions[1], maxDim);
                 final int MAX_DIMENSION = 8000;
 
                 if (maxDim > MAX_DIMENSION) {
@@ -339,13 +345,13 @@ public class ConvertController {
                     return unprocessable(message);
                 }
             } catch (IOException dimError) {
-                // If we can't read dimensions, let the conversion attempt handle it
-                logger.warn("Could not validate dimensions, proceeding with conversion: {}", dimError.getMessage());
+                logger.warn("Flow: dimensions failed ({}), proceeding with conversion anyway", dimError.getMessage());
             }
 
             final Integer q = (quality != null) ? quality : null;
             final Integer s = (sharpness != null) ? sharpness : 0;
             final Integer w = (width != null) ? width : null;
+            logger.info("Flow: calling imageService.convert format={} quality={} sharpness={} width={}", fmt, q, s, w);
             out = imageService.convert(tmp, new ImageService.ConversionOptions(fmt, q, s, w), detectedFormat);
 
             // Record cost metrics
@@ -353,7 +359,7 @@ public class ConvertController {
             String userEmail = principal != null ? principal.getName() : null;
             costMonitor.recordConversion(file.getSize(), processingTime, userEmail, fmt);
 
-            logger.info("Conversion successful - format: {}, time: {}ms", fmt, processingTime);
+            logger.info("Flow: conversion done - format: {}, time: {}ms, outputSize: {} bytes", fmt, processingTime, out.length());
 
             // ---- 5) Streaming response (opruimen ná verzenden)
             final File outFile = out; // effectively final voor lambda
@@ -383,13 +389,13 @@ public class ConvertController {
                     .body(body);
 
         } catch (InterruptedException ie) {
-            logger.error("Conversion interrupted: {}", ie.getMessage());
+            logger.error("Flow: conversion interrupted - {}", ie.getMessage());
             Thread.currentThread().interrupt();
             safeDelete(tmp);
             safeDelete(out);
             return unprocessable("Conversion interrupted");
         } catch (IOException ioe) {
-            logger.error("Conversion I/O error: {}", ioe.getMessage());
+            logger.error("Flow: conversion I/O error - {} (exception: {})", ioe.getMessage(), ioe.getClass().getSimpleName());
             safeDelete(tmp);
             safeDelete(out);
 
@@ -397,7 +403,7 @@ public class ConvertController {
             String errorMessage = sanitizeErrorMessage(ioe.getMessage());
             return unprocessable(errorMessage);
         } catch (Exception e) {
-            logger.error("Unexpected conversion error: {}", e.getMessage());
+            logger.error("Flow: unexpected conversion error - {} (exception: {})", e.getMessage(), e.getClass().getSimpleName());
             if (logger.isDebugEnabled()) {
                 logger.debug("Conversion error details", e);
             }

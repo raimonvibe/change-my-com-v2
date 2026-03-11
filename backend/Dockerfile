@@ -25,13 +25,14 @@ RUN ./mvnw clean package -DskipTests
 # Runtime stage: Ubuntu Jammy; Java 25 JRE per Snyk recommendation (jar built with 17 runs on 25)
 FROM eclipse-temurin:25.0.2_10-jre-jammy
 
-# Install ImageMagick 6 (convert), curl, HEIC/WebP deps. No Alpine = no Alpine zlib/libpng vulns.
+# Install ImageMagick 6 (convert, identify), curl, HEIC/WebP deps. No Alpine = no Alpine zlib/libpng vulns.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     imagemagick \
     libheif1 \
     curl \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && which convert && which identify && convert -version | head -1
 
 # Create app user (Debian/Ubuntu)
 RUN groupadd --system spring && useradd --system --gid spring spring

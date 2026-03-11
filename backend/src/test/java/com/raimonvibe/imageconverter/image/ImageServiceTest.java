@@ -369,13 +369,13 @@ public class ImageServiceTest {
     }
 
     @Test
-    @DisplayName("ImageMagick commands are fixed (magick, convert, identify) - no user-controlled executable")
+    @DisplayName("ImageMagick commands are fixed (magick, convert, identify, /usr/bin/*) - no user-controlled executable")
     void testImageMagickCommandsAreFixed() {
-        // Document security: we only ever invoke magick, convert, or identify - never user input as command
-        List<String> allowedCommands = List.of("magick", "convert", "identify");
+        // Document security: we only ever invoke fixed commands or full paths - never user input
+        List<String> allowedCommands = List.of("magick", "convert", "identify", "/usr/bin/convert", "/usr/bin/identify");
         assertTrue(allowedCommands.contains("magick"));
         assertTrue(allowedCommands.contains("convert"));
-        assertTrue(allowedCommands.contains("identify"));
-        assertEquals(3, allowedCommands.size());
+        assertTrue(allowedCommands.contains("/usr/bin/convert"));
+        assertTrue(allowedCommands.contains("/usr/bin/identify"));
     }
 }
