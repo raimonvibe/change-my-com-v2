@@ -162,6 +162,9 @@ public class ImageService {
                     args.add(processedInput.getAbsolutePath());
                 }
 
+                // Apply EXIF orientation so output displays upright (e.g. phone photos in portrait)
+                args.add("-auto-orient");
+
                 // Apply width resize if specified (before format-specific handling)
                 if (adjustedOptions.width() != null && adjustedOptions.width() > 0 && !"ico".equals(outExt)) {
                     // Resize maintaining aspect ratio, only if larger than specified width
@@ -773,6 +776,7 @@ public class ImageService {
 
                 // Add input file - ImageMagick will auto-detect format from file content
                 args.add(input.getAbsolutePath());
+                args.add("-auto-orient");
 
                 args.add("-resize");
                 args.add(maxDimension + "x" + maxDimension + ">");  // Only shrink, don't enlarge
