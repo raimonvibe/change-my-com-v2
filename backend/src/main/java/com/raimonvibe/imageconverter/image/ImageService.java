@@ -126,7 +126,7 @@ public class ImageService {
             IOException lastError = null;
             // Full path first so container works without PATH; then short names; then IM7 "magick"
             List<String> convertCommands = List.of("/usr/bin/convert", "convert", "magick");
-            logger.error("Flow: conversion loop starting (will try: {})", convertCommands);
+            logger.info("Flow: conversion loop starting (will try: {})", convertCommands);
 
             for (String cmd : convertCommands) {
                 logger.debug("Conversion: trying command: {}", cmd);

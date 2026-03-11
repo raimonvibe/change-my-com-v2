@@ -70,6 +70,8 @@ type Job = {
   isGif?: boolean;
   width?: number;
   height?: number;
+  /** Target format used for this conversion (so UI shows correct format per job after dropdown changes) */
+  targetFormat?: string;
 };
 
 // Note: We deliberately do NOT persist uploaded images or conversion results
@@ -284,7 +286,8 @@ export default function ConvertPage() {
 
   const convertGif = async (j: Job) => {
     const startTime = Date.now();
-    setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'running', startTime, progress: 0 } : x));
+    const gifTargetLabel = `${gifFormats.map(f => f.toUpperCase()).join(', ')} (ZIP)`;
+    setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'running', startTime, progress: 0, targetFormat: gifTargetLabel } : x));
 
     const progressInterval = setInterval(() => {
       setJobs((prev) => prev.map(x => {
@@ -410,9 +413,9 @@ export default function ConvertPage() {
         continue;
       }
 
-      // Regular image conversion
+      // Regular image conversion — store target format so UI shows correct format per job
       const startTime = Date.now();
-      setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'running', startTime, progress: 0 } : x));
+      setJobs((prev) => prev.map(x => x.id === j.id ? { ...x, status: 'running', startTime, progress: 0, targetFormat: target } : x));
 
       // Simulate progress for better UX (actual progress not available from backend)
       const progressInterval = setInterval(() => {
@@ -653,7 +656,7 @@ export default function ConvertPage() {
                             {j.file.size > 1024 * 1024
                               ? `${Math.round(j.file.size / 1024 / 1024)} MB`
                               : `${Math.round(j.file.size / 1024)} KB`
-                            } → {j.isGif ? `${gifFormats.map(f => f.toUpperCase()).join(', ')} (ZIP)` : target.toUpperCase()}
+                            } → {(j.targetFormat ?? (j.isGif ? `${gifFormats.map(f => f.toUpperCase()).join(', ')} (ZIP)` : target)).toUpperCase()}
                           </div>
                         </div>
                       </div>
@@ -705,7 +708,7 @@ export default function ConvertPage() {
                         </button>
                         <a
                           href={j.url}
-                          download={j.isGif ? `${j.file.name.split('.')[0]}_frames.zip` : `${j.file.name.split('.')[0]}_converted.${target}`}
+                          download={j.isGif ? `${j.file.name.split('.')[0]}_frames.zip` : `${j.file.name.split('.')[0]}_converted.${j.targetFormat ?? target}`}
                           aria-label={`Download converted ${j.file.name}`}
                           className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 sm:px-3 py-2.5 sm:py-1.5 text-white hover:bg-emerald-700 text-xs sm:text-sm min-h-[44px] sm:min-h-0"
                         >
