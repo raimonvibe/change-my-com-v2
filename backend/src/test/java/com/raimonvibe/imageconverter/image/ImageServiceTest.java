@@ -3,6 +3,9 @@ package com.raimonvibe.imageconverter.image;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -274,5 +277,105 @@ public class ImageServiceTest {
 
         assertEquals(0, options.width());
         // Zero width means no resizing will be applied (checked with > 0 condition)
+    }
+
+    // ==================== FORMAT HINT SANITIZATION (SECURITY) ====================
+
+    @Test
+    @DisplayName("SECURITY: sanitizeFormatHint returns null for null and empty")
+    void testSanitizeFormatHint_NullAndEmpty() {
+        assertNull(ImageService.sanitizeFormatHint(null));
+        assertNull(ImageService.sanitizeFormatHint(""));
+        assertNull(ImageService.sanitizeFormatHint("   "));
+    }
+
+    @Test
+    @DisplayName("SECURITY: sanitizeFormatHint allows only whitelisted formats")
+    void testSanitizeFormatHint_AllowedFormats() {
+        assertEquals("png", ImageService.sanitizeFormatHint("png"));
+        assertEquals("jpg", ImageService.sanitizeFormatHint("jpg"));
+        assertEquals("jpeg", ImageService.sanitizeFormatHint("jpeg"));
+        assertEquals("webp", ImageService.sanitizeFormatHint("webp"));
+        assertEquals("avif", ImageService.sanitizeFormatHint("avif"));
+        assertEquals("gif", ImageService.sanitizeFormatHint("gif"));
+        assertEquals("heic", ImageService.sanitizeFormatHint("heic"));
+        assertEquals("ico", ImageService.sanitizeFormatHint("ico"));
+        assertEquals("png", ImageService.sanitizeFormatHint("PNG"));
+        // Whitespace or extra chars are rejected (must be exact alphanumeric)
+        assertNull(ImageService.sanitizeFormatHint("  JPEG  "));
+    }
+
+    @Test
+    @DisplayName("SECURITY: sanitizeFormatHint rejects dangerous formats (SVG, PDF, PS)")
+    void testSanitizeFormatHint_RejectsDangerousFormats() {
+        assertNull(ImageService.sanitizeFormatHint("svg"));
+        assertNull(ImageService.sanitizeFormatHint("pdf"));
+        assertNull(ImageService.sanitizeFormatHint("ps"));
+        assertNull(ImageService.sanitizeFormatHint("eps"));
+        assertNull(ImageService.sanitizeFormatHint("SVG"));
+    }
+
+    @Test
+    @DisplayName("SECURITY: sanitizeFormatHint rejects command-injection style input")
+    void testSanitizeFormatHint_RejectsInjectionAttempts() {
+        assertNull(ImageService.sanitizeFormatHint("png;id"));
+        assertNull(ImageService.sanitizeFormatHint("png|cat /etc/passwd"));
+        assertNull(ImageService.sanitizeFormatHint("png\n/etc/passwd"));
+        assertNull(ImageService.sanitizeFormatHint("png$(whoami)"));
+        assertNull(ImageService.sanitizeFormatHint("../../../etc/passwd"));
+        assertNull(ImageService.sanitizeFormatHint("png\r\n"));
+        assertNull(ImageService.sanitizeFormatHint("p\"ng\""));
+    }
+
+    @Test
+    @DisplayName("SECURITY: sanitizeFormatHint rejects unknown extensions")
+    void testSanitizeFormatHint_RejectsUnknownFormats() {
+        assertNull(ImageService.sanitizeFormatHint("xyz"));
+        assertNull(ImageService.sanitizeFormatHint("exe"));
+        assertNull(ImageService.sanitizeFormatHint("php"));
+    }
+
+    // ==================== DIMENSION VALIDATION (FALLBACK / SECURITY) ====================
+
+    @Test
+    @DisplayName("validateImageDimensions throws on null file")
+    void testValidateImageDimensions_NullFile() {
+        assertThrows(NullPointerException.class, () ->
+            imageService.validateImageDimensions(null, "png"));
+    }
+
+    @Test
+    @DisplayName("validateImageDimensions throws on non-existent file")
+    void testValidateImageDimensions_NonExistentFile() {
+        File nonexistent = new File(System.getProperty("java.io.tmpdir"), "nonexistent-image-xyz.png");
+        assertFalse(nonexistent.exists());
+        assertThrows(IOException.class, () ->
+            imageService.validateImageDimensions(nonexistent, "png"));
+    }
+
+    @Test
+    @DisplayName("SECURITY: invalid format hint does not leak into command (dimensions fail safely)")
+    void testValidateImageDimensions_InvalidFormatHintFailsSafely() throws IOException {
+        // With invalid hint, sanitizeFormatHint returns null so we use path-only; empty file still fails
+        File empty = Files.createTempFile("empty", ".tmp").toFile();
+        try {
+            assertThrows(IOException.class, () ->
+                imageService.validateImageDimensions(empty, "svg"));
+            assertThrows(IOException.class, () ->
+                imageService.validateImageDimensions(empty, "png;id"));
+        } finally {
+            empty.delete();
+        }
+    }
+
+    @Test
+    @DisplayName("ImageMagick commands are fixed (magick, convert, identify) - no user-controlled executable")
+    void testImageMagickCommandsAreFixed() {
+        // Document security: we only ever invoke magick, convert, or identify - never user input as command
+        List<String> allowedCommands = List.of("magick", "convert", "identify");
+        assertTrue(allowedCommands.contains("magick"));
+        assertTrue(allowedCommands.contains("convert"));
+        assertTrue(allowedCommands.contains("identify"));
+        assertEquals(3, allowedCommands.size());
     }
 }

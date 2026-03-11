@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +24,25 @@ public class ImageService {
 
     private static final Logger logger = LoggerFactory.getLogger(ImageService.class);
 
+    /** Allowed format hints for ImageMagick (whitelist to prevent command-injection via format string). */
+    private static final Set<String> ALLOWED_FORMAT_HINTS = Set.of(
+        "png", "jpg", "jpeg", "webp", "avif", "gif", "bmp", "tiff", "tif", "heic", "heif", "ico"
+    );
+
     public record ConversionOptions(String format, Integer quality, Integer sharpness, Integer width) {}
+
+    /**
+     * Sanitize format hint for use in ImageMagick commands. Returns the hint only if it is in the
+     * allowed whitelist and contains no extra characters (prevents injection via format:path syntax).
+     * Used for all identify/convert arguments that include a format prefix.
+     */
+    static String sanitizeFormatHint(String formatHint) {
+        if (formatHint == null || formatHint.isEmpty()) return null;
+        // Reject if any non-alphanumeric (e.g. "png;id", "png\n", "png ") so only exact whitelist match passes
+        if (!formatHint.matches("(?i)^[a-z0-9]+$")) return null;
+        String normalized = formatHint.toLowerCase().trim();
+        return ALLOWED_FORMAT_HINTS.contains(normalized) ? normalized : null;
+    }
 
     // Maximaal 4 conversies tegelijk
     private final Semaphore semaphore = new Semaphore(4);
@@ -122,14 +141,12 @@ public class ImageService {
                 args.add("map");
                 args.add("384MiB");
 
-                // Add input file with optional format hint
-                // Format hint syntax: ico:filename tells ImageMagick to treat the file as ICO format
-                // For ICO files, use [0] to only process the first/largest image
+                // Add input file with optional format hint (whitelisted to prevent injection)
+                String safeHint = sanitizeFormatHint(inputFormatHint);
                 String inputArg;
-                if (inputFormatHint != null && !inputFormatHint.isEmpty()) {
-                    inputArg = inputFormatHint + ":" + processedInput.getAbsolutePath();
-                    // ICO files contain multiple images - use only the first one
-                    if ("ico".equals(inputFormatHint)) {
+                if (safeHint != null) {
+                    inputArg = safeHint + ":" + processedInput.getAbsolutePath();
+                    if ("ico".equals(safeHint)) {
                         inputArg = inputArg + "[0]";
                     }
                     args.add(inputArg);
@@ -373,38 +390,53 @@ public class ImageService {
             File tempDirFile = tempDir.toFile();
             tempFiles.add(tempDirFile);
 
-            // Extract GIF frames using ImageMagick coalesce
-            // This splits animated GIF into individual frames
+            // Extract GIF frames using ImageMagick coalesce (try "magick" then "convert" for IM6)
             logger.debug("Extracting GIF frames from: {}", input.getName());
             String framePattern = tempDir.resolve("frame-%03d.png").toString();
 
-            ProcessBuilder extractPb = new ProcessBuilder(
-                "magick",
-                "-limit", "time", "120",
-                "-limit", "memory", "192MiB",
-                "-limit", "map", "384MiB",
-                input.getAbsolutePath(),
-                "-coalesce",  // Properly handle GIF animation layers
-                framePattern
-            );
-            // Also set environment variables as fallback
-            extractPb.environment().put("MAGICK_TIME_LIMIT", "120");
-            extractPb.environment().put("MAGICK_MEMORY_LIMIT", "192MB");
-            extractPb.redirectErrorStream(true);
+            boolean extracted = false;
+            for (String imCmd : List.of("magick", "convert")) {
+                try {
+                    List<String> extractArgs = new ArrayList<>();
+                    extractArgs.add(imCmd);
+                    extractArgs.add("-limit");
+                    extractArgs.add("time");
+                    extractArgs.add("120");
+                    extractArgs.add("-limit");
+                    extractArgs.add("memory");
+                    extractArgs.add("192MiB");
+                    extractArgs.add("-limit");
+                    extractArgs.add("map");
+                    extractArgs.add("384MiB");
+                    extractArgs.add(input.getAbsolutePath());
+                    extractArgs.add("-coalesce");
+                    extractArgs.add(framePattern);
 
-            logger.info("Extracting GIF frames with 120s time limit");
+                    ProcessBuilder extractPb = new ProcessBuilder(extractArgs);
+                    extractPb.environment().put("MAGICK_TIME_LIMIT", "120");
+                    extractPb.environment().put("MAGICK_MEMORY_LIMIT", "192MB");
+                    extractPb.redirectErrorStream(true);
 
-            Process extractProcess = extractPb.start();
-            boolean extractFinished = extractProcess.waitFor(150, TimeUnit.SECONDS);
-            if (!extractFinished) {
-                extractProcess.destroyForcibly();
-                throw new IOException("GIF frame extraction timeout");
+                    Process extractProcess = extractPb.start();
+                    boolean extractFinished = extractProcess.waitFor(150, TimeUnit.SECONDS);
+                    if (!extractFinished) {
+                        extractProcess.destroyForcibly();
+                        continue;
+                    }
+                    if (extractProcess.exitValue() != 0) {
+                        logger.debug("GIF extraction with {} failed: {}", imCmd,
+                            new String(extractProcess.getInputStream().readAllBytes()));
+                        continue;
+                    }
+                    extracted = true;
+                    break;
+                } catch (IOException e) {
+                    logger.debug("GIF extraction with {} failed: {}", imCmd, e.getMessage());
+                }
             }
 
-            if (extractProcess.exitValue() != 0) {
-                String error = new String(extractProcess.getInputStream().readAllBytes());
-                logger.error("GIF extraction failed: {}", error);
-                throw new IOException("Failed to extract GIF frames");
+            if (!extracted) {
+                throw new IOException("Failed to extract GIF frames (magick/convert not available or failed)");
             }
 
             // Get list of extracted frames
@@ -538,49 +570,72 @@ public class ImageService {
      */
     private int[] getImageDimensions(File input, String formatHint) throws IOException {
         try {
-            // Build command with optional format hint
-            // Format hint syntax: ico:filename tells ImageMagick to treat the file as ICO format
-            String inputPath = formatHint != null && !formatHint.isEmpty()
-                ? formatHint + ":" + input.getAbsolutePath()
+            // Whitelist format hint to prevent injection (only pass allowed formats to ImageMagick)
+            String safeHint = sanitizeFormatHint(formatHint);
+            String inputPath = safeHint != null
+                ? safeHint + ":" + input.getAbsolutePath()
                 : input.getAbsolutePath();
 
             // For ICO files, only get dimensions of the first image using [0] index
-            // ICO files contain multiple images at different resolutions (256x256, 128x128, etc.)
-            // Without [0], ImageMagick returns dimensions for all embedded images
-            if ("ico".equals(formatHint)) {
+            if ("ico".equals(safeHint)) {
                 inputPath = inputPath + "[0]";
             }
 
-            // -ping: read only header/metadata where possible (JPEG, PNG, WebP, etc.), avoids full decode and memory spike
-            // -limit: cap memory so identify doesn't OOM on constrained hosts (e.g. Render free 512MB)
-            ProcessBuilder pb = new ProcessBuilder(
-                "magick", "identify",
-                "-limit", "memory", "128MiB",
-                "-limit", "map", "256MiB",
-                "-limit", "time", "10",
-                "-ping",
-                "-format", "%w %h",
-                inputPath
-            );
-            pb.redirectErrorStream(true);
+            // Try "magick identify" (ImageMagick 7) then "identify" (ImageMagick 6) so we work on systems without magick
+            String output = null;
+            for (List<String> identifyPrefix : List.of(
+                List.of("magick", "identify"),
+                List.of("identify")
+            )) {
+                try {
+                    List<String> args = new ArrayList<>(identifyPrefix);
+                    args.add("-limit");
+                    args.add("memory");
+                    args.add("128MiB");
+                    args.add("-limit");
+                    args.add("map");
+                    args.add("256MiB");
+                    args.add("-limit");
+                    args.add("time");
+                    args.add("10");
+                    args.add("-ping");
+                    args.add("-format");
+                    args.add("%w %h");
+                    args.add(inputPath);
 
-            Process p = pb.start();
-            String output = new String(p.getInputStream().readAllBytes()).trim();
+                    ProcessBuilder pb = new ProcessBuilder(args);
+                    pb.redirectErrorStream(true);
+                    Process p = pb.start();
+                    output = new String(p.getInputStream().readAllBytes()).trim();
 
-            if (!p.waitFor(10, TimeUnit.SECONDS)) {
-                p.destroyForcibly();
-                throw new IOException("Timeout getting image dimensions");
+                    if (!p.waitFor(10, TimeUnit.SECONDS)) {
+                        p.destroyForcibly();
+                        output = null;
+                        continue;
+                    }
+                    if (p.exitValue() != 0) {
+                        output = null;
+                        continue;
+                    }
+                    break;
+                } catch (IOException e) {
+                    // magick/identify not found or exec failed - try next
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Identify with {} failed: {}", identifyPrefix, e.getMessage());
+                    }
+                    output = null;
+                }
             }
 
-            if (p.exitValue() != 0) {
-                // -ping may not work for all formats (e.g. some HEIC); retry without -ping but with strict memory limits
-                String fallback = runIdentifyWithLimits(inputPath, false);
-                if (fallback == null) throw new IOException("Failed to get image dimensions");
-                output = fallback;
+            if (output == null || output.isBlank()) {
+                // -ping may not work for all formats (e.g. some HEIC); retry without -ping
+                output = runIdentifyWithLimits(inputPath, false);
+            }
+            if (output == null || output.isBlank()) {
+                throw new IOException("Failed to get image dimensions");
             }
 
             // For multi-image formats like ICO, only parse the first line
-            // This handles cases where ImageMagick returns multiple dimension pairs
             String firstLine = output.split("\\r?\\n")[0].trim();
             String[] parts = firstLine.split("\\s+");
 
@@ -603,37 +658,42 @@ public class ImageService {
      * @return Trimmed output or null on failure
      */
     private String runIdentifyWithLimits(String inputPath, boolean usePing) {
-        try {
-            List<String> args = new ArrayList<>();
-            args.add("magick");
-            args.add("identify");
-            args.add("-limit");
-            args.add("memory");
-            args.add("128MiB");
-            args.add("-limit");
-            args.add("map");
-            args.add("256MiB");
-            args.add("-limit");
-            args.add("time");
-            args.add("15");
-            if (usePing) args.add("-ping");
-            args.add("-format");
-            args.add("%w %h");
-            args.add(inputPath);
+        for (List<String> identifyPrefix : List.of(
+            List.of("magick", "identify"),
+            List.of("identify")
+        )) {
+            try {
+                List<String> args = new ArrayList<>(identifyPrefix);
+                args.add("-limit");
+                args.add("memory");
+                args.add("128MiB");
+                args.add("-limit");
+                args.add("map");
+                args.add("256MiB");
+                args.add("-limit");
+                args.add("time");
+                args.add("15");
+                if (usePing) args.add("-ping");
+                args.add("-format");
+                args.add("%w %h");
+                args.add(inputPath);
 
-            ProcessBuilder pb = new ProcessBuilder(args);
-            pb.redirectErrorStream(true);
-            Process p = pb.start();
-            String out = new String(p.getInputStream().readAllBytes()).trim();
-            if (!p.waitFor(15, TimeUnit.SECONDS)) {
-                p.destroyForcibly();
-                return null;
+                ProcessBuilder pb = new ProcessBuilder(args);
+                pb.redirectErrorStream(true);
+                Process p = pb.start();
+                String out = new String(p.getInputStream().readAllBytes()).trim();
+                if (!p.waitFor(15, TimeUnit.SECONDS)) {
+                    p.destroyForcibly();
+                    continue;
+                }
+                if (p.exitValue() == 0 && out != null && !out.isBlank()) {
+                    return out;
+                }
+            } catch (Exception e) {
+                logger.debug("Identify fallback with {} failed: {}", identifyPrefix, e.getMessage());
             }
-            return p.exitValue() == 0 ? out : null;
-        } catch (Exception e) {
-            logger.debug("Identify fallback failed: {}", e.getMessage());
-            return null;
         }
+        return null;
     }
 
     /**
@@ -675,11 +735,9 @@ public class ImageService {
      * @throws IOException if resize fails
      */
     private File autoResizeImage(File input, int maxDimension, String inputFormatHint) throws IOException, InterruptedException {
-        // Preserve input format to avoid format conversion issues
-        // Use jpg for unknown formats or when no hint provided (fast lossy format)
-        String extension = (inputFormatHint != null && !inputFormatHint.isEmpty())
-            ? "." + inputFormatHint.toLowerCase()
-            : ".jpg";
+        // Use whitelisted format for extension; default to jpg if hint missing or invalid
+        String safeHint = sanitizeFormatHint(inputFormatHint);
+        String extension = safeHint != null ? "." + safeHint : ".jpg";
         File resized = Files.createTempFile("resized-" + UUID.randomUUID(), extension).toFile();
 
         try {

@@ -67,6 +67,8 @@
 
   <!-- Disable indirect reads (coders that can read other files) -->
   <policy domain="path" rights="none" pattern="@*"/>
+  <!-- Block fd: pseudo-filenames (stdin/stdout) to prevent policy bypass (CVE-2026-25966 style) -->
+  <policy domain="path" rights="none" pattern="fd:*"/>
 
   <!-- Block only dangerous delegates that can fetch remote resources -->
   <!-- Note: We allow safe delegates needed for JPEG/PNG/WEBP processing -->
