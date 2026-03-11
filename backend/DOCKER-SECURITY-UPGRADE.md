@@ -8,7 +8,7 @@ The **runtime base image was switched from Alpine to Ubuntu** so Snyk stops repo
 | **H** | libpng | Heap-based Buffer Overflow | Use non-Alpine base (Jammy) |
 | **M** | zlib | Improper Validation | Use non-Alpine base (Jammy) |
 
-**Current runtime base:** `eclipse-temurin:17-jre-jammy`. ImageMagick is installed via `apt-get` (ImageMagick 6; app uses `convert` as fallback). Policy path: `/etc/ImageMagick-6/policy.xml`. Rebuild and re-scan with Snyk to confirm the 3 issues are gone.
+**Current runtime base:** `eclipse-temurin:25.0.2_10-jre-jammy` (Snyk-recommended upgrade from 17-jre-jammy). App is built with Java 17; JRE 25 runs it (backward compatible). ImageMagick 6 via `apt-get`; policy: `/etc/ImageMagick-6/policy.xml`. Re-scan with Snyk after deploy.
 
 ## Before deploying
 

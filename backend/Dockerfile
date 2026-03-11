@@ -22,8 +22,8 @@ COPY src src
 # Build the application
 RUN ./mvnw clean package -DskipTests
 
-# Runtime stage: use Ubuntu Jammy to avoid Alpine zlib/libpng CVEs (Snyk still reports them with apk upgrade)
-FROM eclipse-temurin:17-jre-jammy
+# Runtime stage: Ubuntu Jammy; Java 25 JRE per Snyk recommendation (jar built with 17 runs on 25)
+FROM eclipse-temurin:25.0.2_10-jre-jammy
 
 # Install ImageMagick 6 (convert), curl, HEIC/WebP deps. No Alpine = no Alpine zlib/libpng vulns.
 RUN apt-get update && apt-get install -y --no-install-recommends \
