@@ -1,14 +1,14 @@
 # Docker image security upgrade – test and rollback
 
-The runtime image runs `apk update && apk upgrade --no-cache` before installing app packages. This fixes the 3 OS-level vulnerabilities reported for `eclipse-temurin:17-jre-alpine` (Alpine 3.23.3):
+The **runtime base image was switched from Alpine to Ubuntu** so Snyk stops reporting the 3 OS-level vulnerabilities (zlib/libpng) that it attributes to `eclipse-temurin:17-jre-alpine`. Snyk evaluates the base image layer; `apk upgrade` in a later layer did not clear those findings.
 
-| Severity | Package | Issue | Fixed in |
+| Severity | Package | Issue | Approach |
 |----------|---------|--------|----------|
-| **C** | zlib | Out-of-bounds Write (Score 786) | zlib@1.3.2-r0 |
-| **H** | libpng | Heap-based Buffer Overflow (Score 686) | libpng@1.6.55-r0 |
-| **M** | zlib | Improper Validation of Specified Quantity in Input (Score 586) | zlib@1.3.2-r0 |
+| **C** | zlib | Out-of-bounds Write | Use non-Alpine base (Jammy) |
+| **H** | libpng | Heap-based Buffer Overflow | Use non-Alpine base (Jammy) |
+| **M** | zlib | Improper Validation | Use non-Alpine base (Jammy) |
 
-Alpine 3.23 repos provide these versions; `apk upgrade` pulls them in. Rebuild the image and re-run your security scan (e.g. Snyk/GitHub Advanced Security) to confirm the issues are cleared.
+**Current runtime base:** `eclipse-temurin:17-jre-jammy`. ImageMagick is installed via `apt-get` (ImageMagick 6; app uses `convert` as fallback). Policy path: `/etc/ImageMagick-6/policy.xml`. Rebuild and re-scan with Snyk to confirm the 3 issues are gone.
 
 ## Before deploying
 
@@ -47,4 +47,4 @@ Alpine 3.23 repos provide these versions; `apk upgrade` pulls them in. Rebuild t
 
 ## Why this works
 
-The base image `eclipse-temurin:17-jre-alpine` (Alpine 3.23.3) ships older zlib/libpng. Alpine’s repos for 3.23 already contain patched versions (zlib 1.3.2-r0, libpng 1.6.55-r0). Running `apk upgrade` in the Dockerfile applies those updates in the image so scanners no longer report the 3 CVEs.
+Snyk reports vulns from the base image layer. With Alpine, a later apk upgrade did not clear them. Using **eclipse-temurin:17-jre-jammy** (Ubuntu 22.04) removes the Alpine stack, so those zlib/libpng findings no longer apply. The app still uses ImageMagick (v6 on Jammy via `convert`); behaviour is unchanged.’

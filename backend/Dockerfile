@@ -22,33 +22,25 @@ COPY src src
 # Build the application
 RUN ./mvnw clean package -DskipTests
 
-# Runtime stage
-FROM eclipse-temurin:17-jre-alpine
+# Runtime stage: use Ubuntu Jammy to avoid Alpine zlib/libpng CVEs (Snyk still reports them with apk upgrade)
+FROM eclipse-temurin:17-jre-jammy
 
-# Security: fix C/H/M vulns in base image (zlib 1.3.1→1.3.2, libpng 1.6.54→1.6.55). Then install app deps.
-# CVE: zlib out-of-bound write + improper validation; libpng heap buffer overflow. Alpine 3.23 has fixes.
-RUN apk update && apk upgrade --no-cache && apk add --no-cache \
+# Install ImageMagick 6 (convert), curl, HEIC/WebP deps. No Alpine = no Alpine zlib/libpng vulns.
+RUN apt-get update && apt-get install -y --no-install-recommends \
     imagemagick \
-    imagemagick-dev \
-    imagemagick-libs \
-    libjpeg-turbo \
-    libjpeg-turbo-dev \
-    libpng \
-    libpng-dev \
-    libwebp \
-    libwebp-dev \
-    libheif \
-    libheif-dev \
-    curl
+    libheif1 \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create app user
-RUN addgroup --system spring && adduser --system spring --ingroup spring
+# Create app user (Debian/Ubuntu)
+RUN groupadd --system spring && useradd --system --gid spring spring
 
 # Set working directory
 WORKDIR /app
 
-# Copy ImageMagick security policy
-COPY src/main/resources/imagemagick-policy.xml /etc/ImageMagick-7/policy.xml
+# Copy ImageMagick security policy (Jammy uses ImageMagick 6; policy path is -6)
+COPY src/main/resources/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 
 # Create logs directory and set permissions
 RUN mkdir -p /app/logs && chown -R spring:spring /app
