@@ -31,7 +31,7 @@
    - **Dockerfile Path**: `./backend/Dockerfile` (relative to repo root)
    - **Docker Build Context Directory**: `backend`
    - **Plan**: Free tier or paid
-4. Render will build the Docker image (which installs ImageMagick 6) and run it. The app tries `magick` first, then `convert`/`identify` (IM6), so conversion works in the container.
+4. Render will build the Docker image (which installs ImageMagick 6) and run it. The app tries **full paths first** (`/usr/bin/convert`, `/usr/bin/identify`) so conversion works even when `PATH` does not include `/usr/bin`. See [IMAGE-CONVERSION-DESIGN.md](./IMAGE-CONVERSION-DESIGN.md) for the full design and command order.
 
 #### Option B: Native Java (ImageMagick not available)
 If you use **Environment: Java** with Build/Start commands, ImageMagick is **not** installed on Render’s host. You will see errors like `Cannot run program "magick": No such file or directory`. **Use Option A (Docker)** for the backend so ImageMagick is available.

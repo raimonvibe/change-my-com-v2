@@ -124,7 +124,8 @@ public class ImageService {
             );
 
             IOException lastError = null;
-            List<String> convertCommands = List.of("magick", "convert", "/usr/bin/convert");
+            // Full path first so container works without PATH; then short names; then IM7 "magick"
+            List<String> convertCommands = List.of("/usr/bin/convert", "convert", "magick");
             logger.error("Flow: conversion loop starting (will try: {})", convertCommands);
 
             for (String cmd : convertCommands) {
@@ -591,12 +592,12 @@ public class ImageService {
                 inputPath = inputPath + "[0]";
             }
 
-            // Try "magick identify" (IM7), then "identify", then full path (container PATH may not include /usr/bin)
+            // Try full path first (container PATH often excludes /usr/bin), then short names, then IM7 "magick identify"
             String output = null;
             List<List<String>> identifyOptions = List.of(
-                List.of("magick", "identify"),
+                List.of("/usr/bin/identify"),
                 List.of("identify"),
-                List.of("/usr/bin/identify")
+                List.of("magick", "identify")
             );
             for (List<String> identifyPrefix : identifyOptions) {
                 try {
@@ -642,7 +643,7 @@ public class ImageService {
                 output = runIdentifyWithLimits(inputPath, false);
             }
             if (output == null || output.isBlank()) {
-                logger.error("Dimensions: ALL identify attempts failed (tried: magick identify, identify, /usr/bin/identify)");
+                logger.error("Dimensions: ALL identify attempts failed (tried: /usr/bin/identify, identify, magick identify)");
                 throw new IOException("Failed to get image dimensions");
             }
 
@@ -672,9 +673,9 @@ public class ImageService {
      */
     private String runIdentifyWithLimits(String inputPath, boolean usePing) {
         for (List<String> identifyPrefix : List.of(
-            List.of("magick", "identify"),
+            List.of("/usr/bin/identify"),
             List.of("identify"),
-            List.of("/usr/bin/identify")
+            List.of("magick", "identify")
         )) {
             try {
                 logger.debug("runIdentifyWithLimits: trying {}", identifyPrefix);
@@ -759,8 +760,8 @@ public class ImageService {
         try {
             IOException lastError = null;
 
-            // Try magick, convert, then full path (container PATH may omit /usr/bin)
-            for (String cmd : List.of("magick", "convert", "/usr/bin/convert")) {
+            // Full path first (container PATH may omit /usr/bin), then convert, then magick
+            for (String cmd : List.of("/usr/bin/convert", "convert", "magick")) {
                 java.util.List<String> args = new java.util.ArrayList<>();
                 args.add(cmd);
                 args.add("-limit");
@@ -785,32 +786,37 @@ public class ImageService {
                 ProcessBuilder pb = new ProcessBuilder(args);
                 pb.redirectErrorStream(true);
 
-                Process p = pb.start();
-                String output = new String(p.getInputStream().readAllBytes());
+                try {
+                    Process p = pb.start();
+                    String output = new String(p.getInputStream().readAllBytes());
 
-                if (!p.waitFor(30, TimeUnit.SECONDS)) {
-                    p.destroyForcibly();
-                    safeDelete(resized);
-                    throw new IOException("Auto-resize timeout");
+                    if (!p.waitFor(30, TimeUnit.SECONDS)) {
+                        p.destroyForcibly();
+                        safeDelete(resized);
+                        throw new IOException("Auto-resize timeout");
+                    }
+
+                    if (p.exitValue() != 0) {
+                        logger.warn("Auto-resize failed with '{}': {}", cmd, output);
+                        lastError = new IOException("Auto-resize failed with '" + cmd + "': " + output);
+                        continue;  // Try next command
+                    }
+
+                    if (!resized.exists() || resized.length() == 0) {
+                        logger.warn("Auto-resize with '{}' produced empty file", cmd);
+                        lastError = new IOException("Auto-resize produced empty file");
+                        continue;  // Try next command
+                    }
+
+                    logger.debug("Auto-resize successful with '{}', output size: {} bytes", cmd, resized.length());
+                    return resized;
+                } catch (IOException ioe) {
+                    logger.warn("Auto-resize: command '{}' failed: {} (trying next)", cmd, ioe.getMessage());
+                    lastError = ioe;
                 }
-
-                if (p.exitValue() != 0) {
-                    logger.warn("Auto-resize failed with '{}': {}", cmd, output);
-                    lastError = new IOException("Auto-resize failed with '" + cmd + "': " + output);
-                    continue;  // Try next command
-                }
-
-                if (!resized.exists() || resized.length() == 0) {
-                    logger.warn("Auto-resize with '{}' produced empty file", cmd);
-                    lastError = new IOException("Auto-resize produced empty file");
-                    continue;  // Try next command
-                }
-
-                logger.debug("Auto-resize successful with '{}', output size: {} bytes", cmd, resized.length());
-                return resized;
             }
 
-            // If we got here, both commands failed
+            // If we got here, all commands failed
             safeDelete(resized);
             throw lastError != null ? lastError : new IOException("Auto-resize failed with all ImageMagick commands");
 
