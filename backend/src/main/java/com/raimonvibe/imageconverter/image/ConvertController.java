@@ -395,7 +395,10 @@ public class ConvertController {
             safeDelete(out);
             return unprocessable("Conversion interrupted");
         } catch (IOException ioe) {
-            logger.error("Flow: conversion I/O error - {} (exception: {})", ioe.getMessage(), ioe.getClass().getSimpleName());
+            String msg = ioe.getMessage() != null ? ioe.getMessage() : "";
+            boolean fromDimensions = msg.contains("Failed to get image dimensions") || msg.contains("Invalid dimension");
+            logger.error("Flow: conversion I/O error - {} (exception: {}). Failure from: {}",
+                msg, ioe.getClass().getSimpleName(), fromDimensions ? "dimensions/identify" : "conversion loop (magick/convert)");
             safeDelete(tmp);
             safeDelete(out);
 

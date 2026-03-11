@@ -125,7 +125,7 @@ public class ImageService {
 
             IOException lastError = null;
             List<String> convertCommands = List.of("magick", "convert", "/usr/bin/convert");
-            logger.info("Flow: conversion loop starting (will try: {})", convertCommands);
+            logger.error("Flow: conversion loop starting (will try: {})", convertCommands);
 
             for (String cmd : convertCommands) {
                 logger.debug("Conversion: trying command: {}", cmd);
@@ -243,12 +243,12 @@ public class ImageService {
                     logger.warn("ImageMagick failed with exit code {}: {}", code, processOutput);
                     lastError = new IOException("Conversion failed with '" + cmd + "', exit code=" + code);
                 } catch (IOException ioe) {
-                    logger.warn("Conversion: command '{}' failed: {} (trying next)", cmd, ioe.getMessage());
+                    logger.error("Conversion: command '{}' failed: {} (trying next)", cmd, ioe.getMessage());
                     lastError = ioe;
                 }
             }
 
-            logger.error("Conversion: all commands failed (tried: {}). Last error: {}",
+            logger.error("Conversion: ALL commands failed (tried: {}). Last error: {}",
                 convertCommands, lastError != null ? lastError.getMessage() : "none");
             throw (lastError != null ? lastError : new IOException("Unknown conversion error"));
         } catch (Exception e) {
@@ -632,7 +632,7 @@ public class ImageService {
                     }
                     break;
                 } catch (IOException e) {
-                    logger.warn("Dimensions: identify with {} failed: {} (trying next)", identifyPrefix, e.getMessage());
+                    logger.error("Dimensions: identify with {} failed: {} (trying next)", identifyPrefix, e.getMessage());
                     output = null;
                 }
             }
@@ -642,7 +642,7 @@ public class ImageService {
                 output = runIdentifyWithLimits(inputPath, false);
             }
             if (output == null || output.isBlank()) {
-                logger.error("Dimensions: all identify attempts failed (tried: magick identify, identify, /usr/bin/identify)");
+                logger.error("Dimensions: ALL identify attempts failed (tried: magick identify, identify, /usr/bin/identify)");
                 throw new IOException("Failed to get image dimensions");
             }
 
