@@ -100,7 +100,8 @@ public class ConvertControllerSecurityTest {
     @Test
     @DisplayName("SECURITY: 413 response body must not leak internal paths or exception details")
     void test413ResponseNoLeak() throws Exception {
-        byte[] large = new byte[9 * 1024 * 1024];
+        // Exceed 20MB limit so request is rejected with 413 or 400 (not 422 from conversion)
+        byte[] large = new byte[21 * 1024 * 1024];
         large[0] = (byte) 0xFF;
         large[1] = (byte) 0xD8;
         MockMultipartFile file = new MockMultipartFile(
