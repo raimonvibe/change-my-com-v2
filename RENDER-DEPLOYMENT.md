@@ -20,7 +20,23 @@
 
 ### 2. **Backend Deployment (Spring Boot)**
 
-#### Create Web Service:
+**Important:** The backend needs **ImageMagick** for image conversion. On Render you have two options:
+
+#### Option A: Docker (recommended – includes ImageMagick)
+1. Click **"New +"** → **"Web Service"**
+2. Connect your GitHub repository
+3. Configure:
+   - **Name**: `imageconverter-backend`
+   - **Environment**: `Docker`
+   - **Dockerfile Path**: `./backend/Dockerfile` (relative to repo root)
+   - **Docker Build Context Directory**: `backend`
+   - **Plan**: Free tier or paid
+4. Render will build the Docker image (which installs ImageMagick 6) and run it. The app tries `magick` first, then `convert`/`identify` (IM6), so conversion works in the container.
+
+#### Option B: Native Java (ImageMagick not available)
+If you use **Environment: Java** with Build/Start commands, ImageMagick is **not** installed on Render’s host. You will see errors like `Cannot run program "magick": No such file or directory`. **Use Option A (Docker)** for the backend so ImageMagick is available.
+
+#### Create Web Service (if not using Docker):
 1. Click **"New +"** → **"Web Service"**
 2. Connect your GitHub repository
 3. Configure:
@@ -210,6 +226,11 @@ const nextConfig = {
 - Set up alerts for downtime
 
 ### 11. **Common Issues & Solutions**
+
+#### Issue: "Cannot run program 'magick': No such file or directory" / Image conversion failed
+The backend needs ImageMagick to convert images. If you deployed as **Native Java** (not Docker), ImageMagick is not installed on Render’s host.
+
+**Fix:** Redeploy the backend as **Docker** (see **Option A** in section 2). Use **Dockerfile Path**: `./backend/Dockerfile`, **Docker Build Context Directory**: `backend`. After redeploy, the container will have ImageMagick 6 (`convert`/`identify`); the app will use them automatically.
 
 #### Issue: Database Connection Failed
 ```bash

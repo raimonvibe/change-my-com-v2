@@ -236,7 +236,7 @@ public class ImageService {
                     logger.warn("ImageMagick failed with exit code {}: {}", code, processOutput);
                     lastError = new IOException("Conversion failed with '" + cmd + "', exit code=" + code);
                 } catch (IOException ioe) {
-                    logger.error("IOException during ImageMagick execution: {}", ioe.getMessage());
+                    logger.info("ImageMagick with '{}' not available ({}), trying next command", cmd, ioe.getMessage());
                     lastError = ioe;
                 }
             }
@@ -431,7 +431,7 @@ public class ImageService {
                     extracted = true;
                     break;
                 } catch (IOException e) {
-                    logger.debug("GIF extraction with {} failed: {}", imCmd, e.getMessage());
+                    logger.info("ImageMagick GIF extract with '{}' not available ({}), trying next", imCmd, e.getMessage());
                 }
             }
 
@@ -619,10 +619,8 @@ public class ImageService {
                     }
                     break;
                 } catch (IOException e) {
-                    // magick/identify not found or exec failed - try next
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Identify with {} failed: {}", identifyPrefix, e.getMessage());
-                    }
+                    // magick/identify not found or exec failed - try next (e.g. Render has IM6: identify, not magick)
+                    logger.info("ImageMagick identify with {} not available ({}), trying next", identifyPrefix, e.getMessage());
                     output = null;
                 }
             }
