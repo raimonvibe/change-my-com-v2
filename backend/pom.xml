@@ -30,6 +30,7 @@
 		<java.version>17</java.version>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
+		<flyway.version>12.0.3</flyway.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -99,14 +100,16 @@
 			<artifactId>bucket4j_jdk17-core</artifactId>
 			<version>8.17.0</version>
 		</dependency>
-		<!-- Flyway for database migrations (replaces Hibernate DDL auto-update) -->
+		<!-- Flyway 12.0.3: fixes Snyk CWE-770 (transitive jackson). Spring Boot 4.0.3's jackson-core@3.0.4 has no supported fix yet; upgrade SB when available. -->
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
+			<version>${flyway.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>
+			<version>${flyway.version}</version>
 		</dependency>
 	</dependencies>
 
