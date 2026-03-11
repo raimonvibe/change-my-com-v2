@@ -25,8 +25,9 @@ RUN ./mvnw clean package -DskipTests
 # Runtime stage
 FROM eclipse-temurin:17-jre-alpine
 
-# Install ImageMagick with all codecs and curl for health check
-RUN apk add --no-cache \
+# Security: fix C/H/M vulns in base image (zlib 1.3.1→1.3.2, libpng 1.6.54→1.6.55). Then install app deps.
+# CVE: zlib out-of-bound write + improper validation; libpng heap buffer overflow. Alpine 3.23 has fixes.
+RUN apk update && apk upgrade --no-cache && apk add --no-cache \
     imagemagick \
     imagemagick-dev \
     imagemagick-libs \
