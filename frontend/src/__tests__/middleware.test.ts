@@ -122,7 +122,7 @@ describe('CSP Middleware', () => {
 
       expect(csp).toContain('connect-src');
       expect(csp).toContain('https://www.change-my.com');
-      expect(csp).toContain('https://imageconverter-backend.onrender.com');
+      expect(csp).toContain('https://change-my-com-v2.onrender.com');
       expect(csp).toContain('https://api.stripe.com');
       expect(csp).toContain('https://formspree.io');
     });

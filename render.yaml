@@ -10,9 +10,9 @@ services:
     databaseName: imageconverter
     databaseUser: imageconverter_user
 
-  # Backend Spring Boot Service
+  # Backend Spring Boot Service (public URL e.g. https://change-my-com-v2.onrender.com)
   - type: web
-    name: imageconverter-backend
+    name: change-my-com-v2
     env: docker
     plan: free
     dockerfilePath: backend/Dockerfile
@@ -55,7 +55,7 @@ services:
       - key: NEXT_PUBLIC_API_URL
         fromService:
           type: web
-          name: imageconverter-backend
+          name: change-my-com-v2
           property: host
       - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
         sync: false  # Set this manually in Render dashboard
