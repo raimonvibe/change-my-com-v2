@@ -16,6 +16,8 @@ services:
     env: docker
     plan: free
     dockerfilePath: backend/Dockerfile
+    # Required: Dockerfile uses COPY src src — context must be backend/, not repo root
+    dockerContext: backend
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
