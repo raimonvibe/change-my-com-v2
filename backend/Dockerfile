@@ -40,8 +40,8 @@ RUN groupadd --system spring && useradd --system --gid spring spring
 # Set working directory
 WORKDIR /app
 
-# Copy ImageMagick security policy (Jammy uses ImageMagick 6; policy path is -6)
-COPY src/main/resources/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
+# Policy file comes from builder image (same tree as COPY src); avoids a second context COPY.
+COPY --from=builder /app/src/main/resources/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
 
 # Create logs directory and set permissions
 RUN mkdir -p /app/logs && chown -R spring:spring /app
