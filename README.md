@@ -6,6 +6,8 @@
 
 ---
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/raimonvibe/change-my-com-v2)
+
 ## 📋 Executive Summary
 
 **Change-My** is a ⚡ fast, 🔐 secure, and 🎯 user-friendly image conversion web application that transforms images between formats (PNG, JPG, WEBP, GIF, AVIF, and more) with just a few clicks. Built with modern web technologies and enterprise-grade security practices, it offers both anonymous conversions (up to 20/month) and authenticated user conversions with flexible pay-as-you-go pricing powered by Stripe.
