@@ -120,7 +120,7 @@ export default function BillingPage() {
           <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">Loading…</div>
         )}
 
-        {session && status !== 'loading' && (
+        {session && (
           <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-5">
             <p className="text-base font-medium text-emerald-900">You&apos;re signed in</p>
             <p className="mt-1 text-sm text-emerald-800/90 leading-relaxed">
