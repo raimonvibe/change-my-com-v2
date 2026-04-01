@@ -113,7 +113,7 @@ export default function BillingPage() {
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700 leading-relaxed">
-          <strong className="text-slate-800">Paid upgrades</strong> are paused for now. We&apos;re focused on making the free experience great. Thanks for understanding.
+          <strong className="text-slate-800">Paid upgrades</strong>{' '}are paused for now. We&apos;re focused on making the free experience great. Thanks for understanding.
         </div>
 
         {status === 'loading' && (
