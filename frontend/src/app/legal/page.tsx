@@ -19,9 +19,6 @@ export default function LegalPage() {
           </p>
           <p className="mt-2">
             RaimonVibe<br />
-            Timpaan 1-B<br />
-            1628 MT Hoorn<br />
-            Netherlands<br />
             Email: info@raimonvibe.com
           </p>
         </section>
