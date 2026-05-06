@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@stripe/stripe-js": "^9.2.0",
-    "axios": "^1.15.0",
+    "axios": "^1.15.2",
     "jszip": "^3.10.1",
     "lucide-react": "^1.8.0",
     "next": "^16.2.2",
