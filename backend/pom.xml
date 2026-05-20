@@ -98,7 +98,7 @@
 		<dependency>
 			<groupId>com.bucket4j</groupId>
 			<artifactId>bucket4j_jdk17-core</artifactId>
-			<version>8.18.0</version>
+			<version>8.19.0</version>
 		</dependency>
 		<!-- Flyway 12.0.3: fixes Snyk CWE-770 (transitive jackson). Spring Boot 4.0.3's jackson-core@3.0.4 has no supported fix yet; upgrade SB when available. -->
 		<dependency>
