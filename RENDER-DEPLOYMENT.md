@@ -66,8 +66,8 @@ GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 # CORS (your frontend URL)
 ALLOWED_ORIGINS=https://your-frontend.onrender.com
 
-# Production profile
-SPRING_PROFILES_ACTIVE=prod
+# Production + Render logging (stdout only; visible in Render log explorer)
+SPRING_PROFILES_ACTIVE=prod,render
 
 # Server port (Render sets this automatically)
 PORT=10000
@@ -216,8 +216,10 @@ const nextConfig = {
 
 ### 10. **Monitoring & Logs**
 
+The `render` Spring profile (activated with `SPRING_PROFILES_ACTIVE=prod,render`) disables file logging so all application logs go to **stdout**, which Render captures in the dashboard. Without it, logs are written to `/app/logs/application.log` inside the container and do not appear in Render’s log UI.
+
 #### View Logs:
-- **Backend**: Render Dashboard → Your Service → Logs
+- **Backend**: Render Dashboard → Your Service → Logs (set time range to Last 7 days if needed; default is Last hour)
 - **Frontend**: Render Dashboard → Your Static Site → Logs
 
 #### Monitor Performance:

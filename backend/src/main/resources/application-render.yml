@@ -1,0 +1,7 @@
+# Render profile: use with prod (SPRING_PROFILES_ACTIVE=prod,render).
+# Render captures stdout/stderr only — file logs under /app/logs are not visible in the dashboard.
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name:
