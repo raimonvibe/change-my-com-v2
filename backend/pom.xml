@@ -30,7 +30,7 @@
 		<java.version>17</java.version>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
-		<flyway.version>12.6.1</flyway.version>
+		<flyway.version>12.6.2</flyway.version>
 	</properties>
 	<dependencies>
 		<dependency>
