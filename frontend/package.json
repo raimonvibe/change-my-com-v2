@@ -33,7 +33,7 @@
     "test:fixtures": "node e2e/fixtures/create-fixtures.js"
   },
   "dependencies": {
-    "@stripe/stripe-js": "^9.7.0",
+    "@stripe/stripe-js": "^9.8.0",
     "axios": "^1.15.2",
     "jszip": "^3.10.1",
     "lucide-react": "^1.17.0",
