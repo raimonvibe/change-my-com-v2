@@ -9,7 +9,9 @@ updates:
     directory: "/frontend" # De root directory van je frontend
     schedule:
       interval: "weekly" # Hoe vaak je updates wilt
+    open-pull-requests-limit: 10 # Voorkomt dat wekelijkse updates geblokkeerd worden door de standaardlimiet van 5
   - package-ecosystem: "maven"
     directory: "/backend" # De root directory van je backend
     schedule:
       interval: "weekly" # Hoe vaak je updates wilt
+    open-pull-requests-limit: 10 # Voorkomt dat wekelijkse updates geblokkeerd worden door de standaardlimiet van 5
