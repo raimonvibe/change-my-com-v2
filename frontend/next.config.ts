@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  // Pin Turbopack root to this app — avoids picking a stray lockfile higher up
+  // (e.g. C:\Users\rober\package-lock.json) when multiple exist in the tree.
+  turbopack: {
+    root: path.join(__dirname),
+  },
+
   // Images configuration
   images: {
     unoptimized: true,

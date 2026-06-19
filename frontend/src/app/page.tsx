@@ -78,6 +78,57 @@ type Job = {
 // Note: We deliberately do NOT persist uploaded images or conversion results
 // for security and privacy reasons. Images are only kept in memory during the session.
 
+// Detects transient network failures worth retrying. Deliberately excludes
+// AbortError (our own timeout) so we never silently retry a timed-out request.
+const isTransientNetworkError = (e: unknown): boolean => {
+  if (e instanceof TypeError) return true; // fetch() throws TypeError on network failure
+  if (e instanceof Error) {
+    const msg = e.message;
+    return (
+      msg.includes('Failed to fetch') ||
+      msg.includes('NetworkError') ||
+      msg.includes('ERR_CONNECTION') ||
+      msg.includes('ERR_NETWORK') ||
+      msg.includes('ERR_EMPTY_RESPONSE')
+    );
+  }
+  return false;
+};
+
+/**
+ * fetch() wrapper with a per-attempt timeout and a single retry on transient
+ * network errors. Each attempt uses a fresh AbortController (and therefore a
+ * fresh connection), which works around a reset/poisoned keep-alive connection
+ * being reused for back-to-back conversions.
+ */
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+  retries = 1
+): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } catch (e) {
+      lastError = e;
+      if (attempt < retries && isTransientNetworkError(e)) {
+        // Brief backoff before retrying on a new connection.
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        continue;
+      }
+      throw e;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+  // Unreachable in practice, but keeps TypeScript's control-flow analysis happy.
+  throw lastError;
+}
+
 export default function ConvertPage() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -141,16 +192,27 @@ export default function ConvertPage() {
       : "You've used today's guest limit. Sign in for your personal daily quota, or try again tomorrow.";
   };
 
-  // Cleanup blob URLs on unmount to prevent memory leaks
+  // Keep a ref to the latest jobs so the unmount cleanup can revoke blob URLs
+  // WITHOUT re-running on every jobs change. Previously this effect depended on
+  // [jobs], so its cleanup fired on every progress tick / status update and
+  // revoked still-in-use object URLs of already-converted files — which made the
+  // first download work but broke the second and subsequent ones.
+  const jobsRef = React.useRef<Job[]>([]);
+  useEffect(() => {
+    jobsRef.current = jobs;
+  }, [jobs]);
+
+  // Cleanup blob URLs only when the component unmounts (per-job removal is
+  // already handled in removeJob and the "Clear all" handler).
   useEffect(() => {
     return () => {
-      jobs.forEach(job => {
+      jobsRef.current.forEach(job => {
         if (job.url) {
           URL.revokeObjectURL(job.url);
         }
       });
     };
-  }, [jobs]);
+  }, []);
 
   // Close modals on ESC key
   useEffect(() => {
@@ -326,17 +388,13 @@ export default function ConvertPage() {
     }
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for GIFs
-
-      const res = await fetch(`${API_URL}/api/convert/gif`, {
+      // 60 second timeout for GIFs; retries once on a transient network error.
+      const res = await fetchWithRetry(`${API_URL}/api/convert/gif`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: form,
-        signal: controller.signal,
-      });
+      }, 60000);
 
-      clearTimeout(timeoutId);
       clearInterval(progressInterval);
 
       const remaining = res.headers.get('X-RateLimit-Remaining');
@@ -450,20 +508,16 @@ export default function ConvertPage() {
       }
 
       try {
-        // Add timeout handling for slow connections
-        // GIF conversions need more time due to complexity
-        const controller = new AbortController();
+        // Add timeout handling for slow connections (GIF conversions need more
+        // time due to complexity). fetchWithRetry retries once on a transient
+        // network error using a fresh connection.
         const timeoutMs = target === 'gif' ? 60000 : 30000; // 60s for GIF, 30s for others
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-        const res = await fetch(`${API_URL}/api/convert`, {
+        const res = await fetchWithRetry(`${API_URL}/api/convert`, {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: form,
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
+        }, timeoutMs);
 
         clearInterval(progressInterval);
 
