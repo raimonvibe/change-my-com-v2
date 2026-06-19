@@ -1,0 +1,97 @@
+# Production Configuration
+spring:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  datasource:
+    hikari:
+      connection-test-query: SELECT 1
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      # SSL enforcement for database connections
+      data-source-properties:
+        ssl: true
+        sslmode: require
+  jpa:
+    hibernate:
+      ddl-auto: validate  # PRODUCTION: Only validate schema, never modify automatically
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+
+# Production security settings
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+  tomcat:
+    max-swallow-size: 20MB
+    max-connections: 8192
+    accept-count: 100
+    max-threads: 200
+    min-spare-threads: 10
+
+# Production logging with rotation
+logging:
+  level:
+    com.raimonvibe.imageconverter: INFO
+    # Uncomment to trace ImageMagick command attempts (which command tried, next fallback):
+    # com.raimonvibe.imageconverter.image: DEBUG
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate: WARN
+    org.springframework.boot: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/application.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: /app/logs/application-%d{yyyy-MM-dd}.%i.log.gz
+      max-file-size: 50MB
+      max-history: 30
+      total-size-cap: 1GB
+      clean-history-on-start: false
+
+# Production monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: never
+      show-components: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Production app settings
+app:
+  billing:
+    paymentsEnabled: ${BILLING_PAYMENTS_ENABLED:false}
+  stripe:
+    pricePackSize: 20
+    priceUsd: 1.98
+    webhookSecret: ${STRIPE_WEBHOOK_SECRET}
+    publishableKey: ${STRIPE_PUBLISHABLE_KEY}
+    secretKey: ${STRIPE_SECRET_KEY}
+  auth:
+    googleClientId: ${GOOGLE_CLIENT_ID}
+    allowedOrigins: ${ALLOWED_ORIGINS:http://localhost:3000,https://www.change-my.com}

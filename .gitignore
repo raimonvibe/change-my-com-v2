@@ -1,0 +1,46 @@
+# ---- OS ----
+.DS_Store
+Thumbs.db
+
+# ---- Editors / IDEs ----
+.idea/
+.vscode/
+*.swp
+*.iml
+
+# ---- Environment / secrets ----
+.env
+.env.*
+!.env.example
+*.pem
+
+# ---- Node / Frontend ----
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+coverage/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Playwright ----
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# ---- Java / Maven (backend) ----
+target/
+*.class
+*.jar
+*.war
+*.log
+hs_err_pid*
