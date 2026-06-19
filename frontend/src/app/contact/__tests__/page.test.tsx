@@ -35,7 +35,8 @@ describe('ContactPage', () => {
       const { container } = render(<ContactPage />);
       const honeypot = container.querySelector('input[name="_gotcha"]');
       expect(honeypot).toBeInTheDocument();
-      expect(honeypot).toHaveStyle({ display: 'none' });
+      expect(honeypot).toHaveClass('hidden');
+      expect(honeypot).toHaveAttribute('tabindex', '-1');
     });
   });
 
