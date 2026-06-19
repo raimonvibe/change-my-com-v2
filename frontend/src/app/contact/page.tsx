@@ -42,7 +42,7 @@ export default function ContactPage() {
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Honeypot field for spam prevention */}
-          <input type="text" name="_gotcha" style={{ display: 'none' }} />
+          <input type="text" name="_gotcha" className="hidden" tabIndex={-1} autoComplete="off" />
 
           <div>
             <label htmlFor="name" className="block text-base font-medium text-slate-700 mb-2">

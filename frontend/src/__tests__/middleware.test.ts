@@ -90,13 +90,14 @@ describe('CSP Middleware', () => {
       expect(csp).toContain('https://js.stripe.com');
     });
 
-    it('should include style-src with nonce and unsafe-inline', () => {
+    it('should include style-src with unsafe-inline (no nonce — nonce blocks React inline styles)', () => {
       const response = middleware(request);
-      const csp = response.headers.get('Content-Security-Policy');
+      const csp = response.headers.get('Content-Security-Policy')!;
+      const styleSrc = csp.match(/style-src[^;]+/)![0];
 
-      expect(csp).toContain("style-src 'self'");
-      expect(csp).toContain("'nonce-");
-      expect(csp).toContain("'unsafe-inline'");
+      expect(styleSrc).toContain("style-src 'self'");
+      expect(styleSrc).toContain("'unsafe-inline'");
+      expect(styleSrc).not.toMatch(/style-src[^;]*'nonce-/);
     });
 
     it('should allow images from trusted sources', () => {

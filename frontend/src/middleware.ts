@@ -20,7 +20,10 @@ export function middleware(request: NextRequest) {
   const cspHeader = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://accounts.google.com https://js.stripe.com`,
-    `style-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://accounts.google.com`,
+    // No nonce on style-src: when a nonce is present, browsers ignore 'unsafe-inline',
+    // which blocks React style={{...}} attributes and Next.js font/style injection.
+    // Script-src stays nonce-locked; style injection is a lower XSS risk than script.
+    "style-src 'self' 'unsafe-inline' https://accounts.google.com",
     "img-src 'self' data: blob: https://www.change-my.com https://*.googleusercontent.com https://api.producthunt.com https://www.google-analytics.com",
     "font-src 'self' data: https://fonts.gstatic.com",
     "connect-src 'self' https://www.change-my.com https://change-my-com-v2.onrender.com https://accounts.google.com https://www.google-analytics.com https://api.stripe.com https://formspree.io",

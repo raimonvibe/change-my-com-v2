@@ -50,3 +50,29 @@ body {
     font-size: 18px; /* Even larger on xl screens */
   }
 }
+
+/* Native progress bar for conversion queue (avoids inline style under CSP) */
+progress.progress-convert {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  border-radius: 9999px;
+  background-color: #e2e8f0;
+  overflow: hidden;
+}
+
+progress.progress-convert::-webkit-progress-bar {
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+}
+
+progress.progress-convert::-webkit-progress-value {
+  background-color: #2563eb;
+  border-radius: 9999px;
+  transition: width 0.2s ease;
+}
+
+progress.progress-convert::-moz-progress-bar {
+  background-color: #2563eb;
+  border-radius: 9999px;
+}

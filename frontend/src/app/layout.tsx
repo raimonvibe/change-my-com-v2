@@ -189,14 +189,13 @@ export default async function RootLayout({
               {/* Product Hunt Card */}
               <div className="w-full max-w-[500px]">
                 <iframe 
-                  style={{ border: 'none' }} 
                   src="https://cards.producthunt.com/cards/products/1116424" 
                   width="100%" 
                   height="405" 
                   frameBorder="0" 
                   scrolling="no" 
                   allowFullScreen
-                  className="rounded-lg shadow-sm"
+                  className="rounded-lg shadow-sm border-0"
                 />
               </div>
             </div>
