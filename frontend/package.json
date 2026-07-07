@@ -57,7 +57,7 @@
     "@types/react-dom": "^19",
     "autoprefixer": "^10.5.2",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.9",
+    "eslint-config-next": "^16.2.10",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "tailwindcss": "^4",
