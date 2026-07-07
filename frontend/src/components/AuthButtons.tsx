@@ -1,17 +1,16 @@
 'use client';
-import React, { useState, useEffect } from "react";
+import React, { useSyncExternalStore } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { LogOut } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 
+const emptySubscribe = () => () => {};
+
 export function AuthButtons() {
   const { data } = useSession();
   const reset = useAuthStore(s => s.reset);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Hydration-safe "mounted" flag: false during SSR/hydration, true after.
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
   if (!mounted) {
     return (

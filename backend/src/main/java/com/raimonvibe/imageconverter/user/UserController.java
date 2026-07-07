@@ -1,5 +1,6 @@
 package com.raimonvibe.imageconverter.user;
 
+import com.raimonvibe.imageconverter.config.ConversionLimits;
 import com.stripe.Stripe;
 import com.stripe.model.Subscription;
 import com.stripe.param.SubscriptionUpdateParams;
@@ -21,8 +22,7 @@ public class UserController {
   @Value("${app.stripe.secretKey:}")
   private String stripeSecretKey;
 
-  /** Free conversions per day for logged-in users. Must match ConvertController.FREE_DAILY_LIMIT. */
-  private static final int FREE_DAILY_LIMIT = 20;
+  private static final int FREE_DAILY_LIMIT = ConversionLimits.FREE_DAILY_LIMIT;
 
   public UserController(UserService userService) {
     this.userService = userService;

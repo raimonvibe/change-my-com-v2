@@ -4,7 +4,7 @@ import React, { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { useSession, signIn } from 'next-auth/react';
 import { CalendarDays, CreditCard, Sparkles } from 'lucide-react';
-import { API_URL } from '../../env';
+import { apiFetch } from '../../lib/apiClient';
 import { PAYMENTS_ENABLED } from '../../lib/paymentsConfig';
 
 export default function BillingPage() {
@@ -30,13 +30,13 @@ export default function BillingPage() {
         cancelUrl: window.location.href,
       });
 
-      const res = await fetch(`${API_URL}/api/billing/checkout?${params.toString()}`, {
+      // retries: 0 — checkout session creation should never be auto-retried
+      const res = await apiFetch(`/api/billing/checkout?${params.toString()}`, {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        token,
+        headers: { 'Content-Type': 'application/json' },
+        retries: 0,
       });
 
       if (!res.ok) {

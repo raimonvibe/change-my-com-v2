@@ -1,10 +1,9 @@
 package com.raimonvibe.imageconverter.monitoring;
 
+import com.raimonvibe.imageconverter.common.EmailMasker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Component
@@ -36,24 +35,7 @@ public class CostMonitor {
     }
 
     private String maskEmail(String email) {
-        if (email == null || email.isEmpty()) {
-            return "anonymous";
-        }
-
-        int atIndex = email.indexOf('@');
-        if (atIndex <= 0) {
-            return "***";
-        }
-
-        String localPart = email.substring(0, atIndex);
-        String domain = email.substring(atIndex);
-
-        // Show first character + *** for privacy
-        if (localPart.length() <= 1) {
-            return localPart.charAt(0) + "***" + domain;
-        }
-
-        return localPart.charAt(0) + "***" + domain;
+        return EmailMasker.mask(email);
     }
     
     private double estimateCost(long fileSizeBytes, long processingTimeMs) {

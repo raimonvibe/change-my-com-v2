@@ -21,20 +21,6 @@ async function getBillingNavLink(page: Page): Promise<Locator> {
   return nav.getByRole('link', { name: /pricing|plans/i }).first();
 }
 
-async function goToBilling(page: Page) {
-  const link = await getBillingNavLink(page);
-  if ((await link.count()) > 0) {
-    try {
-      await link.click();
-    } catch {
-      // Fallback below handles projects where nav link is not interactable.
-    }
-  }
-  if (!/\/billing/.test(page.url())) {
-    await page.goto('/billing');
-  }
-}
-
 test.describe('Homepage - Anonymous User', () => {
   test('should load homepage successfully', async ({ page }) => {
     await page.goto('/');

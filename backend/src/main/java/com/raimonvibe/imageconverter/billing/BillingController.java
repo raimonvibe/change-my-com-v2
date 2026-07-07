@@ -152,7 +152,7 @@ public class BillingController {
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
                 .setSuccessUrl(successUrl)
                 .setCancelUrl(cancelUrl)
-                .putMetadata("subscription", "monthly_1000")
+                .putMetadata(BillingPlan.METADATA_KEY, BillingPlan.MONTHLY_PLAN_ID)
                 .addLineItem(
                         SessionCreateParams.LineItem.builder()
                                 .setQuantity(1L)
@@ -166,7 +166,7 @@ public class BillingController {
                                                                 .build())
                                                 .setProductData(
                                                         SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                .setName("1000 Conversions per Month")
+                                                                .setName(BillingPlan.PRODUCT_NAME)
                                                                 .build())
                                                 .build())
                                 .build());

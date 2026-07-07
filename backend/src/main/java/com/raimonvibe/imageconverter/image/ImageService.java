@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
@@ -19,15 +20,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+/**
+ * Facade over ImageMagick-based image conversion.
+ * Process execution is delegated to {@link MagickCommandExecutor} (Template Method),
+ * format-specific behavior to {@link FormatConversionStrategy} implementations,
+ * and sharpening tiers to {@link SharpeningStrategy}.
+ */
 @Service
 public class ImageService {
 
     private static final Logger logger = LoggerFactory.getLogger(ImageService.class);
 
     /** Allowed format hints for ImageMagick (whitelist to prevent command-injection via format string). */
-    private static final Set<String> ALLOWED_FORMAT_HINTS = Set.of(
-        "png", "jpg", "jpeg", "webp", "avif", "gif", "bmp", "tiff", "tif", "heic", "heif", "ico"
-    );
+    private static final Set<String> ALLOWED_FORMAT_HINTS = ImageFormats.ALLOWED_INPUT_FORMATS;
 
     public record ConversionOptions(String format, Integer quality, Integer sharpness, Integer width) {}
 
@@ -46,6 +51,8 @@ public class ImageService {
 
     // Maximaal 4 conversies tegelijk
     private final Semaphore semaphore = new Semaphore(4);
+
+    private final MagickCommandExecutor executor = new MagickCommandExecutor();
 
     /**
      * Converteert input-bestand naar target-format via ImageMagick ("magick" CLI).
@@ -71,6 +78,7 @@ public class ImageService {
 
         try {
             String outExt = options.format().toLowerCase();
+            FormatConversionStrategy formatStrategy = FormatConversionStrategies.forFormat(outExt);
             File out = Files.createTempFile("conv-" + UUID.randomUUID(), "." + outExt).toFile();
 
             // Detect image dimensions and cap sharpness to respect 10s policy time limit
@@ -89,21 +97,9 @@ public class ImageService {
                 logger.debug("Flow: auto-resize done, processedInput size={}", processedInput.length());
             }
 
-            // Block PNG conversion for very large images (>4000px) - even after resize, PNG is slow
-            // PNG uses expensive lossless compression that's slow for large photos
-            if ("png".equals(outExt) && maxDimension > 4000) {
-                String message = String.format(
-                    "PNG conversion not supported for very large images (%dx%d). " +
-                    "Even after auto-resize, PNG compression is too slow for photos >4000px. " +
-                    "Use WebP (recommended), JPEG, or AVIF instead for faster conversions.",
-                    dimensions[0], dimensions[1]
-                );
-                logger.warn(message);
-                if (wasAutoResized && processedInput != input) {
-                    safeDelete(processedInput);
-                }
-                throw new IOException(message);
-            }
+            // Format-specific dimension rules (e.g. PNG rejects sources >4000px because
+            // its lossless compression is too slow for large photos even after resize)
+            formatStrategy.validateDimensions(dimensions[0], dimensions[1]);
 
             int originalSharpness = options.sharpness() != null ? options.sharpness() : 0;
             // Use resized dimensions for sharpness capping if auto-resized
@@ -124,128 +120,55 @@ public class ImageService {
             );
 
             IOException lastError = null;
-            // Full path first so container works without PATH; then short names; then IM7 "magick"
-            List<String> convertCommands = List.of("/usr/bin/convert", "convert", "magick");
-            logger.info("Flow: conversion loop starting (will try: {})", convertCommands);
+            logger.info("Flow: conversion loop starting (will try: {})", MagickCommandExecutor.CONVERT_COMMANDS);
 
-            for (String cmd : convertCommands) {
+            // Set resource limits to avoid OOM on constrained hosts (e.g. Render free 512MB)
+            // Auto-resize and sharpness capping keep conversions within time/memory
+            int magickTimeLimit = adjustedOptions.sharpness() != null && adjustedOptions.sharpness() > 100 ? 120 : 60;
+
+            // Increased timeout for complex sharpening operations (especially 100-200% sharpness)
+            // Process timeout should be longer than MAGICK_TIME_LIMIT to allow ImageMagick to finish
+            int timeoutSeconds = options.sharpness() != null && options.sharpness() > 100 ? 150 : 90;
+
+            Map<String, String> env = Map.of(
+                "MAGICK_MEMORY_LIMIT", "192MB",
+                "MAGICK_MAP_LIMIT", "384MB",
+                "MAGICK_DISK_LIMIT", "512MB",
+                "MAGICK_TIME_LIMIT", String.valueOf(magickTimeLimit)
+            );
+
+            for (List<String> cmdPrefix : MagickCommandExecutor.CONVERT_COMMANDS) {
+                String cmd = String.join(" ", cmdPrefix);
                 logger.debug("Conversion: trying command: {}", cmd);
-                ProcessBuilder pb;
 
-                // Build command arguments
-                java.util.List<String> args = new java.util.ArrayList<>();
-                args.add(cmd);
-
-                // Set resource limits to avoid OOM on constrained hosts (e.g. Render free 512MB)
-                // Auto-resize and sharpness capping keep conversions within time/memory
-                int magickTimeLimit = adjustedOptions.sharpness() != null && adjustedOptions.sharpness() > 100 ? 120 : 60;
-                args.add("-limit");
-                args.add("time");
-                args.add(String.valueOf(magickTimeLimit));
-                args.add("-limit");
-                args.add("memory");
-                args.add("192MiB");
-                args.add("-limit");
-                args.add("map");
-                args.add("384MiB");
-
-                // Add input file with optional format hint (whitelisted to prevent injection)
-                String safeHint = sanitizeFormatHint(inputFormatHint);
-                String inputArg;
-                if (safeHint != null) {
-                    inputArg = safeHint + ":" + processedInput.getAbsolutePath();
-                    if ("ico".equals(safeHint)) {
-                        inputArg = inputArg + "[0]";
-                    }
-                    args.add(inputArg);
-                } else {
-                    args.add(processedInput.getAbsolutePath());
-                }
-
-                // Apply EXIF orientation so output displays upright (e.g. phone photos in portrait)
-                args.add("-auto-orient");
-
-                // Apply width resize if specified (before format-specific handling)
-                if (adjustedOptions.width() != null && adjustedOptions.width() > 0 && !"ico".equals(outExt)) {
-                    // Resize maintaining aspect ratio, only if larger than specified width
-                    args.add("-resize");
-                    args.add(adjustedOptions.width() + "x>");
-                }
-
-                // Special handling for ICO format
-                if ("ico".equals(outExt)) {
-                    // ICO requires specific sizing and color handling
-                    args.add("-resize");
-                    args.add("256x256");
-                    args.add("-define");
-                    args.add("icon:auto-resize=256,128,64,48,32,16");
-                    args.add("-colors");
-                    args.add("256");
-                }
-
-                // Apply advanced sharpening if requested (0-200 scale)
-                // Note: Sharpening is applied AFTER resize for best results
-                // Uses tiered approach: subtle → adaptive → professional → maximum
-                // Sharpness is capped based on image dimensions to respect 10s policy
-                if (adjustedOptions.sharpness() != null && adjustedOptions.sharpness() > 0) {
-                    applySharpeningStrategy(args, adjustedOptions.sharpness());
-                }
-
-                // Apply quality if specified
-                if (adjustedOptions.quality() != null) {
-                    args.add("-quality");
-                    args.add(String.valueOf(adjustedOptions.quality()));
-                }
-
-                args.add(out.getAbsolutePath());
-                pb = new ProcessBuilder(args);
-
-                // Set memory limit for ImageMagick to prevent OOM on low-resource servers (e.g. Render 512MB)
-                pb.environment().put("MAGICK_MEMORY_LIMIT", "192MB");
-                pb.environment().put("MAGICK_MAP_LIMIT", "384MB");
-                pb.environment().put("MAGICK_DISK_LIMIT", "512MB");
-
-                // Also set environment variables as fallback for older ImageMagick versions
-                pb.environment().put("MAGICK_TIME_LIMIT", String.valueOf(magickTimeLimit));
-
-                pb.redirectErrorStream(true);
+                List<String> args = buildConvertArgs(
+                    cmdPrefix, processedInput, out, outExt, adjustedOptions,
+                    formatStrategy, inputFormatHint, magickTimeLimit
+                );
 
                 try {
                     if (logger.isDebugEnabled()) {
                         logger.debug("Executing ImageMagick with time limit {}s, sharpness={}: {}",
-                            magickTimeLimit, adjustedOptions.sharpness(), String.join(" ", pb.command()));
+                            magickTimeLimit, adjustedOptions.sharpness(), String.join(" ", args));
                     } else {
                         logger.info("Converting {}x{} image - sharpness: {}%, format: {}",
                             dimensions[0], dimensions[1], adjustedOptions.sharpness(), adjustedOptions.format());
                     }
 
-                    Process p = pb.start();
+                    MagickCommandExecutor.Execution result = executor.run(args, env, timeoutSeconds);
 
-                    // Capture output for debugging
-                    // Note: redirectErrorStream(true) merges stderr into stdout, so we read from InputStream
-                    String processOutput = new String(p.getInputStream().readAllBytes());
-
-                    // Increased timeout for complex sharpening operations (especially 100-200% sharpness)
-                    // High sharpness uses LAB colorspace conversion and multiple passes
-                    // Process timeout should be longer than MAGICK_TIME_LIMIT to allow ImageMagick to finish
-                    // Extra time for cloud/shared hosting environments with limited CPU resources
-                    int timeoutSeconds = options.sharpness() != null && options.sharpness() > 100 ? 150 : 90;
-                    boolean finished = p.waitFor(timeoutSeconds, TimeUnit.SECONDS);
-                    if (!finished) {
-                        p.destroyForcibly();
-                        logger.warn("ImageMagick process timeout after {}s for command: {}", timeoutSeconds, cmd);
+                    if (!result.finished()) {
                         lastError = new IOException("ImageMagick process timeout - try reducing sharpness level");
                         continue;
                     }
 
-                    int code = p.exitValue();
-                    if (code == 0 && out.exists() && out.length() > 0) {
+                    if (result.succeeded() && out.exists() && out.length() > 0) {
                         logger.info("Flow: conversion succeeded with command '{}', output {} bytes", cmd, out.length());
                         return out;
                     }
 
-                    logger.warn("ImageMagick failed with exit code {}: {}", code, processOutput);
-                    lastError = new IOException("Conversion failed with '" + cmd + "', exit code=" + code);
+                    logger.warn("ImageMagick failed with exit code {}: {}", result.exitCode(), result.output());
+                    lastError = new IOException("Conversion failed with '" + cmd + "', exit code=" + result.exitCode());
                 } catch (IOException ioe) {
                     logger.error("Conversion: command '{}' failed: {} (trying next)", cmd, ioe.getMessage());
                     lastError = ioe;
@@ -253,7 +176,7 @@ public class ImageService {
             }
 
             logger.error("Conversion: ALL commands failed (tried: {}). Last error: {}",
-                convertCommands, lastError != null ? lastError.getMessage() : "none");
+                MagickCommandExecutor.CONVERT_COMMANDS, lastError != null ? lastError.getMessage() : "none");
             throw (lastError != null ? lastError : new IOException("Unknown conversion error"));
         } catch (Exception e) {
             // Clean up auto-resized temp file on error
@@ -271,101 +194,65 @@ public class ImageService {
     }
 
     /**
-     * Advanced sharpening strategy using tiered approach based on sharpness level.
-     * Each tier uses progressively more sophisticated ImageMagick techniques.
-     *
-     * @param args Command arguments list to append sharpening parameters to
-     * @param sharpness Sharpness level from 0-200
+     * Builds the full ImageMagick argument list for one conversion attempt.
+     * Format-specific behavior (width-resize applicability, extra output args)
+     * comes from the {@link FormatConversionStrategy}; sharpening tiers from
+     * {@link SharpeningStrategy}.
      */
-    private void applySharpeningStrategy(java.util.List<String> args, int sharpness) {
-        // Strategy 1: Subtle sharpening (1-50)
-        // Uses gentle unsharp mask for natural enhancement
-        if (sharpness <= 50) {
-            double amount = sharpness / 50.0; // 0.02 to 1.0
-            args.add("-unsharp");
-            args.add(String.format("0.5x0.5+%.2f+0.01", amount));
+    private List<String> buildConvertArgs(List<String> cmdPrefix, File processedInput, File out,
+                                          String outExt, ConversionOptions adjustedOptions,
+                                          FormatConversionStrategy formatStrategy,
+                                          String inputFormatHint, int magickTimeLimit) {
+        List<String> args = new ArrayList<>(cmdPrefix);
 
-            if (logger.isDebugEnabled()) {
-                logger.debug("Applying subtle sharpening: level={}, amount={}", sharpness, amount);
+        args.add("-limit");
+        args.add("time");
+        args.add(String.valueOf(magickTimeLimit));
+        args.add("-limit");
+        args.add("memory");
+        args.add("192MiB");
+        args.add("-limit");
+        args.add("map");
+        args.add("384MiB");
+
+        // Add input file with optional format hint (whitelisted to prevent injection)
+        String safeHint = sanitizeFormatHint(inputFormatHint);
+        if (safeHint != null) {
+            String inputArg = safeHint + ":" + processedInput.getAbsolutePath();
+            if ("ico".equals(safeHint)) {
+                // Multi-image ICO input: only convert the first (largest) icon
+                inputArg = inputArg + "[0]";
             }
+            args.add(inputArg);
+        } else {
+            args.add(processedInput.getAbsolutePath());
         }
 
-        // Strategy 2: Standard adaptive sharpening (51-100)
-        // Uses adaptive-sharpen which adjusts based on local image features
-        // Sharpens edges more than flat areas (reduces noise amplification)
-        else if (sharpness <= 100) {
-            double strength = (sharpness - 50) / 25.0; // 0.04 to 2.0
-            args.add("-adaptive-sharpen");
-            args.add(String.format("0x%.2f", strength));
+        // Apply EXIF orientation so output displays upright (e.g. phone photos in portrait)
+        args.add("-auto-orient");
 
-            if (logger.isDebugEnabled()) {
-                logger.debug("Applying adaptive sharpening: level={}, strength={}", sharpness, strength);
-            }
+        // Apply width resize if specified and the target format supports it (ICO uses fixed sizes)
+        if (adjustedOptions.width() != null && adjustedOptions.width() > 0 && formatStrategy.supportsWidthResize()) {
+            // Resize maintaining aspect ratio, only if larger than specified width
+            args.add("-resize");
+            args.add(adjustedOptions.width() + "x>");
         }
 
-        // Strategy 3: Professional multi-pass sharpening (101-150)
-        // Uses LAB color space to sharpen only luminosity (prevents color artifacts)
-        // Two-pass approach: fine detail + edge enhancement
-        else if (sharpness <= 150) {
-            // Convert to LAB color space for cleaner sharpening
-            args.add("-colorspace");
-            args.add("Lab");
-            args.add("-channel");
-            args.add("L"); // Sharpen only Lightness channel
+        formatStrategy.appendOutputArgs(args);
 
-            // First pass: Fine detail enhancement
-            args.add("-unsharp");
-            args.add("0.5x0.5+1.0+0.02");
-
-            // Second pass: Edge sharpening with strength based on level
-            double edgeStrength = (sharpness - 100) / 25.0; // 0.04 to 2.0
-            args.add("-unsharp");
-            args.add(String.format("2x1+%.2f+0.05", 0.8 + edgeStrength));
-
-            // Return to sRGB color space
-            args.add("+channel");
-            args.add("-colorspace");
-            args.add("sRGB");
-
-            if (logger.isDebugEnabled()) {
-                logger.debug("Applying professional LAB sharpening: level={}, edge_strength={}",
-                    sharpness, edgeStrength);
-            }
+        // Sharpening is applied AFTER resize for best results; level is already
+        // capped based on image dimensions to respect the 10s policy
+        if (adjustedOptions.sharpness() != null && adjustedOptions.sharpness() > 0) {
+            SharpeningStrategy.forLevel(adjustedOptions.sharpness()).apply(args, adjustedOptions.sharpness());
         }
 
-        // Strategy 4: Maximum sharpening (151-200)
-        // Professional-grade with contrast enhancement + aggressive multi-pass
-        // Similar to Photoshop's high-pass filter technique
-        else {
-            // Step 1: Subtle contrast enhancement to make sharpening more effective
-            args.add("-contrast-stretch");
-            args.add("0.15x0.05%");
-
-            // Step 2: LAB color space for clean sharpening
-            args.add("-colorspace");
-            args.add("Lab");
-            args.add("-channel");
-            args.add("L");
-
-            // Step 3: Aggressive unsharp mask
-            double maxStrength = (sharpness - 150) / 50.0; // 0.02 to 1.0
-            args.add("-unsharp");
-            args.add(String.format("1x0.8+%.2f+0.05", 2.0 + maxStrength));
-
-            // Step 4: Final adaptive pass for edge refinement
-            args.add("-adaptive-sharpen");
-            args.add(String.format("0x%.2f", 1.5 + maxStrength));
-
-            // Return to sRGB
-            args.add("+channel");
-            args.add("-colorspace");
-            args.add("sRGB");
-
-            if (logger.isDebugEnabled()) {
-                logger.debug("Applying maximum sharpening: level={}, max_strength={}",
-                    sharpness, maxStrength);
-            }
+        if (adjustedOptions.quality() != null) {
+            args.add("-quality");
+            args.add(String.valueOf(adjustedOptions.quality()));
         }
+
+        args.add(out.getAbsolutePath());
+        return args;
     }
 
     /**
@@ -385,7 +272,7 @@ public class ImageService {
         }
 
         // Security: Validate all formats are supported
-        List<String> supportedFormats = List.of("jpeg", "jpg", "png", "webp", "heic", "heif");
+        List<String> supportedFormats = ImageFormats.GIF_ZIP_OUTPUT_FORMATS;
         for (String format : formats) {
             if (!supportedFormats.contains(format.toLowerCase())) {
                 throw new IllegalArgumentException("Unsupported format: " + format);
@@ -403,55 +290,7 @@ public class ImageService {
             File tempDirFile = tempDir.toFile();
             tempFiles.add(tempDirFile);
 
-            // Extract GIF frames using ImageMagick coalesce (try "magick" then "convert" for IM6)
-            logger.debug("Extracting GIF frames from: {}", input.getName());
-            String framePattern = tempDir.resolve("frame-%03d.png").toString();
-
-            boolean extracted = false;
-            for (String imCmd : List.of("magick", "convert", "/usr/bin/convert")) {
-                try {
-                    List<String> extractArgs = new ArrayList<>();
-                    extractArgs.add(imCmd);
-                    extractArgs.add("-limit");
-                    extractArgs.add("time");
-                    extractArgs.add("120");
-                    extractArgs.add("-limit");
-                    extractArgs.add("memory");
-                    extractArgs.add("192MiB");
-                    extractArgs.add("-limit");
-                    extractArgs.add("map");
-                    extractArgs.add("384MiB");
-                    extractArgs.add(input.getAbsolutePath());
-                    extractArgs.add("-coalesce");
-                    extractArgs.add(framePattern);
-
-                    ProcessBuilder extractPb = new ProcessBuilder(extractArgs);
-                    extractPb.environment().put("MAGICK_TIME_LIMIT", "120");
-                    extractPb.environment().put("MAGICK_MEMORY_LIMIT", "192MB");
-                    extractPb.redirectErrorStream(true);
-
-                    Process extractProcess = extractPb.start();
-                    boolean extractFinished = extractProcess.waitFor(150, TimeUnit.SECONDS);
-                    if (!extractFinished) {
-                        extractProcess.destroyForcibly();
-                        continue;
-                    }
-                    if (extractProcess.exitValue() != 0) {
-                        logger.debug("GIF extraction with {} failed: {}", imCmd,
-                            new String(extractProcess.getInputStream().readAllBytes()));
-                        continue;
-                    }
-                    extracted = true;
-                    break;
-                } catch (IOException e) {
-                    logger.warn("GIF extract: command '{}' failed: {} (trying next)", imCmd, e.getMessage());
-                }
-            }
-
-            if (!extracted) {
-                logger.error("GIF extract: all commands failed (tried: magick, convert, /usr/bin/convert)");
-                throw new IOException("Failed to extract GIF frames (magick/convert not available or failed)");
-            }
+            extractGifFrames(input, tempDir.resolve("frame-%03d.png").toString());
 
             // Get list of extracted frames
             File[] frames = tempDirFile.listFiles((dir, name) -> name.startsWith("frame-") && name.endsWith(".png"));
@@ -477,10 +316,7 @@ public class ImageService {
                     File frame = frames[i];
 
                     for (String format : formats) {
-                        String normalizedFormat = format.toLowerCase();
-                        if ("jpg".equals(normalizedFormat)) {
-                            normalizedFormat = "jpeg";
-                        }
+                        String normalizedFormat = ImageFormats.normalize(format);
 
                         // Create options for this conversion
                         ConversionOptions frameOptions = new ConversionOptions(
@@ -532,6 +368,52 @@ public class ImageService {
         }
     }
 
+    /**
+     * Extracts all frames of a GIF as PNGs using ImageMagick coalesce,
+     * trying each known ImageMagick command until one succeeds.
+     */
+    private void extractGifFrames(File input, String framePattern) throws IOException, InterruptedException {
+        logger.debug("Extracting GIF frames from: {}", input.getName());
+
+        Map<String, String> env = Map.of(
+            "MAGICK_TIME_LIMIT", "120",
+            "MAGICK_MEMORY_LIMIT", "192MB"
+        );
+
+        for (List<String> cmdPrefix : MagickCommandExecutor.GIF_EXTRACT_COMMANDS) {
+            try {
+                List<String> args = new ArrayList<>(cmdPrefix);
+                args.add("-limit");
+                args.add("time");
+                args.add("120");
+                args.add("-limit");
+                args.add("memory");
+                args.add("192MiB");
+                args.add("-limit");
+                args.add("map");
+                args.add("384MiB");
+                args.add(input.getAbsolutePath());
+                args.add("-coalesce");
+                args.add(framePattern);
+
+                MagickCommandExecutor.Execution result = executor.run(args, env, 150);
+                if (!result.finished()) {
+                    continue;
+                }
+                if (result.exitCode() != 0) {
+                    logger.debug("GIF extraction with {} failed: {}", cmdPrefix, result.output());
+                    continue;
+                }
+                return;
+            } catch (IOException e) {
+                logger.warn("GIF extract: command '{}' failed: {} (trying next)", cmdPrefix, e.getMessage());
+            }
+        }
+
+        logger.error("GIF extract: all commands failed (tried: {})", MagickCommandExecutor.GIF_EXTRACT_COMMANDS);
+        throw new IOException("Failed to extract GIF frames (magick/convert not available or failed)");
+    }
+
     private void safeDelete(File f) {
         if (f == null || !f.exists()) return;
 
@@ -546,17 +428,9 @@ public class ImageService {
         f.delete();
     }
 
-    /**
-     * Ondersteunde outputformaten.
-     * Sync houden met validator in controller.
-     * Alleen veilige raster formaten - SVG/PDF uitgesloten om veiligheidsredenen.
-     * TIFF & BMP verwijderd vanwege hoge resource-eisen op beperkte server specs.
-     */
+    /** Supported output formats. Single source of truth lives in {@link ImageFormats}. */
     public static List<String> supportedFormats() {
-        return List.of(
-            "jpg", "jpeg", "png", "webp", "avif",
-            "gif", "heic", "heif", "ico"
-        );
+        return ImageFormats.SUPPORTED_OUTPUT_FORMATS;
     }
 
     /**
@@ -595,58 +469,13 @@ public class ImageService {
                 inputPath = inputPath + "[0]";
             }
 
-            // Try full path first (container PATH often excludes /usr/bin), then short names, then IM7 "magick identify"
-            String output = null;
-            List<List<String>> identifyOptions = List.of(
-                List.of("/usr/bin/identify"),
-                List.of("identify"),
-                List.of("magick", "identify")
-            );
-            for (List<String> identifyPrefix : identifyOptions) {
-                try {
-                    logger.debug("Dimensions: trying identify with command prefix: {}", identifyPrefix);
-                    List<String> args = new ArrayList<>(identifyPrefix);
-                    args.add("-limit");
-                    args.add("memory");
-                    args.add("128MiB");
-                    args.add("-limit");
-                    args.add("map");
-                    args.add("256MiB");
-                    args.add("-limit");
-                    args.add("time");
-                    args.add("10");
-                    args.add("-ping");
-                    args.add("-format");
-                    args.add("%w %h");
-                    args.add(inputPath);
-
-                    ProcessBuilder pb = new ProcessBuilder(args);
-                    pb.redirectErrorStream(true);
-                    Process p = pb.start();
-                    output = new String(p.getInputStream().readAllBytes()).trim();
-
-                    if (!p.waitFor(10, TimeUnit.SECONDS)) {
-                        p.destroyForcibly();
-                        output = null;
-                        continue;
-                    }
-                    if (p.exitValue() != 0) {
-                        output = null;
-                        continue;
-                    }
-                    break;
-                } catch (IOException e) {
-                    logger.error("Dimensions: identify with {} failed: {} (trying next)", identifyPrefix, e.getMessage());
-                    output = null;
-                }
-            }
-
+            String output = runIdentify(inputPath, true, 10, 10);
             if (output == null || output.isBlank()) {
                 logger.debug("Dimensions: -ping failed, retrying identify without -ping");
-                output = runIdentifyWithLimits(inputPath, false);
+                output = runIdentify(inputPath, false, 15, 15);
             }
             if (output == null || output.isBlank()) {
-                logger.error("Dimensions: ALL identify attempts failed (tried: /usr/bin/identify, identify, magick identify)");
+                logger.error("Dimensions: ALL identify attempts failed (tried: {})", MagickCommandExecutor.IDENTIFY_COMMANDS);
                 throw new IOException("Failed to get image dimensions");
             }
 
@@ -671,18 +500,19 @@ public class ImageService {
     }
 
     /**
-     * Run ImageMagick identify with memory/time limits. Used as fallback when -ping fails (e.g. HEIC).
-     * @return Trimmed output or null on failure
+     * Runs ImageMagick identify with memory/time limits, trying each known
+     * identify command until one succeeds. The -ping variant does a fast
+     * header-only read; the full variant is a fallback for formats where
+     * -ping fails (e.g. HEIC).
+     *
+     * @return Trimmed "width height" output, or null when all commands fail
      */
-    private String runIdentifyWithLimits(String inputPath, boolean usePing) {
-        for (List<String> identifyPrefix : List.of(
-            List.of("/usr/bin/identify"),
-            List.of("identify"),
-            List.of("magick", "identify")
-        )) {
+    private String runIdentify(String inputPath, boolean usePing, int timeLimitSeconds, int timeoutSeconds)
+            throws InterruptedException {
+        for (List<String> cmdPrefix : MagickCommandExecutor.IDENTIFY_COMMANDS) {
             try {
-                logger.debug("runIdentifyWithLimits: trying {}", identifyPrefix);
-                List<String> args = new ArrayList<>(identifyPrefix);
+                logger.debug("Dimensions: trying identify with command prefix: {}", cmdPrefix);
+                List<String> args = new ArrayList<>(cmdPrefix);
                 args.add("-limit");
                 args.add("memory");
                 args.add("128MiB");
@@ -691,28 +521,21 @@ public class ImageService {
                 args.add("256MiB");
                 args.add("-limit");
                 args.add("time");
-                args.add("15");
+                args.add(String.valueOf(timeLimitSeconds));
                 if (usePing) args.add("-ping");
                 args.add("-format");
                 args.add("%w %h");
                 args.add(inputPath);
 
-                ProcessBuilder pb = new ProcessBuilder(args);
-                pb.redirectErrorStream(true);
-                Process p = pb.start();
-                String out = new String(p.getInputStream().readAllBytes()).trim();
-                if (!p.waitFor(15, TimeUnit.SECONDS)) {
-                    p.destroyForcibly();
-                    continue;
+                MagickCommandExecutor.Execution result = executor.run(args, null, timeoutSeconds);
+                if (result.succeeded() && !result.output().isBlank()) {
+                    return result.output().trim();
                 }
-                if (p.exitValue() == 0 && out != null && !out.isBlank()) {
-                    return out;
-                }
-            } catch (Exception e) {
-                logger.warn("runIdentifyWithLimits: {} failed: {}", identifyPrefix, e.getMessage());
+            } catch (IOException e) {
+                logger.error("Dimensions: identify with {} failed: {} (trying next)", cmdPrefix, e.getMessage());
             }
         }
-        logger.debug("runIdentifyWithLimits: all attempts returned null");
+        logger.debug("runIdentify: all attempts returned null (usePing={})", usePing);
         return null;
     }
 
@@ -732,11 +555,9 @@ public class ImageService {
     private int capSharpnessForDimensions(int maxDimension, int requestedSharpness) {
         if (maxDimension > 4000) {
             // Very large images (>4000px): limit to 50% (subtle sharpening only)
-            // 50% uses simple unsharp mask without LAB conversion
             return Math.min(requestedSharpness, 50);
         } else if (maxDimension > 2000) {
             // Large images (>2000px): limit to 100% (no professional sharpening)
-            // 100% uses adaptive sharpening without LAB conversion
             return Math.min(requestedSharpness, 100);
         }
         // Small/medium images (≤2000px): no limit
@@ -763,10 +584,9 @@ public class ImageService {
         try {
             IOException lastError = null;
 
-            // Full path first (container PATH may omit /usr/bin), then convert, then magick
-            for (String cmd : List.of("/usr/bin/convert", "convert", "magick")) {
-                java.util.List<String> args = new java.util.ArrayList<>();
-                args.add(cmd);
+            for (List<String> cmdPrefix : MagickCommandExecutor.CONVERT_COMMANDS) {
+                String cmd = String.join(" ", cmdPrefix);
+                List<String> args = new ArrayList<>(cmdPrefix);
                 args.add("-limit");
                 args.add("time");
                 args.add("30");  // Quick resize shouldn't take long
@@ -787,22 +607,17 @@ public class ImageService {
                 // Output file - format determined by extension
                 args.add(resized.getAbsolutePath());
 
-                ProcessBuilder pb = new ProcessBuilder(args);
-                pb.redirectErrorStream(true);
-
                 try {
-                    Process p = pb.start();
-                    String output = new String(p.getInputStream().readAllBytes());
+                    MagickCommandExecutor.Execution result = executor.run(args, null, 30);
 
-                    if (!p.waitFor(30, TimeUnit.SECONDS)) {
-                        p.destroyForcibly();
+                    if (!result.finished()) {
                         safeDelete(resized);
                         throw new IOException("Auto-resize timeout");
                     }
 
-                    if (p.exitValue() != 0) {
-                        logger.warn("Auto-resize failed with '{}': {}", cmd, output);
-                        lastError = new IOException("Auto-resize failed with '" + cmd + "': " + output);
+                    if (result.exitCode() != 0) {
+                        logger.warn("Auto-resize failed with '{}': {}", cmd, result.output());
+                        lastError = new IOException("Auto-resize failed with '" + cmd + "': " + result.output());
                         continue;  // Try next command
                     }
 

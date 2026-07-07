@@ -1,5 +1,7 @@
 package com.raimonvibe.imageconverter.security;
 
+import com.raimonvibe.imageconverter.common.ClientIpResolver;
+import com.raimonvibe.imageconverter.common.EmailMasker;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +44,7 @@ public class SecurityAuditLogger {
     }
 
     private String getClientIpAddress(HttpServletRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isEmpty()) {
-            return xff.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
+        return ClientIpResolver.resolve(request);
     }
 
     /**
@@ -68,28 +66,7 @@ public class SecurityAuditLogger {
         return identifier;
     }
 
-    /**
-     * Masks email addresses for privacy compliance
-     * Example: "robertjanstefan@gmail.com" becomes "r***@gmail.com"
-     */
     private String maskEmail(String email) {
-        if (email == null || email.isEmpty()) {
-            return "anonymous";
-        }
-
-        int atIndex = email.indexOf('@');
-        if (atIndex <= 0) {
-            return "***";
-        }
-
-        String localPart = email.substring(0, atIndex);
-        String domain = email.substring(atIndex);
-
-        // Show first character + *** for privacy
-        if (localPart.length() <= 1) {
-            return localPart.charAt(0) + "***" + domain;
-        }
-
-        return localPart.charAt(0) + "***" + domain;
+        return EmailMasker.mask(email);
     }
 }

@@ -1,5 +1,7 @@
 package com.raimonvibe.imageconverter.user;
 
+import com.raimonvibe.imageconverter.common.ClientIpResolver;
+import com.raimonvibe.imageconverter.config.ConversionLimits;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -9,8 +11,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/anonymous")
 public class AnonymousUserController {
-    /** Must match ConvertController.FREE_DAILY_LIMIT_ANONYMOUS so remaining and enforcement stay in sync. */
-    private static final int FREE_DAILY_LIMIT = 20;
+    private static final int FREE_DAILY_LIMIT = ConversionLimits.FREE_DAILY_LIMIT;
 
     private final AnonymousUserService anonymousUserService;
 
@@ -31,10 +32,6 @@ public class AnonymousUserController {
     }
 
     private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
+        return ClientIpResolver.resolve(request);
     }
 }

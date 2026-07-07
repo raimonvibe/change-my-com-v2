@@ -1,13 +1,9 @@
 import { test, expect } from '@playwright/test';
-import path from 'path';
 
 /**
  * E2E Tests: Image Conversion - Anonymous Users
  * Tests core conversion functionality without authentication
  */
-
-// Test image paths (use small test images)
-const TEST_IMAGE_JPG = path.join(__dirname, '../public/favicon.ico');
 
 test.describe('Convert Page - Anonymous User', () => {
   test.beforeEach(async ({ page }) => {

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAuthStore } from '../store/useAuthStore';
-import { API_URL } from '../env';
+import { apiFetch } from '../lib/apiClient';
 
 /**
  * useUserData Hook
@@ -31,15 +31,11 @@ export function useUserData() {
     setError(null);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      const res = await fetch(`${API_URL}/api/user/me`, {
-        headers: { Authorization: `Bearer ${idToken}` },
-        signal: controller.signal,
+      const res = await apiFetch('/api/user/me', {
+        token: idToken,
+        timeoutMs: 10000,
+        retries: 0,
       });
-
-      clearTimeout(timeoutId);
 
       if (!res.ok) {
         throw new Error(`Failed to fetch user data: ${res.status}`);

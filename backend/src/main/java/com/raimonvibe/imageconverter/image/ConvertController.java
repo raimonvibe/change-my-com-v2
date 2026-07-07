@@ -1,10 +1,8 @@
 package com.raimonvibe.imageconverter.image;
 
+import com.raimonvibe.imageconverter.config.ConversionLimits;
 import com.raimonvibe.imageconverter.security.FileValidator;
-import com.raimonvibe.imageconverter.user.AnonymousUserService;
-import com.raimonvibe.imageconverter.user.User;
-import com.raimonvibe.imageconverter.user.UserRepository;
-import com.raimonvibe.imageconverter.user.UserService;
+import com.raimonvibe.imageconverter.user.ConversionQuotaService;
 import com.raimonvibe.imageconverter.monitoring.CostMonitor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Max;
@@ -40,32 +38,17 @@ public class ConvertController {
 
     private static final Logger logger = LoggerFactory.getLogger(ConvertController.class);
 
-    private static final Set<String> ALLOWED_OUT = Set.of(
-        "jpg", "jpeg", "png", "webp", "avif",
-        "gif", "heic", "heif", "ico"
-    );
+    private static final Set<String> ALLOWED_OUT = ImageFormats.SUPPORTED_OUTPUT_FORMAT_SET;
 
     private final ImageService imageService;
-    private final UserRepository userRepository;
-    private final UserService userService;
-    private final AnonymousUserService anonymousUserService;
+    private final ConversionQuotaService quotaService;
     private final CostMonitor costMonitor;
 
-    /** Free conversions per day for all users (anonymous and logged-in). Fixed in code so config cannot break the limit. */
-    private static final int FREE_DAILY_LIMIT = 20;
-
-    /** Free conversions per day for anonymous (IP-based) users. Same as FREE_DAILY_LIMIT. */
-    private static final int FREE_DAILY_LIMIT_ANONYMOUS = FREE_DAILY_LIMIT;
-
     public ConvertController(ImageService imageService,
-                             UserRepository userRepository,
-                             UserService userService,
-                             AnonymousUserService anonymousUserService,
+                             ConversionQuotaService quotaService,
                              CostMonitor costMonitor) {
         this.imageService = imageService;
-        this.userRepository = userRepository;
-        this.userService = userService;
-        this.anonymousUserService = anonymousUserService;
+        this.quotaService = quotaService;
         this.costMonitor = costMonitor;
     }
 
@@ -129,23 +112,10 @@ public class ConvertController {
         }
 
         // ---- 3) Credits (same as regular): free 20/day without login (IP); paid only when logged in
-        // Anonymous (principal == null): no login required; limit by IP in AnonymousUserService.
+        // Quota policy selection (authenticated vs anonymous IP) lives in ConversionQuotaService.
         boolean allowed;
         try {
-            if (principal != null) {
-                final String email = principal.getName();
-                final User user = userService.ensureUserByEmail(email);
-                allowed = userService.consumeOneConversion(user, FREE_DAILY_LIMIT);
-                if (!allowed) {
-                    logger.info("GIF conversion denied for user {} - insufficient credits", email);
-                }
-            } else {
-                final String clientIp = getClientIpAddress(request);
-                allowed = anonymousUserService.consumeOneConversion(clientIp, FREE_DAILY_LIMIT_ANONYMOUS);
-                if (!allowed) {
-                    logger.info("GIF conversion denied for IP {} - limit reached", clientIp);
-                }
-            }
+            allowed = quotaService.consumeOneConversion(principal, request);
         } catch (Exception e) {
             logger.error("Credit check failed: {}", e.getMessage());
             return serverError("Credit check failed");
@@ -285,24 +255,11 @@ public class ConvertController {
         logger.debug("Flow: validation done, detectedFormat={}", detectedFormat);
 
         // ---- 3) Credits: free 20/day without login (IP-based); paid only when logged in
-        // Anonymous (principal == null): no login required; limit enforced by IP in AnonymousUserService.
-        // Security: paid credits exist only for authenticated users; anonymous path never touches User.paidCredits
+        // Security: paid credits exist only for authenticated users; the anonymous
+        // policy never touches User.paidCredits (see ConversionQuotaService).
         boolean allowed;
         try {
-            if (principal != null) {
-                final String email = principal.getName();
-                final User user = userService.ensureUserByEmail(email);
-                allowed = userService.consumeOneConversion(user, FREE_DAILY_LIMIT);
-                if (!allowed) {
-                    logger.info("Conversion denied for user {} - insufficient credits", email);
-                }
-            } else {
-                final String clientIp = getClientIpAddress(request);
-                allowed = anonymousUserService.consumeOneConversion(clientIp, FREE_DAILY_LIMIT_ANONYMOUS);
-                if (!allowed) {
-                    logger.info("Conversion denied for IP {} - limit reached", clientIp);
-                }
-            }
+            allowed = quotaService.consumeOneConversion(principal, request);
         } catch (Exception e) {
             logger.error("Credit check failed: {}", e.getMessage());
             return serverError("Credit check failed");
@@ -332,7 +289,7 @@ public class ConvertController {
                 int[] dimensions = imageService.validateImageDimensions(tmp, detectedFormat);
                 int maxDim = Math.max(dimensions[0], dimensions[1]);
                 logger.info("Flow: dimensions OK {}x{} (maxDim={})", dimensions[0], dimensions[1], maxDim);
-                final int MAX_DIMENSION = 8000;
+                final int MAX_DIMENSION = ConversionLimits.MAX_IMAGE_DIMENSION;
 
                 if (maxDim > MAX_DIMENSION) {
                     safeDelete(tmp);
@@ -444,14 +401,6 @@ public class ConvertController {
 
     private static void safeDelete(File f) {
         try { if (f != null && f.exists()) f.delete(); } catch (Exception ignored) {}
-    }
-
-    private String getClientIpAddress(HttpServletRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isEmpty()) {
-            return xff.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
     private static String contentDispositionAttachment(String filename) {

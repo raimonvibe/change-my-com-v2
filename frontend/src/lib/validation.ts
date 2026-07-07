@@ -1,10 +1,12 @@
 /**
  * Validation Utilities
- * Client-side validation functions for file uploads and forms
+ * Client-side validation functions for file uploads and forms.
+ * Limits come from lib/conversionConfig.ts (single source of truth).
  */
 
-// File validation constants
-export const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
+import { MAX_FILE_SIZE, VALID_EXTENSIONS } from './conversionConfig'
+
+export { MAX_FILE_SIZE }
 export const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',
   'image/jpg',
@@ -98,5 +100,39 @@ export function validateDimensions(width?: number, height?: number): { valid: bo
   if (height !== undefined && (height < 16 || height > 8000)) {
     return { valid: false, error: 'Height must be between 16 and 8000 pixels' }
   }
+  return { valid: true }
+}
+
+/**
+ * Validates a filename's extension against the accepted upload extensions,
+ * with a helpful message for web downloads carrying platform suffixes
+ * (":small", "_thumb", etc.). Moved here from the convert page.
+ */
+export function validateFileExtension(fileName: string): { valid: boolean; error?: string } {
+  const extension = fileName.split('.').pop()?.toLowerCase()
+
+  if (!extension) {
+    return { valid: false, error: 'File has no extension' }
+  }
+
+  if (!VALID_EXTENSIONS.includes(extension)) {
+    // Check if it's a common web download issue (like :small, :thumb, _small, _thumb, etc.)
+    const commonSuffixes = [':small', ':thumb', ':medium', ':large', ':resized', ':compressed', ':1', ':2', ':3',
+                           '_small', '_thumb', '_medium', '_large', '_resized', '_compressed', '_1', '_2', '_3']
+    const hasCommonSuffix = commonSuffixes.some(suffix => fileName.toLowerCase().includes(suffix))
+
+    if (hasCommonSuffix) {
+      return {
+        valid: false,
+        error: `Invalid file format detected. This appears to be a web download with a platform suffix (like :small, _small, :thumb, _thumb). Please rename the file to remove the suffix (e.g., "image.jpg_small" → "image.jpg") and try again.`,
+      }
+    }
+
+    return {
+      valid: false,
+      error: `Unsupported file format: .${extension}. Please use a standard image format like .jpg, .png, or .webp.`,
+    }
+  }
+
   return { valid: true }
 }

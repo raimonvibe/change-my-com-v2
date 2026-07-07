@@ -7,7 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useUserData } from "../../hooks/useUserData";
-import { API_URL } from "../../env";
+import { apiFetch } from "../../lib/apiClient";
 import { PAYMENTS_ENABLED } from "../../lib/paymentsConfig";
 
 export default function AccountPage() {
@@ -35,9 +35,11 @@ export default function AccountPage() {
     setToggleLoading(true);
     setToggleError(null);
     try {
-      const res = await fetch(`${API_URL}/api/user/toggle-auto-renewal`, {
+      // retries: 0 — the toggle is not idempotent, so never auto-retry it
+      const res = await apiFetch('/api/user/toggle-auto-renewal', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.idToken}` },
+        token: session.idToken as string,
+        retries: 0,
       });
 
       const data = await res.json().catch(() => ({})) as { success?: boolean; autoRenewal?: boolean; error?: string };
