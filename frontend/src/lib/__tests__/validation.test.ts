@@ -13,6 +13,7 @@ import {
   validateQuality,
   validateSharpness,
   validateDimensions,
+  validateFileExtension,
 } from '../validation'
 describe('Validation Utilities', () => {
   describe('File Size Validation', () => {
@@ -214,6 +215,43 @@ describe('Validation Utilities', () => {
     it('should accept boundary values', () => {
       expect(validateDimensions(16, 16).valid).toBe(true)
       expect(validateDimensions(8000, 8000).valid).toBe(true)
+    })
+  })
+
+  describe('File Extension Validation', () => {
+    it('should accept standard image extensions', () => {
+      expect(validateFileExtension('photo.jpg').valid).toBe(true)
+      expect(validateFileExtension('photo.png').valid).toBe(true)
+      expect(validateFileExtension('photo.webp').valid).toBe(true)
+      expect(validateFileExtension('animation.gif').valid).toBe(true)
+    })
+
+    it('should be case-insensitive', () => {
+      expect(validateFileExtension('PHOTO.JPG').valid).toBe(true)
+      expect(validateFileExtension('Photo.PnG').valid).toBe(true)
+    })
+
+    it('should reject files without an extension', () => {
+      const result = validateFileExtension('')
+      expect(result.valid).toBe(false)
+      expect(result.error).toContain('no extension')
+    })
+
+    it('should reject unsupported extensions with a helpful message', () => {
+      const result = validateFileExtension('document.pdf')
+      expect(result.valid).toBe(false)
+      expect(result.error).toContain('.pdf')
+      expect(result.error).toContain('Unsupported file format')
+    })
+
+    it('should detect web download platform suffixes', () => {
+      const colonSuffix = validateFileExtension('image.jpg:small')
+      expect(colonSuffix.valid).toBe(false)
+      expect(colonSuffix.error).toContain('platform suffix')
+
+      const underscoreSuffix = validateFileExtension('image.jpg_thumb')
+      expect(underscoreSuffix.valid).toBe(false)
+      expect(underscoreSuffix.error).toContain('platform suffix')
     })
   })
 

@@ -33,6 +33,10 @@ const customJestConfig = {
     '!src/app/convert/page.tsx',  // Redirect page - simple redirect, no complex logic
     '!src/app/account/page.tsx',  // Covered by e2e/account-authenticated.spec.ts
     '!src/app/billing/page.tsx',  // Covered by e2e/pricing.spec.ts
+    // Converter UI extracted from src/app/page.tsx - same E2E coverage applies
+    '!src/components/convert/**',      // Presentational pieces of the converter page
+    '!src/hooks/useConversionQueue.ts', // Queue orchestration - covered by e2e/convert-anonymous.spec.ts
+    '!src/lib/conversionApi.ts',        // Conversion request pipeline - covered by E2E conversions
   ],
 
   coverageThreshold: {
