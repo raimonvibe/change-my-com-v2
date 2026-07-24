@@ -35,7 +35,7 @@
   "dependencies": {
     "@stripe/stripe-js": "^9.9.0",
     "jszip": "^3.10.1",
-    "lucide-react": "^1.24.0",
+    "lucide-react": "^1.25.0",
     "next": "^16.2.9",
     "next-auth": "^4.24.15",
     "react": "^19.2.7",
