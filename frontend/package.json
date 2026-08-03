@@ -45,9 +45,9 @@
     "test:fixtures": "node e2e/fixtures/create-fixtures.js"
   },
   "dependencies": {
-    "@stripe/stripe-js": "^9.12.0",
+    "@stripe/stripe-js": "^9.12.1",
     "jszip": "^3.10.1",
-    "lucide-react": "^1.27.0",
+    "lucide-react": "^1.28.0",
     "next": "^16.2.12",
     "next-auth": "^4.24.15",
     "react": "^19.2.8",
@@ -57,14 +57,14 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.5.2",
     "@types/jest": "^30.0.0",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.5.4",
