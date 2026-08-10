@@ -44,3 +44,13 @@ CREATE TABLE IF NOT EXISTS credit_ledger (
 );
 
 CREATE INDEX IF NOT EXISTS idx_credit_ledger_user ON credit_ledger(user_id);
+
+-- 3. V2 adds app_user.version as nullable, but it backs @Version optimistic
+--    locking and Hibernate creates it NOT NULL. A database built by these
+--    migrations would therefore accept a NULL where one built by Hibernate,
+--    which is what production is, would not. Backfill first so the constraint
+--    can be applied to existing rows.
+UPDATE app_user SET version = 0 WHERE version IS NULL;
+
+ALTER TABLE app_user ALTER COLUMN version SET DEFAULT 0;
+ALTER TABLE app_user ALTER COLUMN version SET NOT NULL;
