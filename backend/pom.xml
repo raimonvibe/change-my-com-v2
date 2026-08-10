@@ -32,6 +32,21 @@
 		<maven.compiler.target>17</maven.compiler.target>
 		<flyway.version>13.2.0</flyway.version>
 	</properties>
+	<!--
+		The Spring Boot 4.1 parent does not manage Testcontainers versions, so the
+		BOM is imported here to keep the modules below in step with each other.
+	-->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>testcontainers-bom</artifactId>
+				<version>2.0.5</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -93,6 +108,37 @@
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!--
+			Testcontainers: the rest of the suite runs on H2 with Flyway off and
+			the schema built by Hibernate create-drop, so the migrations in
+			db/migration are never executed by a test. They are Postgres-only
+			(BIGSERIAL), which is why they cannot run on H2 in the first place.
+			These let PostgresMigrationTest exercise them on the real engine.
+			Versions come from the Spring Boot parent.
+		-->
+		<!--
+			Spring Boot 4 split the autoconfigurations into separate modules, and
+			this one is absent, so nothing ever triggers Flyway: flyway-core is on
+			the classpath but no code or autoconfiguration calls migrate(). Scoped
+			to test deliberately. Adding it at compile scope would start running
+			migrations against the production database on the next deploy, which is
+			a separate decision from testing them. See PostgresMigrationTest.
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-flyway</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
