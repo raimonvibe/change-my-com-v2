@@ -28,9 +28,21 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Lint (frontend)
+        working-directory: frontend
+        run: npm run lint
+
       - name: Test (frontend)
         working-directory: frontend
         run: npm run test:ci
+
+      # Runs last because it is the slowest, and because a type error is
+      # easier to read from tsc than from the middle of a Next build. Vercel
+      # was the only thing building the frontend until now, which is why a
+      # build broken in July went unnoticed until a deploy failed.
+      - name: Build (frontend)
+        working-directory: frontend
+        run: npm run build
 
       # -------- Backend --------
       - name: Set up Java 17 (Temurin) + Maven cache
