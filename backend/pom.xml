@@ -30,7 +30,7 @@
 		<java.version>17</java.version>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
-		<flyway.version>13.2.0</flyway.version>
+		<flyway.version>13.3.0</flyway.version>
 	</properties>
 	<!--
 		The Spring Boot 4.1 parent does not manage Testcontainers versions, so the
@@ -82,7 +82,7 @@
 		<dependency>
 			<groupId>com.stripe</groupId>
 			<artifactId>stripe-java</artifactId>
-			<version>33.2.0</version>
+			<version>33.3.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.api-client</groupId>
