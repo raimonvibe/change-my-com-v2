@@ -15,6 +15,10 @@ updates:
       npm-minor-patch:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+    # typescript-eslint 8.x peers TypeScript <6.1.0; 6.0.3 is the latest compatible stable.
+    ignore:
+      - dependency-name: "typescript"
+        versions: [">=6.1.0"]
   - package-ecosystem: "maven"
     directory: "/backend" # De root directory van je backend
     schedule:
