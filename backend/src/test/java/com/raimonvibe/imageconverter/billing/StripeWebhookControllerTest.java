@@ -478,32 +478,20 @@ public class StripeWebhookControllerTest {
     // ==================== ERROR HANDLING TESTS ====================
 
     @Test
-    @DisplayName("SECURITY NOTE: Malformed JSON causes 500 error (needs improvement)")
+    @DisplayName("SECURITY: Should reject malformed JSON webhook with 400")
     void testMalformedJsonWebhook() throws Exception {
-        // SECURITY NOTE: Malformed JSON currently causes ServletException (500 error)
-        // Stripe's Webhook.constructEvent() throws JsonSyntaxException for invalid JSON
-        //
-        // RECOMMENDATION: Add try-catch in controller to return 400 for malformed JSON
-        // Current behavior: 500 ServletException (not ideal but doesn't expose data)
-        //
-        // In production, this is mitigated because:
-        // 1. Only Stripe sends to this endpoint (controlled source)
-        // 2. Signature verification happens first (invalid signatures return 400)
-        // 3. Real webhooks from Stripe are always valid JSON
-
+        // Malformed JSON must not reach credit-granting logic. Reject with 400.
         String malformedJson = "{invalid json payload";
 
-        // Current behavior: ServletException thrown (500 error)
-        // This is documented behavior, not a critical security issue
-        assertThrows(Exception.class, () -> {
-            mockMvc.perform(post("/stripe/webhook")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .header("Stripe-Signature", "t=123,v1=sig")
-                    .content(malformedJson));
-        });
+        mockMvc.perform(post("/stripe/webhook")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Stripe-Signature", "t=123,v1=sig")
+                .content(malformedJson))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().string("Invalid payload"));
 
-        // No sensitive data is leaked even though it's a 500 error
         verify(userService, never()).activateSubscription(any(), anyInt());
+        verify(webhookEventRepository, never()).save(any());
     }
 
     @Test

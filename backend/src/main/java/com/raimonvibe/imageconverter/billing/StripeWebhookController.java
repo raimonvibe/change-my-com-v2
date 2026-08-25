@@ -65,6 +65,13 @@ public class StripeWebhookController {
     logger.info("Webhook payload length: {} bytes", payloadBytes.length);
     logEventMetadata(payload);
 
+    // Reject clearly malformed JSON before calling the Stripe SDK so clients get
+    // a 400 instead of an unhandled 500 when constructEvent throws on parse.
+    if (!isWellFormedJson(payload)) {
+      logger.error("SECURITY: Malformed webhook JSON payload rejected");
+      return ResponseEntity.status(400).body("Invalid payload");
+    }
+
     Event event;
     try {
       event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
@@ -194,6 +201,15 @@ public class StripeWebhookController {
       }
     } catch (Exception e) {
       logger.warn("Could not parse payload JSON for debugging: {}", e.getMessage());
+    }
+  }
+
+  private static boolean isWellFormedJson(String payload) {
+    try {
+      com.google.gson.JsonParser.parseString(payload);
+      return true;
+    } catch (com.google.gson.JsonSyntaxException e) {
+      return false;
     }
   }
 
