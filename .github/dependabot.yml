@@ -16,9 +16,13 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
     # typescript-eslint 8.x peers TypeScript <6.1.0; 6.0.3 is the latest compatible stable.
+    # eslint-plugin-react (via eslint-config-next) still calls context.getFilename(),
+    # which ESLint 10 removed. Stay on 9 until Next.js supports ESLint 10.
     ignore:
       - dependency-name: "typescript"
         versions: [">=6.1.0"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "maven"
     directory: "/backend" # De root directory van je backend
     schedule:
