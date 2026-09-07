@@ -69,7 +69,7 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Security headers are now handled by middleware.ts for nonce-based CSP
+  // Security headers are now handled by proxy.ts for nonce-based CSP
   // This provides better security by generating unique nonces per request
 };
 

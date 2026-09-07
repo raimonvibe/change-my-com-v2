@@ -1,13 +1,13 @@
 /**
- * Middleware Test Suite
+ * Proxy Test Suite
  * Tests the CSP nonce generation and security headers
  * @jest-environment node
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { middleware, config } from '../middleware';
+import { proxy, config } from '../proxy';
 
-describe('CSP Middleware', () => {
+describe('CSP Proxy', () => {
   let request: NextRequest;
   const mockUUID = 'test-uuid-1234-5678-90ab-cdef';
 
@@ -25,14 +25,14 @@ describe('CSP Middleware', () => {
 
   describe('Nonce Generation', () => {
     it('should generate a unique nonce for each request', () => {
-      const response = middleware(request);
+      const response = proxy(request);
 
       expect(crypto.randomUUID).toHaveBeenCalled();
       expect(response.headers.get('Content-Security-Policy')).toContain('nonce-');
     });
 
     it('should set x-nonce header on request', () => {
-      const response = middleware(request);
+      const response = proxy(request);
 
       // The nonce should be base64 encoded UUID
       const expectedNonce = Buffer.from(mockUUID).toString('base64');
@@ -45,9 +45,9 @@ describe('CSP Middleware', () => {
 
       (crypto.randomUUID as jest.Mock).mockImplementation(() => uuids[callCount++]);
 
-      const response1 = middleware(request);
-      const response2 = middleware(request);
-      const response3 = middleware(request);
+      const response1 = proxy(request);
+      const response2 = proxy(request);
+      const response3 = proxy(request);
 
       const nonce1 = Buffer.from(uuids[0]).toString('base64');
       const nonce2 = Buffer.from(uuids[1]).toString('base64');
@@ -61,20 +61,20 @@ describe('CSP Middleware', () => {
 
   describe('Content Security Policy', () => {
     it('should set Content-Security-Policy header', () => {
-      const response = middleware(request);
+      const response = proxy(request);
 
       expect(response.headers.has('Content-Security-Policy')).toBe(true);
     });
 
     it('should include default-src self directive', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain("default-src 'self'");
     });
 
     it('should include script-src with nonce and strict-dynamic', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain("script-src 'self'");
@@ -83,7 +83,7 @@ describe('CSP Middleware', () => {
     });
 
     it('should allow scripts from trusted domains', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain('https://accounts.google.com');
@@ -91,7 +91,7 @@ describe('CSP Middleware', () => {
     });
 
     it('should include style-src with unsafe-inline (no nonce — nonce blocks React inline styles)', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy')!;
       const styleSrc = csp.match(/style-src[^;]+/)![0];
 
@@ -101,7 +101,7 @@ describe('CSP Middleware', () => {
     });
 
     it('should allow images from trusted sources', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain("img-src 'self' data: blob:");
@@ -110,7 +110,7 @@ describe('CSP Middleware', () => {
     });
 
     it('should allow fonts from trusted sources', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain("font-src 'self' data:");
@@ -118,7 +118,7 @@ describe('CSP Middleware', () => {
     });
 
     it('should allow connections to API and trusted services', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain('connect-src');
@@ -129,7 +129,7 @@ describe('CSP Middleware', () => {
     });
 
     it('should allow iframes from trusted domains', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain('frame-src');
@@ -138,42 +138,42 @@ describe('CSP Middleware', () => {
     });
 
     it('should block all plugins with object-src none', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain("object-src 'none'");
     });
 
     it('should restrict base-uri to self', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain("base-uri 'self'");
     });
 
     it('should allow form submissions to self and Formspree', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain("form-action 'self' https://formspree.io");
     });
 
     it('should prevent framing with frame-ancestors none', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain("frame-ancestors 'none'");
     });
 
     it('should upgrade insecure requests', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain('upgrade-insecure-requests');
     });
 
     it('should include media-src directive', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain("media-src 'self'");
@@ -182,7 +182,7 @@ describe('CSP Middleware', () => {
 
   describe('Other Security Headers', () => {
     it('should set Strict-Transport-Security header', () => {
-      const response = middleware(request);
+      const response = proxy(request);
 
       expect(response.headers.get('Strict-Transport-Security')).toBe(
         'max-age=31536000; includeSubDomains; preload'
@@ -190,25 +190,25 @@ describe('CSP Middleware', () => {
     });
 
     it('should set X-Frame-Options header', () => {
-      const response = middleware(request);
+      const response = proxy(request);
 
       expect(response.headers.get('X-Frame-Options')).toBe('DENY');
     });
 
     it('should set X-Content-Type-Options header', () => {
-      const response = middleware(request);
+      const response = proxy(request);
 
       expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
     });
 
     it('should set Referrer-Policy header', () => {
-      const response = middleware(request);
+      const response = proxy(request);
 
       expect(response.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
     });
   });
 
-  describe('Middleware Configuration', () => {
+  describe('Proxy Configuration', () => {
     it('should have correct matcher configuration', () => {
       expect(config.matcher).toBeDefined();
       expect(Array.isArray(config.matcher)).toBe(true);
@@ -237,7 +237,7 @@ describe('CSP Middleware', () => {
 
   describe('Response Handling', () => {
     it('should return a NextResponse', () => {
-      const response = middleware(request);
+      const response = proxy(request);
 
       expect(response).toBeInstanceOf(NextResponse);
     });
@@ -248,7 +248,7 @@ describe('CSP Middleware', () => {
         { method: 'POST' }
       );
 
-      const response = middleware(postRequest);
+      const response = proxy(postRequest);
 
       expect(response).toBeDefined();
     });
@@ -258,7 +258,7 @@ describe('CSP Middleware', () => {
 
       paths.forEach(path => {
         const req = new NextRequest(new URL(`https://www.change-my.com${path}`));
-        const res = middleware(req);
+        const res = proxy(req);
 
         expect(res.headers.has('Content-Security-Policy')).toBe(true);
       });
@@ -267,7 +267,7 @@ describe('CSP Middleware', () => {
 
   describe('CSP Format', () => {
     it('should use semicolons to separate directives', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain(';');
@@ -278,14 +278,14 @@ describe('CSP Middleware', () => {
     });
 
     it('should not have trailing semicolon', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp?.endsWith(';')).toBe(false);
     });
 
     it('should use single quotes around keywords', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       expect(csp).toContain("'self'");
@@ -298,7 +298,7 @@ describe('CSP Middleware', () => {
 
   describe('XSS Protection', () => {
     it('should not include unsafe-eval in script-src', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       // We want to avoid unsafe-eval for better security
@@ -311,7 +311,7 @@ describe('CSP Middleware', () => {
     });
 
     it('should not include unsafe-inline in script-src', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       const scriptSrc = csp?.match(/script-src[^;]+/)?.[0];
@@ -321,7 +321,7 @@ describe('CSP Middleware', () => {
     });
 
     it('should use nonce-based approach for scripts', () => {
-      const response = middleware(request);
+      const response = proxy(request);
       const csp = response.headers.get('Content-Security-Policy');
 
       const scriptSrc = csp?.match(/script-src[^;]+/)?.[0];

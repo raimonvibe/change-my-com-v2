@@ -112,7 +112,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Get the nonce from the request headers set by middleware
+  // Get the nonce from the request headers set by the proxy
   const headersList = await headers();
   const nonce = headersList.get('x-nonce') || '';
 
