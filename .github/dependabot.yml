@@ -33,3 +33,4 @@ updates:
       maven-minor-patch:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+
