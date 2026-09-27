@@ -30,7 +30,7 @@
 		<java.version>17</java.version>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
-		<flyway.version>13.6.0</flyway.version>
+		<flyway.version>13.7.0</flyway.version>
 		<!--
 			Spring Boot 4.1.1 still manages Tomcat 11.0.24. 11.0.25+ fixes
 			CVE-2026-65182, CVE-2026-65905, and CVE-2026-68525.
@@ -148,7 +148,7 @@
 		<dependency>
 			<groupId>com.bucket4j</groupId>
 			<artifactId>bucket4j_jdk17-core</artifactId>
-			<version>8.19.0</version>
+			<version>8.20.0</version>
 		</dependency>
 		<!-- Flyway 12.0.3: fixes Snyk CWE-770 (transitive jackson). Spring Boot 4.0.3's jackson-core@3.0.4 has no supported fix yet; upgrade SB when available. -->
 		<dependency>
