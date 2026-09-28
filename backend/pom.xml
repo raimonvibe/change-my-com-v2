@@ -30,7 +30,7 @@
 		<java.version>17</java.version>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
-		<flyway.version>13.7.0</flyway.version>
+		<flyway.version>13.8.0</flyway.version>
 		<!--
 			Spring Boot 4.1.1 still manages Tomcat 11.0.24. 11.0.25+ fixes
 			CVE-2026-65182, CVE-2026-65905, and CVE-2026-68525.
