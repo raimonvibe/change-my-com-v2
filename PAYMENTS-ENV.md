@@ -19,3 +19,5 @@ Paid checkout is **off** unless you set both flags below. The API always enforce
 ## Unchanged
 
 Stripe secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PUBLISHABLE_KEY`, etc.) are still required for webhooks and existing subscribers when you use Stripe; toggling checkout does not remove those.
+
+Before enabling payments, set the webhook endpoint's API version as described in `STRIPE-WEBHOOK-SETUP.md`.
