@@ -20,6 +20,7 @@ import { apiFetch } from '../lib/apiClient';
  */
 export function useUserData() {
   const { data: session, status } = useSession();
+  const idToken = session?.idToken as string | undefined;
   const setAuth = useAuthStore(s => s.setAuth);
   const reset = useAuthStore(s => s.reset);
   const [loading, setLoading] = useState(false);
@@ -77,26 +78,27 @@ export function useUserData() {
     if (status === 'unauthenticated') {
       // User logged out - clear stale auth data
       reset();
-      setError(null);
       return;
     }
 
-    if (status === 'authenticated' && session?.idToken) {
-      // User logged in - fetch fresh user data
-      fetchUserData(session.idToken as string);
+    if (status === 'authenticated' && idToken) {
+      // User logged in - fetch fresh user data (syncing with the backend is what this effect is for)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchUserData(idToken);
     }
-  }, [status, session?.idToken, reset, fetchUserData]);
+  }, [status, idToken, reset, fetchUserData]);
 
   // Manual refetch function for explicit updates (e.g., after conversion)
   const refetch = useCallback(async () => {
-    if (session?.idToken) {
-      await fetchUserData(session.idToken as string);
+    if (idToken) {
+      await fetchUserData(idToken);
     }
-  }, [session?.idToken, fetchUserData]);
+  }, [idToken, fetchUserData]);
 
   return {
     loading,
-    error,
+    // Hide stale errors once the user has logged out
+    error: status === 'unauthenticated' ? null : error,
     refetch,
   };
 }
