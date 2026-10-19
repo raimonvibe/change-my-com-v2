@@ -36,6 +36,11 @@
 			CVE-2026-65182, CVE-2026-65905, and CVE-2026-68525.
 		-->
 		<tomcat.version>11.0.26</tomcat.version>
+		<!--
+			Spring Boot 4.1.1 still manages Jackson 3.1.5. 3.1.7+ fixes the
+			jackson-core and jackson-databind advisories reported by OSV-Scanner.
+		-->
+		<jackson-bom.version>3.1.8</jackson-bom.version>
 	</properties>
 	<!--
 		The Spring Boot 4.1 parent does not manage Testcontainers versions, so the
