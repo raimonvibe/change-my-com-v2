@@ -34,3 +34,13 @@ updates:
       maven-minor-patch:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
