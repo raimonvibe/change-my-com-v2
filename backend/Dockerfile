@@ -36,6 +36,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && which convert && which identify && convert -version | head -1
 
 # Create app user (Debian/Ubuntu)
+# Distrust eMudhra (emSign) roots in Java's own trust store: their intermediate keys were
+# compromised (Oct 2026) and Java ignores the OS ca-certificates bundle.
+RUN keytool -list -v -cacerts -storepass changeit | sed -n 's/^Alias name: //p' | grep -i emsign \
+    | while IFS= read -r a; do keytool -delete -cacerts -storepass changeit -alias "$a"; done \
+    && ! keytool -list -cacerts -storepass changeit | grep -qi emsign
 RUN groupadd --system spring && useradd --system --gid spring spring
 
 # Set working directory
