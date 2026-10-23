@@ -10,7 +10,7 @@ updates:
     directory: "/frontend" # De root directory van je frontend
     schedule:
       interval: "weekly"
-      day: "monday"
+      day: "saturday"
     open-pull-requests-limit: 10 # Voorkomt dat wekelijkse updates geblokkeerd worden door de standaardlimiet van 5
     groups:
       npm-minor-patch:
@@ -28,7 +28,7 @@ updates:
     directory: "/backend" # De root directory van je backend
     schedule:
       interval: "weekly"
-      day: "monday"
+      day: "saturday"
     open-pull-requests-limit: 10 # Voorkomt dat wekelijkse updates geblokkeerd worden door de standaardlimiet van 5
     groups:
       maven-minor-patch:
@@ -38,9 +38,9 @@ updates:
     directory: "/backend"
     schedule:
       interval: "weekly"
-      day: "monday"
+      day: "saturday"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
+      day: "saturday"
