@@ -1,5 +1,5 @@
 # Multi-stage build for Spring Boot app
-FROM eclipse-temurin:17-jdk-alpine as builder
+FROM eclipse-temurin:23-jdk-alpine as builder
 
 # Set working directory
 WORKDIR /app
@@ -23,7 +23,7 @@ COPY src src
 RUN ./mvnw clean package -DskipTests
 
 # Runtime stage: Ubuntu Jammy; Java 25 JRE per Snyk recommendation (jar built with 17 runs on 25)
-FROM eclipse-temurin:25.0.4.1_1-jre-jammy
+FROM eclipse-temurin:26.0.2.1_1-jre-jammy
 
 # Install ImageMagick 6 (convert, identify), curl, HEIC/WebP deps. No Alpine = no Alpine zlib/libpng vulns.
 RUN apt-get update && apt-get install -y --no-install-recommends \
