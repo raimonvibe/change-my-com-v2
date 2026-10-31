@@ -55,6 +55,15 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<!--
+				google-api-client 2.9.1 pulls in Guava 33.1.0-jre, which is affected by
+				GHSA-xxph-c9ww-hj94 (CVE-2026-102554). 33.7.2-jre is the first fixed release.
+			-->
+			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>33.7.2-jre</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
