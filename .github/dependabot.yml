@@ -39,6 +39,10 @@ updates:
     schedule:
       interval: "weekly"
       day: "saturday"
+    # Temurin majors move by hand, and only to LTS releases (21, 25, ...).
+    ignore:
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

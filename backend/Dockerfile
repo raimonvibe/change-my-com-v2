@@ -1,5 +1,6 @@
 # Multi-stage build for Spring Boot app
-FROM eclipse-temurin:17-jdk-alpine as builder
+# Builder on the same LTS as the runtime; java.version 17 keeps the bytecode target.
+FROM eclipse-temurin:25-jdk-alpine AS builder
 
 # Set working directory
 WORKDIR /app
