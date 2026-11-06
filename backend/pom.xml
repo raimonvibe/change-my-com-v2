@@ -62,7 +62,7 @@
 			<dependency>
 				<groupId>com.google.guava</groupId>
 				<artifactId>guava</artifactId>
-				<version>33.7.2-jre</version>
+				<version>33.8.0-jre</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -162,7 +162,7 @@
 		<dependency>
 			<groupId>com.bucket4j</groupId>
 			<artifactId>bucket4j_jdk17-core</artifactId>
-			<version>8.21.0</version>
+			<version>8.22.0</version>
 		</dependency>
 		<!-- Flyway 12.0.3: fixes Snyk CWE-770 (transitive jackson). Spring Boot 4.0.3's jackson-core@3.0.4 has no supported fix yet; upgrade SB when available. -->
 		<dependency>
