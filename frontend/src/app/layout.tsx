@@ -102,6 +102,26 @@ export const metadata: Metadata = {
   category: 'technology',
 };
 
+const TRANSLATE_DOM_PATCH = `(function(){
+  if (typeof Node !== 'function' || !Node.prototype) return;
+  var origRemove = Node.prototype.removeChild;
+  Node.prototype.removeChild = function(child) {
+    if (child.parentNode !== this) {
+      if (child.parentNode) return child.parentNode.removeChild(child);
+      return child;
+    }
+    return origRemove.apply(this, arguments);
+  };
+  var origInsert = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function(newNode, ref) {
+    if (ref && ref.parentNode !== this) {
+      if (ref.parentNode) return ref.parentNode.insertBefore(newNode, ref);
+      return origInsert.call(this, newNode, null);
+    }
+    return origInsert.apply(this, arguments);
+  };
+})();`;
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -153,6 +173,17 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/*
+          Browser translation (e.g. Chrome's Google Translate) wraps text nodes in <font>
+          elements, so React's later removeChild/insertBefore calls target nodes that are
+          no longer direct children and throw NotFoundError, crashing the page after a
+          conversion. Make those calls tolerant instead of disabling translation.
+          See https://github.com/facebook/react/issues/11538
+        */}
+        <script
+          nonce={nonce}
+          dangerouslySetInnerHTML={{ __html: TRANSLATE_DOM_PATCH }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
