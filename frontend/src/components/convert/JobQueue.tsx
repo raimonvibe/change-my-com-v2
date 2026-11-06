@@ -76,7 +76,12 @@ export function JobQueue({ jobs, target, gifFormats, onRemove, onClearAll, onPre
                     <Trash2 size={20} className="sm:size-5" aria-hidden="true" />
                   </button>
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    {/*
+                      translate="no": filename, size and format code need no translation, and
+                      browser translation swaps these text nodes for its own copies, which then
+                      stop following React updates (e.g. the target stayed "WEBP" after picking JPG).
+                    */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3" translate="no">
                       <div className="text-sm font-medium truncate">{j.file.name}</div>
                       <div className="text-xs text-slate-500">
                         {j.file.size > 1024 * 1024
@@ -92,7 +97,7 @@ export function JobQueue({ jobs, target, gifFormats, onRemove, onClearAll, onPre
                     <div className="flex-1" role="status" aria-live="polite">
                       <div className="flex items-center gap-2 text-xs text-blue-600 mb-1">
                         <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full" aria-hidden="true"></div>
-                        Converting... {j.progress !== undefined ? `${j.progress}%` : ''}
+                        Converting... <span translate="no">{j.progress !== undefined ? `${j.progress}%` : ''}</span>
                       </div>
                       {j.progress !== undefined && (
                         <progress
