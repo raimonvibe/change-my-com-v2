@@ -1,0 +1,62 @@
+name: Dependabot auto-merge
+
+# Squash-merges Dependabot's minor and patch PRs once every other check on
+# the PR has passed. Major bumps, failed checks and PRs without any other
+# checks are left open for a human.
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Read Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v3
+
+      - name: Wait for checks, then merge
+        if: steps.meta.outputs.update-type == 'version-update:semver-minor' || steps.meta.outputs.update-type == 'version-update:semver-patch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          SELF: ${{ github.workflow }}
+        run: |
+          # Counts every check except this workflow's own: "total pending failed".
+          filter='[.statusCheckRollup[] | select((.workflowName // "") != env.SELF)
+            | if .__typename == "CheckRun" then
+                (if .status != "COMPLETED" then "pending"
+                 elif (.conclusion | IN("SUCCESS","SKIPPED","NEUTRAL")) then "ok" else "fail" end)
+              else
+                (if (.state | IN("PENDING","EXPECTED")) then "pending"
+                 elif .state == "SUCCESS" then "ok" else "fail" end)
+              end]
+            | "\(length) \(map(select(. == "pending")) | length) \(map(select(. == "fail")) | length)"'
+
+          # Give the other workflows and Vercel a moment to register their checks.
+          sleep 60
+          total=0
+          for attempt in $(seq 1 80); do
+            read -r total pending failed < <(gh pr view "$PR_URL" --json statusCheckRollup --jq "$filter")
+            echo "checks: $total total, $pending pending, $failed failed"
+            if [ "$failed" -gt 0 ]; then
+              echo "A check failed; leaving the PR for review."
+              exit 0
+            fi
+            if [ "$total" -gt 0 ] && [ "$pending" -eq 0 ]; then
+              echo "All checks passed; merging."
+              gh pr merge "$PR_URL" --squash
+              exit 0
+            fi
+            sleep 30
+          done
+          if [ "$total" -eq 0 ]; then
+            echo "No other checks ran on this PR; leaving it for review."
+          else
+            echo "Checks still pending after the wait; leaving the PR for review."
+          fi
