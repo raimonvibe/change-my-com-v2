@@ -42,16 +42,16 @@
   "dependencies": {
     "@stripe/stripe-js": "^10.2.1",
     "jszip": "^3.10.2",
-    "lucide-react": "^1.68.0",
+    "lucide-react": "^1.70.0",
     "next": "^16.4.5",
     "next-auth": "^4.24.15",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-dropzone": "^20.1.4",
-    "zustand": "^5.0.16"
+    "react-dropzone": "^20.2.0",
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.64.1",
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
